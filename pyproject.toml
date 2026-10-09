@@ -16,6 +16,8 @@ dependencies = [
   "rich",
   "pytest",
   "sxtwl==2.0.7",
+  # 第二实现：独立命理库，仅用于 differential testing 交叉校验，不参与生产排盘
+  "lunar_python==1.4.8",
   "fastapi",
   "uvicorn"
 ]

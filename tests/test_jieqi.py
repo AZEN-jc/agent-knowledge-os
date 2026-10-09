@@ -4,7 +4,7 @@
 而不是在节气当天的 00:00 切换。
 """
 
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta, timezone
 
 import pytest
 import sxtwl
@@ -130,11 +130,41 @@ def test_every_jie_switches_month_branch_at_its_moment(year):
 
 
 def test_mangzhong_moment_is_minute_accurate():
-    # 1990 芒种 06-06 06:46
-    assert month_branch(at(1990, 6, 6, 6, 45)) == "巳"
-    assert month_branch(at(1990, 6, 6, 6, 47)) == "午"
-    assert month_pillar(at(1990, 6, 6, 6, 45)) == ("辛", "巳")
-    assert month_pillar(at(1990, 6, 6, 6, 47)) == ("壬", "午")
+    """1990 芒种 = 06-06 06:46 北京标准时间；当年夏季行夏令时，当地钟面是 07:46。"""
+    # 钟面 07:45 仍在芒种前，07:47 已进入午月
+    assert month_branch(at(1990, 6, 6, 7, 45)) == "巳"
+    assert month_branch(at(1990, 6, 6, 7, 47)) == "午"
+    assert month_pillar(at(1990, 6, 6, 7, 45)) == ("辛", "巳")
+    assert month_pillar(at(1990, 6, 6, 7, 47)) == ("壬", "午")
+    # 钟面 06:47 换算成标准时是 05:47，仍在芒种前
+    assert month_branch(at(1990, 6, 6, 6, 47)) == "巳"
+
+
+# ── 节气时刻的时区口径（回归：曾被当成当地夏令时，整体挪前一小时）────────
+
+
+def test_solar_terms_use_fixed_beijing_standard_time():
+    """sxtwl 给的是北京标准时间（固定 UTC+8），必须原样还原为绝对时刻。"""
+    mangzhong = next(term for term in solar_terms(1990) if term.name == "芒种")
+
+    assert mangzhong.moment.utcoffset() == timedelta(hours=8)
+    assert mangzhong.moment.astimezone(UTC) == datetime(
+        1990, 6, 5, 22, 46, 17, tzinfo=UTC
+    )
+    # 1990 年 6 月中国行夏令时，当地钟面比标准时快一小时
+    assert mangzhong.moment.astimezone(BEIJING).strftime("%H:%M") == "07:46"
+
+
+def test_dst_era_summer_birth_is_compared_on_the_absolute_instant():
+    """同一绝对时刻的两种写法必须得到同一月柱。
+
+    1990-06-06 07:47（上海夏令时钟面，UTC+9）与 1990-06-06 06:47（北京标准时，
+    UTC+8）是同一瞬间；若拿墙上时间直接比节气表会得出不同结果。
+    """
+    local_dst = month_pillar(at(1990, 6, 6, 7, 47))
+    fixed_standard = month_pillar(datetime(1990, 6, 6, 6, 47, tzinfo=timezone(timedelta(hours=8))))
+
+    assert local_dst == fixed_standard == ("壬", "午")
 
 
 def test_month_stem_follows_five_tiger_rule_including_zi_and_chou():

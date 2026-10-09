@@ -5,17 +5,22 @@ sxtwl 的 ``getYearGZ()`` / ``getMonthGZ()`` 只按**日期**分界：立春当�
 于是节气日当天、节气时刻之前出生的人会拿到错的年柱和月柱。本模块自己取
 节气时刻来判断，不沿用 sxtwl 的干支结果。
 
-时刻语义：节气是天文事件，对应唯一的绝对时刻。sxtwl 给出的是北京时间
-（UTC+8），这里统一按绝对时刻比较，所以出生时刻的时区不会污染节气判断；
-真太阳时只影响日柱和时柱，不影响年月分界。这是本项目的显式选择，其他
-流派若按当地视时比较节气，属于另一套口径。
+时刻语义：节气是天文事件，对应唯一的绝对时刻。sxtwl 给出的是**北京标准时间
+（固定 UTC+8）**的天文换算结果，不含历史夏令时，所以这里必须用固定 +08:00
+去还原绝对时刻 —— 不能用 ``ZoneInfo("Asia/Shanghai")``，否则 1986-1991 年夏季
+会被 tzdata 当作 UTC+9，把节气时刻整体挪前一小时。
+
+出生时刻则按出生地当地**民用时**解释（含历史夏令时），两边都归到绝对时刻上
+比较。因此时区会真实影响年月分界：同一墙上时间在东京与上海出生，可能落在
+不同的干支年、月。这是有意为之，不是噪声。真太阳时只影响日柱和时柱，
+不影响年月分界。
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from zoneinfo import ZoneInfo
 
@@ -24,7 +29,11 @@ import sxtwl
 STEMS = "甲乙丙丁戊己庚辛壬癸"
 BRANCHES = "子丑寅卯辰巳午未申酉戌亥"
 
+# 解释**用户输入的墙上时间**时用：带历史夏令时的当地民用时。
 BEIJING = ZoneInfo("Asia/Shanghai")
+
+# 解释 **sxtwl 输出**时用：北京标准时间，固定 UTC+8，不含夏令时。
+SXTWL_ZONE = timezone(timedelta(hours=8))
 
 # sxtwl 的 jqIndex → 节气名。0=冬至，1=小寒，2=大寒，3=立春，依此类推。
 JIEQI_NAMES = (
@@ -52,7 +61,10 @@ class SolarTerm:
 
 @lru_cache(maxsize=64)
 def solar_terms(year: int) -> tuple[SolarTerm, ...]:
-    """返回公历年 ``year`` 立春起、到次年立春为止的 25 个节气。"""
+    """返回公历年 ``year`` 立春起、到次年立春为止的 25 个节气。
+
+    时刻一律按北京标准时间（固定 UTC+8）解释，见模块 docstring。
+    """
     terms = []
     for entry in sxtwl.getJieQiByYear(year):
         converted = sxtwl.JD2DD(entry.jd)
@@ -62,7 +74,7 @@ def solar_terms(year: int) -> tuple[SolarTerm, ...]:
                 moment=datetime(
                     int(converted.Y), int(converted.M), int(converted.D),
                     int(converted.h), int(converted.m), int(converted.s),
-                    tzinfo=BEIJING,
+                    tzinfo=SXTWL_ZONE,
                 ),
             )
         )

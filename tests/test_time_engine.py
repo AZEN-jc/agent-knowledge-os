@@ -76,8 +76,8 @@ def test_start_age_counts_to_the_next_jie_when_forward():
 
     assert first["direction"] == "forward"
     assert first["start_boundary"] == "小暑"
-    assert first["start_offset_days"] == pytest.approx(22.209, abs=0.01)
-    assert first["start_age_years"] == pytest.approx(7.40, abs=0.01)
+    assert first["start_offset_days"] == pytest.approx(22.250, abs=0.01)
+    assert first["start_age_years"] == pytest.approx(7.42, abs=0.01)
 
 
 def test_start_age_counts_to_the_previous_jie_when_backward():
@@ -86,8 +86,8 @@ def test_start_age_counts_to_the_previous_jie_when_backward():
 
     assert first["direction"] == "backward"
     assert first["start_boundary"] == "芒种"
-    assert first["start_offset_days"] == pytest.approx(9.218, abs=0.01)
-    assert first["start_age_years"] == pytest.approx(3.07, abs=0.01)
+    assert first["start_offset_days"] == pytest.approx(9.176, abs=0.01)
+    assert first["start_age_years"] == pytest.approx(3.06, abs=0.01)
 
 
 def test_start_age_is_not_a_fixed_february_boundary():
