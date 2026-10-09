@@ -10,7 +10,7 @@ def test_sxtwl_returns_four_pillars_and_provenance():
 
     assert [pillar.name for pillar in chart.pillars] == ["year", "month", "day", "hour"]
     assert chart.provider == "sxtwl"
-    assert chart.algorithm_version == "sxtwl-2.0.7-bazi-v1"
+    assert chart.algorithm_version == "sxtwl-2.0.7-bazi-v2"
     assert chart.day_master == chart.pillars[2].heavenly_stem
     assert chart.pillars[0].hidden_stems
     assert [pillar.ten_god for pillar in chart.pillars] == ["食神", "比肩", "日主", "劫财"]

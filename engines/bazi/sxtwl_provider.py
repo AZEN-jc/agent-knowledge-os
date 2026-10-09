@@ -2,6 +2,10 @@
 
 边界说明：sxtwl 负责天文历法和干支计算；本适配器只负责把结果转成项目
 模型。大运、格局、用神和流派规则不在这里实现，避免把历法结果与命理解释混为一谈。
+
+年柱和月柱不取 sxtwl 的 ``getYearGZ()`` / ``getMonthGZ()`` —— 那两个接口只按
+**日期**分界（立春当天 00:00 就换年），节气日当天、节气时刻之前出生的人会拿到
+错的年月柱。这里改由 :mod:`engines.bazi.jieqi` 按节气精确时刻判定。
 """
 
 from __future__ import annotations
@@ -12,6 +16,7 @@ from zoneinfo import ZoneInfo
 
 import sxtwl
 
+from engines.bazi.jieqi import month_pillar, year_pillar
 from engines.bazi.models import BirthInput, Chart, Pillar
 
 STEMS = "甲乙丙丁戊己庚辛壬癸"
@@ -143,11 +148,23 @@ def _solar_time_datetime(birth: BirthInput) -> datetime:
     return local + timedelta(minutes=longitude_minutes + equation_minutes)
 
 
+def _birth_instant(birth: BirthInput) -> datetime:
+    """出生时刻的绝对时间。
+
+    节气是天文事件，只能按绝对时刻比较；民用时与真太阳时的差别属于另一层，
+    不参与年月分界判定。
+    """
+    return datetime(
+        birth.year, birth.month, birth.day, birth.hour, birth.minute,
+        tzinfo=ZoneInfo(birth.timezone),
+    )
+
+
 class SxtwlBaziProvider:
     """sxtwl 2.x 的四柱适配器。"""
 
     name = "sxtwl"
-    algorithm_version = "sxtwl-2.0.7-bazi-v1"
+    algorithm_version = "sxtwl-2.0.7-bazi-v2"
     supports_true_solar_time = True
     supports_dayun = False
     supports_relations = True
@@ -164,8 +181,9 @@ class SxtwlBaziProvider:
         day = sxtwl.fromSolar(
             calculation_time.year, calculation_time.month, calculation_time.day
         )
-        year_stem, year_branch = _gz_text(day.getYearGZ())
-        month_stem, month_branch = _gz_text(day.getMonthGZ())
+        instant = _birth_instant(birth)
+        year_stem, year_branch = year_pillar(instant)
+        month_stem, month_branch = month_pillar(instant)
         day_stem, day_branch = _gz_text(day.getDayGZ())
         hour_stem, hour_branch = _gz_text(day.getHourGZ(calculation_time.hour))
         values = (
