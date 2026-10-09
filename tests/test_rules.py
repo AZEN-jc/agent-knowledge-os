@@ -3,7 +3,7 @@
 import pytest
 
 from knowledge.default_rules import default_registry
-from knowledge.rules import Rule, RuleRegistry
+from knowledge.rules import Rule, RuleRegistry, condition_holds
 
 
 def rule(**overrides) -> Rule:
@@ -50,6 +50,24 @@ def test_registry_filters_by_school_and_category():
 
     assert len(registry.list(school="zi_ping_structural", category="relation")) == 2
     assert registry.list(school="missing") == ()
+
+
+# ── 多值事实：同类型事实有多条时按「包含」判断 ──────────────────────────
+
+
+def test_registry_matches_multi_valued_facts_by_membership():
+    matches = default_registry().match({"has_relation": ("六合", "自刑")})
+
+    assert [match.rule.id for match in matches] == ["STRUCT_RELATION_002"]
+
+
+def test_condition_holds_keeps_scalars_and_avoids_substring_hits():
+    assert condition_holds("六合", "六合") is True
+    assert condition_holds("自刑", "六合") is False
+    assert condition_holds(("自刑", "六合"), "六合") is True
+    assert condition_holds(("自刑",), "六合") is False
+    # 字符串不是多值容器：不能因为「六合六冲」含有子串就误命中
+    assert condition_holds("六合六冲", "六合") is False
 
 
 def test_conflicts_are_explicit_and_deduplicated():

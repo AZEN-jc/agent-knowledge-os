@@ -47,9 +47,25 @@ def extract_facts(chart: Chart) -> tuple[Fact, ...]:
     return tuple(fact for fact in facts if fact.value is not None)
 
 
+def group_facts(facts: tuple[Fact, ...]) -> dict[str, Any]:
+    """按类型归并事实值：同类型多条事实收成元组，只有一条时保持标量。
+
+    不能写成 ``{fact.type: fact.value}`` —— 一个命盘里往往同时存在六合、自刑
+    等多种地支关系，直接建字典会让后一条覆盖前一条，只剩最后一条能被规则看到，
+    地支关系类规则于是永远匹配不上。
+    """
+    grouped: dict[str, list[Any]] = {}
+    for fact in facts:
+        grouped.setdefault(fact.type, []).append(fact.value)
+    return {
+        key: values[0] if len(values) == 1 else tuple(values)
+        for key, values in grouped.items()
+    }
+
+
 def build_evidence(chart: Chart, registry: RuleRegistry, topic: str = "general") -> Evidence:
     facts = extract_facts(chart)
-    fact_map = {fact.type: fact.value for fact in facts}
+    fact_map = group_facts(facts)
     matches = registry.match(fact_map)
     rule_ids = [match.rule.id for match in matches]
     conflicts = registry.conflicts(rule_ids)

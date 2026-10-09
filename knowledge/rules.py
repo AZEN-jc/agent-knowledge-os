@@ -12,6 +12,18 @@ from typing import Any
 VALID_CONFIDENCE = {"LOW", "MEDIUM", "HIGH"}
 
 
+def condition_holds(actual: Any, expected: Any) -> bool:
+    """判断某个事实值是否满足规则条件。
+
+    同一类型的事实可以有多条（一个命盘里常常同时存在六合与自刑），归并后
+    以元组形式传入；此时按「包含」判断。标量仍按相等判断，保持既有调用方式。
+    只把容器当成多值，字符串不在此列，避免 ``"六合" in "六合六冲"`` 这类误命中。
+    """
+    if isinstance(actual, (list, tuple, set, frozenset)):
+        return expected in actual
+    return actual == expected
+
+
 @dataclass(frozen=True)
 class Rule:
     id: str
@@ -78,9 +90,17 @@ class RuleRegistry:
         )
 
     def match(self, facts: dict[str, Any], *, school: str = "", category: str = "") -> tuple[RuleMatch, ...]:
+        """返回条件全部满足的规则。
+
+        ``facts`` 的每个值可以是标量，也可以是元组（同类型事实有多条时）。
+        元组按「包含」判断，见 :func:`condition_holds`。
+        """
         matches = []
         for rule in self.list(school=school, category=category):
-            matched = tuple(key for key, expected in rule.condition.items() if facts.get(key) == expected)
+            matched = tuple(
+                key for key, expected in rule.condition.items()
+                if condition_holds(facts.get(key), expected)
+            )
             missing = tuple(key for key in rule.condition if key not in matched)
             if not missing:
                 matches.append(RuleMatch(rule=rule, matched_conditions=matched))
