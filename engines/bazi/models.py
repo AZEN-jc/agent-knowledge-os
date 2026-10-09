@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 @dataclass(frozen=True)
@@ -37,6 +37,11 @@ class BirthInput:
             raise ValueError("latitude 必须在 -90 到 90 之间。")
         if self.gender not in (None, "男", "女", "male", "female"):
             raise ValueError("gender 只能是 男、女、male、female 或 None。")
+        try:
+            ZoneInfo(self.timezone)
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            # 早失败：否则未知时区会在计算深处抛 KeyError，难以定位。
+            raise ValueError(f"未知时区：{self.timezone!r}") from exc
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

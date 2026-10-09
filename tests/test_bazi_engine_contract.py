@@ -1,6 +1,7 @@
 """Phase 1：八字引擎契约测试。"""
 
 from dataclasses import replace
+from datetime import timedelta
 
 import pytest
 
@@ -48,6 +49,9 @@ def test_birth_input_round_trip_and_location():
         {"longitude": 181},
         {"latitude": -91},
         {"gender": "unknown"},
+        {"timezone": "Not/AZone"},
+        {"timezone": ""},
+        {"year": 0},
     ],
 )
 def test_birth_input_rejects_invalid_values(kwargs):
@@ -56,6 +60,25 @@ def test_birth_input_rejects_invalid_values(kwargs):
 
     with pytest.raises(ValueError):
         BirthInput(**values)
+
+
+def test_birth_input_rejects_unknown_timezone_with_a_clear_message():
+    """未知时区必须在这里就报清楚，而不是在计算深处抛 KeyError。"""
+    with pytest.raises(ValueError, match="未知时区"):
+        BirthInput(1990, 2, 1, 12, timezone="Not/AZone")
+
+
+def test_birth_instant_carries_the_birth_timezone():
+    assert BirthInput(1990, 2, 1, 12, timezone="Asia/Tokyo").instant().utcoffset() == timedelta(hours=9)
+
+
+def test_birth_instant_honours_historical_china_daylight_saving():
+    """中国 1986-1991 年夏季实行夏令时（UTC+9），必须由 tzdata 还原，不能手工加偏移。"""
+    summer = BirthInput(1990, 6, 15, 12).instant()
+    winter = BirthInput(1990, 12, 15, 12).instant()
+
+    assert summer.utcoffset() == timedelta(hours=9)
+    assert winter.utcoffset() == timedelta(hours=8)
 
 
 def test_calculator_does_not_guess_without_provider():
