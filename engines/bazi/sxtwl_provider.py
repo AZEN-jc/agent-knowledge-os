@@ -6,12 +6,18 @@
 年柱和月柱不取 sxtwl 的 ``getYearGZ()`` / ``getMonthGZ()`` —— 那两个接口只按
 **日期**分界（立春当天 00:00 就换年），节气日当天、节气时刻之前出生的人会拿到
 错的年月柱。这里改由 :mod:`engines.bazi.jieqi` 按节气精确时刻判定。
+
+晚子时（23:00-24:00）的处理是流派分歧点，这里显式化为 ``late_zi_policy``：
+
+- ``no_roll``（默认）：沿用 sxtwl 的口径 —— 日柱仍属当日，时柱天干按**次日**日干推。
+  实测 ``getHourGZ(23)`` 在 1990-06-15（辛亥日）返回庚子，而庚子正是次日壬子日的子时。
+- ``roll``：23:00 起日柱即进次日，时柱为次日子时（子时换日）。
 """
 
 from __future__ import annotations
 
 import math
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import sxtwl
@@ -64,6 +70,9 @@ BRANCH_RELATIONS = {
 }
 SELF_PUNISHMENT = {"辰", "午", "酉", "亥"}
 MUTUAL_PUNISHMENT = {frozenset(pair) for pair in ("丑戌未", "寅巳申")}
+
+LATE_ZI_POLICIES = ("no_roll", "roll")
+DEFAULT_LATE_ZI_POLICY = "no_roll"
 
 
 def _ten_god(day_master: str, stem: str, *, is_day_pillar: bool = False) -> str:
@@ -149,15 +158,8 @@ def _solar_time_datetime(birth: BirthInput) -> datetime:
 
 
 def _birth_instant(birth: BirthInput) -> datetime:
-    """出生时刻的绝对时间。
-
-    节气是天文事件，只能按绝对时刻比较；民用时与真太阳时的差别属于另一层，
-    不参与年月分界判定。
-    """
-    return datetime(
-        birth.year, birth.month, birth.day, birth.hour, birth.minute,
-        tzinfo=ZoneInfo(birth.timezone),
-    )
+    """出生时刻的绝对时间；见 :meth:`BirthInput.instant`。"""
+    return birth.instant()
 
 
 class SxtwlBaziProvider:
@@ -169,8 +171,28 @@ class SxtwlBaziProvider:
     supports_dayun = False
     supports_relations = True
 
-    def __init__(self, *, use_true_solar_time: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        use_true_solar_time: bool = False,
+        late_zi_policy: str = DEFAULT_LATE_ZI_POLICY,
+    ) -> None:
+        if late_zi_policy not in LATE_ZI_POLICIES:
+            raise ValueError(f"late_zi_policy 只能是 {LATE_ZI_POLICIES} 之一。")
         self.use_true_solar_time = use_true_solar_time
+        self.late_zi_policy = late_zi_policy
+        if late_zi_policy != DEFAULT_LATE_ZI_POLICY:
+            # 非默认口径必须体现在 provenance 里，否则同版本号会掩盖不同结果。
+            self.algorithm_version = f"{type(self).algorithm_version}+{late_zi_policy}"
+
+    def _day_source(self, calculation_time: datetime) -> tuple[date, int]:
+        """返回日柱所属日期与取时柱用的时辰序号。
+
+        ``roll`` 口径下 23:00 起日柱进次日，时柱即次日子时的第 0 时辰。
+        """
+        if self.late_zi_policy == "roll" and calculation_time.hour == 23:
+            return calculation_time.date() + timedelta(days=1), 0
+        return calculation_time.date(), calculation_time.hour
 
     def calculate(self, birth: BirthInput) -> Chart:
         calculation_time = (
@@ -178,14 +200,13 @@ class SxtwlBaziProvider:
             if self.use_true_solar_time
             else datetime(birth.year, birth.month, birth.day, birth.hour, birth.minute)
         )
-        day = sxtwl.fromSolar(
-            calculation_time.year, calculation_time.month, calculation_time.day
-        )
         instant = _birth_instant(birth)
         year_stem, year_branch = year_pillar(instant)
         month_stem, month_branch = month_pillar(instant)
+        day_date, hour_index = self._day_source(calculation_time)
+        day = sxtwl.fromSolar(day_date.year, day_date.month, day_date.day)
         day_stem, day_branch = _gz_text(day.getDayGZ())
-        hour_stem, hour_branch = _gz_text(day.getHourGZ(calculation_time.hour))
+        hour_stem, hour_branch = _gz_text(day.getHourGZ(hour_index))
         values = (
             ("year", year_stem, year_branch),
             ("month", month_stem, month_branch),

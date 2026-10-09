@@ -13,6 +13,7 @@ sxtwl 的 ``getYearGZ()`` / ``getMonthGZ()`` 只按**日期**分界：立春当�
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
@@ -68,7 +69,7 @@ def solar_terms(year: int) -> tuple[SolarTerm, ...]:
     return tuple(terms)
 
 
-def _as_instant(moment: datetime) -> datetime:
+def as_instant(moment: datetime) -> datetime:
     """无时区的时刻按北京时间解释；已带时区的原样返回。"""
     return moment if moment.tzinfo else moment.replace(tzinfo=BEIJING)
 
@@ -81,9 +82,38 @@ def lichun_moment(year: int) -> datetime:
     raise RuntimeError(f"未能从 sxtwl 取得 {year} 年立春时刻。")
 
 
+def jie_terms_in(years: Iterable[int]) -> tuple[SolarTerm, ...]:
+    """返回若干公历年覆盖的十二「节」，按时刻排序并按绝对时刻去重。
+
+    ``solar_terms`` 的结果在相邻年份之间重叠（上一年的列表以次年立春收尾），
+    直接拼接会得到重复的节，进而算出零长度的月份，所以这里必须去重。
+    """
+    unique: dict[datetime, SolarTerm] = {}
+    for year in years:
+        for term in solar_terms(year):
+            if term.name in JIE_TO_MONTH_BRANCH:
+                unique.setdefault(term.moment, term)
+    return tuple(sorted(unique.values(), key=lambda term: term.moment))
+
+
+def surrounding_jie(moment: datetime) -> tuple[SolarTerm, SolarTerm]:
+    """返回 ``moment`` 之前最近的节与之后最近的节。"""
+    instant = as_instant(moment)
+    terms = jie_terms_in((instant.year - 1, instant.year, instant.year + 1))
+    previous = max(
+        (term for term in terms if term.moment <= instant),
+        key=lambda term: term.moment,
+    )
+    following = min(
+        (term for term in terms if term.moment > instant),
+        key=lambda term: term.moment,
+    )
+    return previous, following
+
+
 def ganzhi_year(moment: datetime) -> int:
     """返回 ``moment`` 所属的干支年（以立春为界的公历年数字）。"""
-    instant = _as_instant(moment)
+    instant = as_instant(moment)
     return instant.year if instant >= lichun_moment(instant.year) else instant.year - 1
 
 
@@ -95,16 +125,8 @@ def year_pillar(moment: datetime) -> tuple[str, str]:
 
 def month_branch(moment: datetime) -> str:
     """返回 ``moment`` 所属的月支：取不晚于该时刻的最后一个「节」。"""
-    instant = _as_instant(moment)
-    candidates = [
-        term
-        for year in (instant.year - 1, instant.year, instant.year + 1)
-        for term in solar_terms(year)
-        if term.name in JIE_TO_MONTH_BRANCH and term.moment <= instant
-    ]
-    if not candidates:
-        raise RuntimeError(f"未能为 {instant} 定位所属月支。")
-    return JIE_TO_MONTH_BRANCH[max(candidates, key=lambda term: term.moment).name]
+    previous, _ = surrounding_jie(moment)
+    return JIE_TO_MONTH_BRANCH[previous.name]
 
 
 def month_pillar(moment: datetime) -> tuple[str, str]:

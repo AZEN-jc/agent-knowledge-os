@@ -15,11 +15,14 @@ from engines.bazi.jieqi import (
     BRANCHES,
     JIE_TO_MONTH_BRANCH,
     STEMS,
+    as_instant,
     ganzhi_year,
+    jie_terms_in,
     lichun_moment,
     month_branch,
     month_pillar,
     solar_terms,
+    surrounding_jie,
     year_pillar,
 )
 
@@ -53,7 +56,6 @@ def jie_terms_of(year: int):
 
 
 # ── 节气数据本身 ────────────────────────────────────────────────────────
-
 
 def test_solar_terms_cover_one_ganzhi_year():
     terms = solar_terms(1990)
@@ -231,3 +233,58 @@ def test_differential_against_sxtwl_date_boundary(year):
 
     assert mismatches == [], f"非节气日出现 {len(mismatches)} 处不一致"
     assert boundary_days > 0, "差分测试必须覆盖到节气日，否则没有验证到分界逻辑"
+
+
+# ── 相邻节与跨年去重 ────────────────────────────────────────────────────
+
+
+def test_jie_terms_in_dedupes_overlapping_years():
+    """solar_terms 在相邻年份之间重叠；跨年取节必须去重，否则会算出零长度月份。"""
+    moments = [term.moment for term in jie_terms_in((1989, 1990, 1991))]
+
+    assert moments == sorted(moments)
+    assert len(moments) == len(set(moments))
+
+
+def test_jie_terms_in_covers_a_seamless_sequence():
+    """相邻两个节之间不允许出现缺口，否则月份会漏。"""
+    terms = jie_terms_in((1990,))
+    jie_names = {term.name for term in terms}
+
+    assert jie_names == set(JIE_TO_MONTH_BRANCH)
+
+
+def test_surrounding_jie_returns_the_two_neighbouring_jie():
+    moment = at(1990, 6, 15, 12)
+    previous, following = surrounding_jie(moment)
+
+    assert previous.name == "芒种"
+    assert following.name == "小暑"
+    assert previous.moment <= moment < following.moment
+
+
+def test_surrounding_jie_treats_the_jie_moment_as_the_new_month():
+    """节时刻当刻已属新的一月，所以 previous 就是立春本身。"""
+    lichun = lichun_moment(1990)
+    previous, following = surrounding_jie(lichun)
+
+    assert previous.name == "立春"
+    assert previous.moment == lichun
+    assert following.name == "惊蛰"
+    assert month_branch(lichun) == "寅"
+
+
+def test_surrounding_jie_is_stable_across_a_year_boundary():
+    """跨年时前后两个节必须来自不同年份，不能被年份切片截断。"""
+    previous, following = surrounding_jie(at(1990, 12, 20, 12))
+
+    assert (previous.name, previous.moment.year) == ("大雪", 1990)
+    assert (following.name, following.moment.year) == ("小寒", 1991)
+
+
+def test_as_instant_defaults_naive_datetimes_to_beijing():
+    naive = datetime(1990, 6, 15, 12)
+    aware = at(1990, 6, 15, 12)
+
+    assert as_instant(naive) == aware
+    assert as_instant(aware) is aware

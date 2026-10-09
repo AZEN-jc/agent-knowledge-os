@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 
 @dataclass(frozen=True)
@@ -39,6 +40,18 @@ class BirthInput:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+    def instant(self) -> datetime:
+        """出生时刻的绝对时间（带出生地时区）。
+
+        节气是天文事件，只能按绝对时刻比较；民用时与真太阳时的差别属于
+        另一层，不参与年月分界判定。注意 ``Asia/Shanghai`` 在 1986-1991 年
+        夏季为 UTC+9，这里由 tzdata 正确还原，不要手工加偏移。
+        """
+        return datetime(
+            self.year, self.month, self.day, self.hour, self.minute,
+            tzinfo=ZoneInfo(self.timezone),
+        )
 
 
 @dataclass(frozen=True)
