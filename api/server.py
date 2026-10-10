@@ -17,6 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from knowledge.classical_backlog import CLASSICAL_BACKLOG, BacklogStatus, next_action
 from knowledge.provenance import ReviewStatus, SourceTier
+from knowledge.topics import TOPICS
 from runtime.mingli_service import MingLiService
 
 UNPROCESSABLE: dict[int | str, dict[str, Any]] = {
@@ -130,6 +131,105 @@ class BacklogResponse(BaseModel):
     entries: list[BacklogEntryResponse]
 
 
+class TopicResponse(BaseModel):
+    """一个分析主题，以及它有没有可用的规则。"""
+
+    id: str
+    name: str
+    description: str
+    aliases: list[str] = Field(description="可用作主题入参的别名，含中文")
+    blocked_by: str = Field(description="主题层为空时的原因")
+
+
+class TopicListResponse(BaseModel):
+    total: int
+    note: str = Field(description="主题覆盖状态的含义说明")
+    topics: list[TopicResponse]
+
+
+class ConditionTraceResponse(BaseModel):
+    """一条条件被满足的完整依据。"""
+
+    key: str = Field(description="条件键，对应事实词表里的一个键")
+    expected: Any = Field(description="规则要求的值")
+    actual: Any = Field(description="命盘实际给出的值")
+    sources: list[str] = Field(description="该事实在命盘里的出处，形如 chart.pillars.month")
+
+
+class RuleChainResponse(BaseModel):
+    """证据链的一环：结论 → 规则 → 条件 → 命盘要素。"""
+
+    rule_id: str
+    conclusion: str
+    school: str
+    category: str
+    topic: str
+    confidence: str = Field(description="证据等级，不是事件概率")
+    source: str
+    source_tier: str
+    review_status: str
+    is_production_ready: bool
+    conditions: list[ConditionTraceResponse] = Field(
+        description="证据链的最后一跳：每条条件的命盘取值与出处"
+    )
+
+
+class StrengthBreakdownResponse(BaseModel):
+    """证据强度的完整算式，逐项可核对。"""
+
+    supporting_rules: int
+    raw_support: float = Field(description="各命中规则置信度分值之和")
+    saturation_k: float = Field(description="饱和常数；本实现选定的标度，不是概率刻度")
+    after_saturation: float
+    conflicts: int
+    conflict_penalty: float
+    final: float = Field(description="最终强度，值域 [0, 1)；这是证据等级，不是事件概率")
+
+
+class FactResponse(BaseModel):
+    """一条命盘事实。``source`` 是回溯到命盘要素的最后一跳。"""
+
+    type: str
+    value: Any
+    source: str
+    confidence: float
+
+
+class EvidenceResponse(BaseModel):
+    """证据层输出：事实、证据链、冲突、强度与主题覆盖。"""
+
+    model_config = ConfigDict(extra="ignore")
+
+    topic: str = Field(description="调用方传入的原始主题，可能是别名")
+    topic_id: str = Field(description="解析后的规范主题 ID")
+    topic_name: str
+    status: str = Field(description="covered / base_only / unknown")
+    coverage_note: str = Field(description="主题覆盖说明；非 covered 时必须向用户披露")
+    schools: list[str]
+    facts: list[FactResponse]
+    chain: list[RuleChainResponse] = Field(description="完整证据链，可逐条回溯到命盘要素")
+    base_rules: list[str] = Field(description="命中的公共结构层规则")
+    domain_rules: list[str] = Field(description="命中的主题专属规则；当前恒为空")
+    unreviewed_rules: list[str]
+    untraced_rules: list[str] = Field(description="证据链断环的规则；正常情况下恒为空")
+    conflicts: list[list[str]]
+    conflict_notes: list[str]
+    strength: float
+    strength_breakdown: StrengthBreakdownResponse
+
+
+class AnalysisPayload(BaseModel):
+    question: str
+    evidence: EvidenceResponse
+    conclusion: str
+
+
+class AnalysisResponse(BaseModel):
+    chart: dict[str, Any]
+    analysis: AnalysisPayload
+    critique: dict[str, Any]
+
+
 service = MingLiService()
 app = FastAPI(
     title="MingLi Agent API",
@@ -167,10 +267,15 @@ def chart(request: BirthRequest) -> dict[str, Any]:
     "/api/analyze",
     summary="按问题分析",
     description=(
-        "在排盘基础上按问题主题提取事实、匹配规则、形成证据链，"
-        "返回事实、匹配规则、证据强度、冲突与审查结果。"
+        "在排盘基础上提取事实、匹配规则、形成证据链，"
+        "返回事实、完整证据链（每条规则的条件与命盘出处）、证据强度算式、"
+        "冲突与审查结果。\n\n"
+        "``evidence.status`` 说明该主题有没有专属规则：``base_only`` 表示"
+        "只有公共结构层证据，此时结论不构成对该主题的判断，"
+        "``evidence.coverage_note`` 里写了原因。"
     ),
     tags=["分析"],
+    response_model=AnalysisResponse,
     responses=UNPROCESSABLE,
 )
 def analyze(request: AnalyzeRequest) -> dict[str, Any]:
@@ -179,6 +284,25 @@ def analyze(request: AnalyzeRequest) -> dict[str, Any]:
     except (TypeError, ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return response.to_dict()
+
+
+@app.get(
+    "/api/topics",
+    summary="查询分析主题",
+    description=(
+        "返回已登记的分析主题及其别名。主题分两层：公共结构层（有规则）与"
+        "主题层（如事业、婚姻，**当前一条规则都没有** —— 断语需典籍原文）。"
+        "``blocked_by`` 说明主题层为空的原因。"
+    ),
+    tags=["规则库"],
+    response_model=TopicListResponse,
+)
+def list_topics() -> TopicListResponse:
+    return TopicListResponse(
+        total=len(TOPICS),
+        note="covered = 有专属规则；base_only = 只有公共结构层；unknown = 未登记的主题。",
+        topics=[TopicResponse(**topic.to_dict()) for topic in TOPICS],  # type: ignore[arg-type]
+    )
 
 
 # ── 规则库查询 ─────────────────────────────────────────────────────────

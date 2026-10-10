@@ -12,14 +12,8 @@
 from engines.bazi import BirthInput, SxtwlBaziProvider
 from knowledge.classical_backlog import CLASSICAL_BACKLOG, BacklogStatus, next_action
 from knowledge.default_rules import default_registry, default_schools
-from knowledge.evidence import (
-    CONFIDENCE_SCORES,
-    CONFLICT_PENALTY,
-    FACT_SCHEMA,
-    build_evidence,
-    extract_facts,
-    group_facts,
-)
+from knowledge.evidence import build_evidence, score_strength
+from knowledge.facts import FACT_SCHEMA, extract_facts
 from knowledge.provenance import ReviewStatus, SourceTier
 from knowledge.schools import STRUCTURAL_SCHOOL
 from knowledge.structural_rules import ELEMENTS, PATTERN_TEN_GODS, RELATIONS, TEN_GODS
@@ -32,7 +26,7 @@ PHASE_TWO_MINIMUM_RULES = 50
 
 def matched_rule_ids(year: int, month: int, day: int, hour: int) -> set[str]:
     chart = PROVIDER.calculate(BirthInput(year, month, day, hour))
-    return {match.rule.id for match in default_registry().match(group_facts(extract_facts(chart)))}
+    return {match.rule.id for match in default_registry().match(extract_facts(chart))}
 
 
 # ── 规模与来源 ─────────────────────────────────────────────────────────
@@ -191,14 +185,18 @@ def test_two_pattern_methods_disagreeing_is_reported_as_conflict():
 
 
 def test_conflicts_reduce_evidence_strength():
+    """冲突必须扣减强度，且扣减额与冲突条数成正比。"""
     evidence = evidence_for(DISAGREEING_BIRTH)
-    base = sum(
-        CONFIDENCE_SCORES[match.rule.confidence] for match in evidence.matches
-    ) / len(evidence.matches)
+    breakdown = evidence.strength_breakdown
 
     assert evidence.conflicts
-    assert evidence.strength == round(base - CONFLICT_PENALTY * len(evidence.conflicts), 4)
-    assert evidence.strength < round(base, 4)
+    assert breakdown.conflicts == len(evidence.conflicts)
+    assert breakdown.conflict_penalty == round(0.15 * len(evidence.conflicts), 4)
+    assert evidence.strength < breakdown.after_saturation
+
+    without = score_strength(evidence.matches, ())
+    assert without.after_saturation == breakdown.after_saturation
+    assert without.final > breakdown.final
 
 
 # ── 证据链完整性 ───────────────────────────────────────────────────────

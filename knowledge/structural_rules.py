@@ -21,7 +21,7 @@
 from __future__ import annotations
 
 from engines.bazi.ten_gods import TEN_GODS
-from knowledge.evidence import ELEMENT_NAMES
+from knowledge.facts import ELEMENT_NAMES
 from knowledge.provenance import ReviewStatus, SourceTier
 from knowledge.rules import Rule
 from knowledge.schools import STRUCTURAL_SCHOOL

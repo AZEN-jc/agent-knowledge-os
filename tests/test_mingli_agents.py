@@ -8,6 +8,7 @@ from knowledge.default_rules import default_registry
 from knowledge.provenance import ReviewStatus
 from knowledge.rules import Rule, RuleRegistry
 from knowledge.schools import STRUCTURAL_SCHOOL
+from knowledge.topics import STRUCTURAL_TOPIC
 
 
 def chart():
@@ -81,6 +82,7 @@ def test_critic_flags_rules_that_have_not_passed_review():
         source="草稿来源",
         school=STRUCTURAL_SCHOOL,
         category="ten_god",
+        topic=STRUCTURAL_TOPIC,
         condition={"day_master_root": "有根"},
         conclusion="草稿结论。",
         review_status=ReviewStatus.UNREVIEWED,

@@ -3,9 +3,9 @@
 import pytest
 
 from knowledge.default_rules import default_registry
-from knowledge.evidence import FACT_SCHEMA
+from knowledge.facts import FACT_SCHEMA, Fact
 from knowledge.provenance import ReviewStatus, SourceTier
-from knowledge.rules import Rule, RuleMatch, RuleRegistry, condition_holds
+from knowledge.rules import ConditionTrace, Rule, RuleMatch, RuleRegistry, condition_holds
 from knowledge.schools import STRUCTURAL_SCHOOL
 
 
@@ -20,6 +20,19 @@ def rule(**overrides) -> Rule:
     }
     values.update(overrides)
     return Rule(**values)  # type: ignore[arg-type]
+
+
+def facts(**values: object) -> tuple[Fact, ...]:
+    """把 ``{键: 值}`` 转成事实元组；值是元组时展开成多条同类型事实。
+
+    匹配器现在吃事实元组而不是归并后的字典 —— 追踪要回填「这条条件是被
+    哪条事实满足的、来自哪里」，这些信息在归并成字典时就丢了。
+    """
+    out: list[Fact] = []
+    for key, value in values.items():
+        items = value if isinstance(value, tuple) else (value,)
+        out.extend(Fact(key, item, "test.fixture") for item in items)
+    return tuple(out)
 
 
 def test_rule_requires_traceable_metadata():
@@ -53,10 +66,45 @@ def test_registry_matches_only_complete_conditions():
     registry = RuleRegistry()
     registry.add(rule(condition={"x": 1, "y": "yes"}))
 
-    assert registry.match({"x": 1}) == ()
-    matches = registry.match({"x": 1, "y": "yes"})
+    assert registry.match(facts(x=1)) == ()
+    matches = registry.match(facts(x=1, y="yes"))
     assert len(matches) == 1
     assert matches[0].matched_conditions == ("x", "y")
+
+
+def test_match_carries_a_trace_for_every_condition():
+    """每条条件都要能答出「命盘实际取值是什么、来自哪里」。
+
+    只写「规则 R 命中」的匹配器，和黑盒没有区别 —— 用户看不到推理路径。
+    """
+    registry = RuleRegistry()
+    registry.add(rule(condition={"x": 1, "y": "yes"}))
+
+    trace = {item.key: item for item in registry.match(facts(x=1, y="yes"))[0].traces}
+
+    assert set(trace) == {"x", "y"}
+    assert trace["x"].expected == 1
+    assert trace["x"].actual == 1
+    assert trace["x"].sources == ("test.fixture",)
+
+
+def test_trace_sources_name_only_the_facts_that_satisfied_the_condition():
+    """多值事实里，只回填取值对得上的那些来源。
+
+    把不相关的事实来源一起列出来，等于伪造证据链 —— 命盘里有六合与自刑，
+    「六合」那条规则的来源里不该出现自刑的出处。
+    """
+    registry = RuleRegistry()
+    registry.add(rule(condition={"has_relation": "六合"}))
+    sample = (
+        Fact("has_relation", "六合", "chart.relations[0]"),
+        Fact("has_relation", "自刑", "chart.relations[1]"),
+    )
+
+    trace = registry.match(sample)[0].traces[0]
+
+    assert trace.actual == ("六合", "自刑")
+    assert trace.sources == ("chart.relations[0]",)
 
 
 # ── 过滤与门禁 ─────────────────────────────────────────────────────────
@@ -97,8 +145,8 @@ def test_production_only_matching_skips_unreviewed_rules():
     registry.add(rule(id="LIVE", review_status=ReviewStatus.ACTIVE))
     registry.add(rule(id="DRAFT", review_status=ReviewStatus.UNREVIEWED))
 
-    assert [m.rule.id for m in registry.match({"x": 1})] == ["LIVE", "DRAFT"]
-    assert [m.rule.id for m in registry.match({"x": 1}, production_only=True)] == ["LIVE"]
+    assert [m.rule.id for m in registry.match(facts(x=1))] == ["LIVE", "DRAFT"]
+    assert [m.rule.id for m in registry.match(facts(x=1), production_only=True)] == ["LIVE"]
     assert [item.id for item in registry.production_ready()] == ["LIVE"]
 
 
@@ -115,7 +163,7 @@ def test_registry_stats_describe_the_library():
 
 
 def test_registry_matches_multi_valued_facts_by_membership():
-    matches = default_registry().match({"has_relation": ("六合", "自刑")})
+    matches = default_registry().match(facts(has_relation=("六合", "自刑")))
 
     assert [match.rule.id for match in matches] == ["STRUCT_RELATION_002", "STRUCT_RELATION_005"]
 
@@ -143,7 +191,7 @@ def test_conflicts_are_explicit_and_deduplicated():
 def _match(rule_id: str, slot: str, value: str) -> RuleMatch:
     return RuleMatch(
         rule=rule(id=rule_id, conflict_slot=slot, conflict_value=value),
-        matched_conditions=("x",),
+        traces=(ConditionTrace("x", 1, 1, ("test.fixture",)),),
     )
 
 

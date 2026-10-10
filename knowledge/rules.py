@@ -6,6 +6,10 @@
 来源治理见 :mod:`knowledge.provenance`。这里只落地一条硬守卫：一条
 ``classical`` 规则若想进入 ``ACTIVE``，必须带齐可核验的典籍引文。缺引文
 的典籍规则可以存在，但只能停在 ``UNREVIEWED``，不允许进入生产引用。
+
+匹配结果带**条件追踪**（:class:`ConditionTrace`）：每条条件不只记录「成立了」，
+还记录「命盘给出的实际取值是什么、来自哪个命盘要素」。这是证据链能追溯到
+用户面前的关键一跳 —— 只写「规则 R 命中」的匹配器，和黑盒没有区别。
 """
 
 from __future__ import annotations
@@ -13,6 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from typing import Any
 
+from knowledge.facts import Fact, group_facts, index_facts
 from knowledge.provenance import Citation, ReviewStatus, SourceTier
 from knowledge.schools import SchoolRegistry
 
@@ -132,10 +137,62 @@ class Rule:
 
 
 @dataclass(frozen=True)
+class ConditionTrace:
+    """一条条件被满足的完整依据。
+
+    ``sources`` 是这条事实在命盘里的出处（形如 ``chart.pillars.month``），
+    证据链靠它从「规则要求正官」走回「正官来自月支藏干」。
+    """
+
+    key: str
+    expected: Any
+    actual: Any
+    sources: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "key": self.key,
+            "expected": self.expected,
+            "actual": self.actual,
+            "sources": list(self.sources),
+        }
+
+
+@dataclass(frozen=True)
 class RuleMatch:
+    """一条命中的规则，连同它的条件追踪。
+
+    只保留 ``traces`` 一个真字段：``matched_conditions`` 由它派生。
+    原先的 ``missing_conditions`` 是死字段 —— ``match`` 只返回条件全满足的
+    规则，那个字段恒为空，留着只会让人以为存在「部分匹配」这条路径。
+    """
+
     rule: Rule
-    matched_conditions: tuple[str, ...]
-    missing_conditions: tuple[str, ...] = ()
+    traces: tuple[ConditionTrace, ...]
+
+    @property
+    def matched_conditions(self) -> tuple[str, ...]:
+        return tuple(trace.key for trace in self.traces)
+
+    @property
+    def is_fully_traced(self) -> bool:
+        """每条条件都能指向具体事实来源。缺来源 = 证据链断了一环。"""
+        return all(trace.sources for trace in self.traces)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "rule_id": self.rule.id,
+            "conclusion": self.rule.conclusion,
+            "school": self.rule.school,
+            "category": self.rule.category,
+            "topic": self.rule.topic,
+            "confidence": self.rule.confidence,
+            "source": self.rule.source,
+            "source_tier": str(self.rule.source_tier),
+            "review_status": str(self.rule.review_status),
+            "is_production_ready": self.rule.is_production_ready,
+            "conditions": [trace.to_dict() for trace in self.traces],
+        }
 
 
 @dataclass
@@ -190,32 +247,37 @@ class RuleRegistry:
 
     def match(
         self,
-        facts: dict[str, Any],
+        facts: tuple[Fact, ...],
         *,
         school: str = "",
         category: str = "",
         topic: str = "",
         production_only: bool = False,
     ) -> tuple[RuleMatch, ...]:
-        """返回条件全部满足的规则。
+        """返回条件全部满足的规则，每条附带条件追踪。
 
-        ``facts`` 的每个值可以是标量，也可以是元组（同类型事实有多条时）。
-        元组按「包含」判断，见 :func:`condition_holds`。
+        参数是**事实元组**而不是归并后的字典：追踪需要知道每条条件的取值
+        来自哪条事实、哪个命盘要素，这些信息在归并成字典时就丢了。
 
         ``production_only`` 打开后只匹配 ACTIVE 规则；默认关闭，便于内部
         测试与演示覆盖尚未校核的规则。
         """
-        matches = []
+        fact_map = group_facts(facts)
+        index = index_facts(facts)
+        matches: list[RuleMatch] = []
         for rule in self.select(school=school, category=category, topic=topic):
             if production_only and not rule.is_production_ready:
                 continue
-            matched = tuple(
-                key for key, expected in rule.condition.items()
-                if condition_holds(facts.get(key), expected)
-            )
-            missing = tuple(key for key in rule.condition if key not in matched)
-            if not missing:
-                matches.append(RuleMatch(rule=rule, matched_conditions=matched))
+            traces: list[ConditionTrace] = []
+            for key, expected in rule.condition.items():
+                actual = fact_map.get(key)
+                if not condition_holds(actual, expected):
+                    break
+                traces.append(
+                    ConditionTrace(key, expected, actual, _sources_for(index, key, expected))
+                )
+            else:
+                matches.append(RuleMatch(rule=rule, traces=tuple(traces)))
         return tuple(matches)
 
     def conflicts(self, rule_ids: list[str] | tuple[str, ...]) -> tuple[tuple[str, str], ...]:
@@ -284,6 +346,16 @@ class RuleRegistry:
         for rule in self._rules.values():
             school_registry.require(rule.school)
 
+    def validate_topics(self, known: frozenset[str] | set[str]) -> None:
+        """拒绝挂在未登记主题上的规则。
+
+        与流派校验同理：主题如果可以是任意字符串，它就会退化成注释 ——
+        规则挂着一个没人认识的主题，永远不会被任何分析选中，而且不报错。
+        """
+        unknown = sorted({rule.topic for rule in self._rules.values()} - set(known))
+        if unknown:
+            raise ValueError(f"规则库引用了未登记的主题：{'、'.join(unknown)}")
+
     def stats(self) -> dict[str, Any]:
         rules = tuple(self._rules.values())
         return {
@@ -301,6 +373,32 @@ class RuleRegistry:
 
     def to_dicts(self, **filters: Any) -> list[dict[str, Any]]:
         return [rule.to_dict() for rule in self.select(**filters)]
+
+
+def _sources_for(
+    index: dict[str, tuple[Fact, ...]], key: str, expected: Any
+) -> tuple[str, ...]:
+    """回填满足某条条件的事实在命盘里的出处。
+
+    同类型事实可能有多条（一个命盘常同时有六合与自刑），此时只取**取值
+    对得上**的那些 —— 把不相关的事实来源一起列出来，等于伪造证据链。
+
+    判据复用 :func:`condition_holds`，而不是另写一个 ``fact.value == expected``：
+    后者在「事实值本身是多值元组」时会失效 —— ``ten_god_with_root`` 的取值是
+    ``("比肩", "食神")`` 这样的元组，用相等判断去找永远找不到，证据链就断了。
+    决定「条件成不成立」和决定「是哪条事实让它成立」必须是同一个谓词，
+    否则两处判断会各自漂移。
+    """
+    facts = index.get(key, ())
+    expected_values = (
+        expected if isinstance(expected, (list, tuple, set, frozenset)) else (expected,)
+    )
+    chosen = [
+        fact
+        for fact in facts
+        if any(condition_holds(fact.value, item) for item in expected_values)
+    ]
+    return tuple(dict.fromkeys(fact.source for fact in chosen))
 
 
 def _count(rules: tuple[Rule, ...], key: Any) -> dict[str, int]:

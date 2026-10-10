@@ -159,3 +159,77 @@ def test_classics_backlog_endpoint_explains_the_current_blocker():
     assert body["next_action"] == "《滴天髓》"
     assert all(entry["blocker"] for entry in body["entries"])
     assert all(entry["needed_action"] for entry in body["entries"])
+
+
+# ── 证据层 API（Phase 3 验收：证据链可追溯、强度可解释、覆盖状态透明）───
+
+
+def test_analyze_exposes_a_traceable_evidence_chain():
+    body = client.post("/api/analyze", json={**payload(), "question": "事业"}).json()
+    evidence = body["analysis"]["evidence"]
+
+    assert evidence["chain"], "证据链不能为空"
+    link = evidence["chain"][0]
+    assert link["rule_id"] and link["conclusion"]
+    assert link["conditions"], "每一环都必须带条件追踪"
+
+    trace = link["conditions"][0]
+    assert trace["key"] and trace["sources"], "条件追踪必须能回溯到命盘要素"
+    assert all(source.startswith("chart.") for source in trace["sources"])
+
+
+def test_analyze_reports_the_strength_arithmetic():
+    body = client.post("/api/analyze", json={**payload(), "question": "事业"}).json()
+    evidence = body["analysis"]["evidence"]
+    breakdown = evidence["strength_breakdown"]
+
+    assert evidence["strength"] == breakdown["final"]
+    assert breakdown["supporting_rules"] == len(evidence["chain"])
+    assert breakdown["raw_support"] > 0
+    assert 0.0 <= breakdown["final"] < 1.0, "结构层证据不该被读成「几乎确定」"
+    assert breakdown["final"] == round(
+        max(0.0, breakdown["after_saturation"] - breakdown["conflict_penalty"]), 4
+    )
+
+
+def test_analyze_discloses_that_a_career_question_has_no_career_rules():
+    """回归：问「事业」不能拿到一份自称是事业结论的结构层报告。"""
+    body = client.post("/api/analyze", json={**payload(), "question": "事业"}).json()
+    evidence = body["analysis"]["evidence"]
+
+    assert evidence["topic_id"] == "career"
+    assert evidence["status"] == "base_only"
+    assert evidence["domain_rules"] == []
+    assert evidence["base_rules"], "基础层证据照常要给"
+    assert "不构成" in evidence["coverage_note"]
+    assert evidence["coverage_note"] in body["analysis"]["conclusion"]
+
+
+def test_analyze_reports_no_broken_links_in_the_evidence_chain():
+    body = client.post("/api/analyze", json={**payload(), "question": "事业"}).json()
+
+    assert body["analysis"]["evidence"]["untraced_rules"] == []
+    assert body["critique"]["passed"] is True, body["critique"]["issues"]
+
+
+def test_topics_endpoint_marks_topics_that_have_no_rules():
+    response = client.get("/api/topics")
+
+    assert response.status_code == 200
+    topics = {item["id"]: item for item in response.json()["topics"]}
+
+    assert "structure" in topics
+    assert topics["career"]["aliases"], "中文别名必须暴露出来，否则用户不知道传什么"
+    assert "事业" in topics["career"]["aliases"]
+    assert topics["career"]["blocked_by"], "没有规则的主题必须说明原因"
+
+
+def test_openapi_documents_the_evidence_chain_and_topics():
+    schema = client.get("/openapi.json").json()
+
+    assert "RuleChainResponse" in schema["components"]["schemas"]
+    assert "StrengthBreakdownResponse" in schema["components"]["schemas"]
+    chain = schema["components"]["schemas"]["RuleChainResponse"]["properties"]
+    assert "conditions" in chain
+    assert "证据链" in chain["conditions"]["description"]
+    assert "/api/topics" in schema["paths"]

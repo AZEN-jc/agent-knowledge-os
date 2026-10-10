@@ -1,16 +1,20 @@
-"""从确定性命盘构建可追溯证据。
+"""从确定性命盘构建可追溯证据（Evidence Layer）。
 
-事实（Fact）只描述**命盘里有什么**，不做吉凶判断。这里是整个证据链的
-唯一入口：规则只能看到本模块产出的事实，因此「规则条件键是否存在于事实
-词表」是一个可以静态校验的硬约束 —— 见 :data:`FACT_SCHEMA`。
+这一层是整个项目的核心创新点：**不让模型直接输出结论**。流程固定为
 
-两条约定，写下来免得后人猜：
+    命盘 → 事实提取 → 规则匹配 → 证据链 → 结论（带证据强度）
 
-1. **五行计数口径**：按「四柱天干 + 四支本气（藏干第一位）」共 8 项计数。
-   不同流派对藏干是否计入、计几位存在分歧，本实现只选一种并明示，不声称
-   这是唯一正确口径。
-2. **有根口径**：四支藏干中存在与日主**同五行**者即为有根（不要求同阴阳）。
-   更严格的本气根口径（同五行且同阴阳）是另一个流派分歧点，尚未录入。
+三条设计约束：
+
+1. **事实只描述命盘里有什么**，不做吉凶判断。提取逻辑见 :mod:`knowledge.facts`。
+2. **证据链必须能走回命盘要素**。每条命中的规则都带条件追踪（哪个条件、
+   命盘实际取值、来自哪个要素），见 :class:`~knowledge.rules.ConditionTrace`。
+   走不回去的引用会在 :attr:`Evidence.untraced_rule_ids` 里暴露出来。
+3. **主题覆盖如实报告**。基础层（结构事实）与主题层（断语规则）分开统计，
+   主题层为空时明说，不用结构事实冒充主题结论。见 :mod:`knowledge.topics`。
+
+关于「证据强度」：它是**证据等级，不是事件发生概率**。算式见
+:func:`score_strength`，并完整暴露在 :class:`StrengthBreakdown` 里供审计。
 """
 
 from __future__ import annotations
@@ -19,76 +23,115 @@ from dataclasses import dataclass
 from typing import Any
 
 from engines.bazi.models import Chart
-from engines.bazi.ten_gods import ELEMENTS, POLARITY, stem_relation, ten_god
+from knowledge.facts import Fact, extract_facts
 from knowledge.rules import RuleMatch, RuleRegistry
+from knowledge.topics import STRUCTURAL_TOPIC, TopicStatus, resolve, status_for
 
-PILLAR_NAMES = ("year", "month", "day", "hour")
-ELEMENT_NAMES = ("木", "火", "土", "金", "水")
+CONFIDENCE_SCORES = {"LOW": 0.4, "MEDIUM": 0.7, "HIGH": 1.0}
+"""置信等级到支持量的映射。支持量表示证据等级，不是事件发生概率。"""
 
-FACT_SCHEMA: dict[str, str] = {
-    # 日主
-    "day_master": "日主天干",
-    "day_master_element": "日主五行",
-    "day_master_polarity": "日主阴阳",
-    "day_master_root": "日主在四支是否有根（有根 / 无根）",
-    "day_master_same_element_count": "四柱天干与藏干中与日主同五行的个数",
-    # 四柱干支
-    "year_stem": "年柱天干",
-    "month_stem": "月柱天干",
-    "day_stem": "日柱天干",
-    "hour_stem": "时柱天干",
-    "year_branch": "年支",
-    "month_branch": "月支",
-    "day_branch": "日支",
-    "hour_branch": "时支",
-    "four_branches": "四支去重后的集合",
-    "repeated_branches": "四支中重复出现的地支",
-    # 十神
-    "year_ten_god": "年柱天干十神",
-    "month_ten_god": "月柱天干十神",
-    "hour_ten_god": "时柱天干十神",
-    "transparent_ten_gods": "天干（除日主外）出现的十神",
-    "hidden_ten_gods": "四支藏干对应的十神",
-    "ten_god_with_root": "既透干又见根的十神",
-    "ten_god_without_root": "透干但四支无根的十神（虚透）",
-    # 月令
-    "month_branch_element": "月支本气五行",
-    "month_branch_ten_god": "月支本气对日主的十神",
-    "month_branch_extended_ten_god": "月支藏干中在天干（年月时）透出者对应的十神",
-    "day_master_vs_month": "日主与月令的生克关系（同我 / 生我 / 我生 / 我克 / 克我）",
-    # 五行计数
-    "count_木": "木的计数",
-    "count_火": "火的计数",
-    "count_土": "土的计数",
-    "count_金": "金的计数",
-    "count_水": "水的计数",
-    "missing_elements": "四柱未出现的五行",
-    "dominant_elements": "计数 ≥3 的五行",
-    # 地支结构
-    "has_relation": "四支关系类型（六合 / 六冲 / 六害 / 相破 / 自刑 / 三刑）",
-    "relation_count": "地支关系总条数",
-    "relation_density": "地支关系密度（无 / 少 / 多）",
-    # 旺衰结构计数
-    "day_master_same_element_level": "日主同类（比劫与印）在命局中的多寡（偏少 / 中等 / 偏多）",
-}
+SATURATION_K = 3.0
+"""饱和常数。本实现选定的标度，不是典籍规定，也不是概率刻度。
+
+作用是把「支持量」压进 (0, 1) 开区间：K 越大，需要越多规则命中才能达到同等强度。
+"""
+
+CONFLICT_PENALTY = 0.15
+"""每处规则冲突对证据强度的扣减。"""
 
 
 @dataclass(frozen=True)
-class Fact:
-    type: str
-    value: Any
-    source: str
-    confidence: float = 1.0
+class StrengthBreakdown:
+    """证据强度的完整算式，逐项可核对。
+
+    暴露算式而不只给一个数字，是为了让「为什么是 0.62」有答案 ——
+    只给分数的强度模型，用户除了相信没有别的选择。
+    """
+
+    supporting_rules: int
+    raw_support: float
+    saturation_k: float
+    after_saturation: float
+    conflicts: int
+    conflict_penalty: float
+    final: float
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "supporting_rules": self.supporting_rules,
+            "raw_support": self.raw_support,
+            "saturation_k": self.saturation_k,
+            "after_saturation": self.after_saturation,
+            "conflicts": self.conflicts,
+            "conflict_penalty": self.conflict_penalty,
+            "final": self.final,
+        }
+
+
+def score_strength(
+    matches: tuple[RuleMatch, ...], conflicts: tuple[tuple[str, str], ...]
+) -> StrengthBreakdown:
+    """按「支持量凹饱和 − 冲突扣减」计算证据强度。
+
+    为什么不用「置信度均值」：均值完全不看命中条数 —— 命中 3 条和命中 20 条
+    会得到同一个分数，而这两者的证据厚度显然不同。
+
+    凹饱和函数 ``raw / (raw + K)`` 的性质：对条数单调递增、边际递减、
+    且**永远到不了 1.0**。最后一点是刻意的：结构层证据再厚，也只是「命盘里
+    有什么」，不该被读成「结论几乎确定」。
+    """
+    raw = sum(CONFIDENCE_SCORES[match.rule.confidence] for match in matches)
+    after = raw / (raw + SATURATION_K) if raw else 0.0
+    penalty = CONFLICT_PENALTY * len(conflicts)
+    return StrengthBreakdown(
+        supporting_rules=len(matches),
+        raw_support=round(raw, 4),
+        saturation_k=SATURATION_K,
+        after_saturation=round(after, 4),
+        conflicts=len(conflicts),
+        conflict_penalty=round(penalty, 4),
+        final=round(max(0.0, min(1.0, after - penalty)), 4),
+    )
 
 
 @dataclass(frozen=True)
 class Evidence:
     topic: str
+    """调用方传入的原始主题（可能是别名，如「事业」）。"""
+
+    topic_id: str
+    """解析后的规范主题 ID（如 ``career``）。"""
+
+    topic_name: str
+    status: TopicStatus
+    coverage_note: str
+    schools: tuple[str, ...]
     facts: tuple[Fact, ...]
     matches: tuple[RuleMatch, ...]
     conflicts: tuple[tuple[str, str], ...]
     strength: float
+    strength_breakdown: StrengthBreakdown
     conflict_notes: tuple[str, ...] = ()
+
+    @property
+    def base_matches(self) -> tuple[RuleMatch, ...]:
+        """公共结构层命中。所有主题共享。"""
+        return tuple(match for match in self.matches if match.rule.topic == STRUCTURAL_TOPIC)
+
+    @property
+    def domain_matches(self) -> tuple[RuleMatch, ...]:
+        """属于所请求主题的规则命中。
+
+        问「公共结构层」时主题层与基础层重合 —— 那正是这个主题的含义。
+        两者的判定口径必须一致：``build_evidence`` 也是按 ``rule.topic == 主题``
+        划主题层，若这里改成「排除基础层」，同一个字段在同一个主题上会给出
+        两个答案。
+        """
+        if self.topic_id == STRUCTURAL_TOPIC:
+            return self.base_matches
+        return tuple(
+            match for match in self.matches if match.rule.topic == self.topic_id
+        )
 
     @property
     def unreviewed_rule_ids(self) -> tuple[str, ...]:
@@ -101,10 +144,40 @@ class Evidence:
             match.rule.id for match in self.matches if not match.rule.is_production_ready
         )
 
+    @property
+    def untraced_rule_ids(self) -> tuple[str, ...]:
+        """命中了、但条件追踪断链的规则。
+
+        正常情况下恒为空。它的价值是防止「证据链」退化成一句口号：
+        只要有人绕过 ``RuleRegistry.match`` 手工拼一个没有来源的 RuleMatch，
+        这里立刻暴露出来。
+        """
+        return tuple(match.rule.id for match in self.matches if not match.is_fully_traced)
+
+    @property
+    def is_fully_traced(self) -> bool:
+        return not self.untraced_rule_ids
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "topic": self.topic,
-            "facts": [fact.__dict__ for fact in self.facts],
+            "topic_id": self.topic_id,
+            "topic_name": self.topic_name,
+            "status": str(self.status),
+            "coverage_note": self.coverage_note,
+            "schools": list(self.schools),
+            "facts": [
+                {
+                    "type": fact.type,
+                    "value": fact.value,
+                    "source": fact.source,
+                    "confidence": fact.confidence,
+                }
+                for fact in self.facts
+            ],
+            # ── 证据链：结论 → 规则 → 条件 → 命盘要素 ──────────────────
+            "chain": [match.to_dict() for match in self.matches],
+            # ── 以下为兼容既有调用方的扁平视图 ────────────────────────
             "rules": [match.rule.id for match in self.matches],
             "sources": [match.rule.source for match in self.matches],
             "rule_provenance": [
@@ -117,170 +190,73 @@ class Evidence:
                 }
                 for match in self.matches
             ],
+            "base_rules": [match.rule.id for match in self.base_matches],
+            "domain_rules": [match.rule.id for match in self.domain_matches],
             "unreviewed_rules": list(self.unreviewed_rule_ids),
+            "untraced_rules": list(self.untraced_rule_ids),
             "conflicts": [list(pair) for pair in self.conflicts],
             "conflict_notes": list(self.conflict_notes),
             "strength": self.strength,
+            "strength_breakdown": self.strength_breakdown.to_dict(),
         }
-
-
-def extract_facts(chart: Chart) -> tuple[Fact, ...]:
-    """只提取命盘中实际存在的结构事实。"""
-    pillars = chart.pillars
-    day_stem = chart.day_master or pillars[2].heavenly_stem
-    day_element = ELEMENTS[day_stem]
-
-    facts: list[Fact] = [
-        Fact("day_master", day_stem, "chart.day_master"),
-        Fact("day_master_element", day_element, "chart.day_master"),
-        Fact("day_master_polarity", POLARITY[day_stem], "chart.day_master"),
-    ]
-
-    hidden_gods: list[str] = []
-    hidden_elements: list[str] = []
-    for pillar in pillars:
-        facts.append(Fact(f"{pillar.name}_stem", pillar.heavenly_stem, f"chart.pillars.{pillar.name}"))
-        facts.append(Fact(f"{pillar.name}_branch", pillar.earthly_branch, f"chart.pillars.{pillar.name}"))
-        # 日柱天干恒为「日主」，不是一个十神，产出来只会污染事实链。
-        if pillar.name != "day" and pillar.ten_god:
-            facts.append(Fact(f"{pillar.name}_ten_god", pillar.ten_god, f"chart.pillars.{pillar.name}"))
-        for hidden in pillar.hidden_stems:
-            hidden_gods.append(ten_god(day_stem, hidden))
-            hidden_elements.append(ELEMENTS[hidden])
-
-    transparent = tuple(pillar.ten_god for pillar in pillars if pillar.name != "day" and pillar.ten_god)
-    hidden_set = set(hidden_gods)
-    facts.append(Fact("transparent_ten_gods", transparent, "chart.pillars[*].ten_god"))
-    facts.append(Fact("hidden_ten_gods", tuple(hidden_gods), "chart.pillars[*].hidden_stems"))
-    facts.append(Fact(
-        "ten_god_with_root",
-        tuple(god for god in dict.fromkeys(transparent) if god in hidden_set),
-        "chart.pillars[*].hidden_stems",
-    ))
-    facts.append(Fact(
-        "ten_god_without_root",
-        tuple(god for god in dict.fromkeys(transparent) if god not in hidden_set),
-        "chart.pillars[*].hidden_stems",
-    ))
-
-    month_main = pillars[1].hidden_stems[0]
-    month_element = ELEMENTS[month_main]
-    facts.append(Fact("month_branch_element", month_element, "chart.pillars.month.hidden_stems"))
-    facts.append(Fact("month_branch_ten_god", ten_god(day_stem, month_main), "chart.pillars.month.hidden_stems"))
-    facts.append(Fact("day_master_vs_month", stem_relation(day_element, month_element), "chart.pillars.month"))
-
-    # 透干定格法所需的事实：月支藏干中，出现在年月时天干上的那些十神。
-    # 不含日柱天干 —— 日干是日主本身，不是十神，混进来会让「透干」的含义走样。
-    stem_gods = {
-        pillar.heavenly_stem: pillar.ten_god
-        for pillar in pillars
-        if pillar.name != "day" and pillar.ten_god
-    }
-    facts.append(Fact(
-        "month_branch_extended_ten_god",
-        tuple(dict.fromkeys(
-            god for hidden in pillars[1].hidden_stems
-            if (god := stem_gods.get(hidden)) is not None
-        )),
-        "chart.pillars.month.hidden_stems",
-    ))
-
-    # 五行计数：四柱天干 + 四支本气，共 8 项（口径见模块文档）。
-    counts = dict.fromkeys(ELEMENT_NAMES, 0)
-    for pillar in pillars:
-        counts[ELEMENTS[pillar.heavenly_stem]] += 1
-        counts[ELEMENTS[pillar.hidden_stems[0]]] += 1
-    for element, count in counts.items():
-        facts.append(Fact(f"count_{element}", count, "chart.pillars"))
-    facts.append(Fact("missing_elements", tuple(e for e in ELEMENT_NAMES if counts[e] == 0), "chart.pillars"))
-    facts.append(Fact("dominant_elements", tuple(e for e in ELEMENT_NAMES if counts[e] >= 3), "chart.pillars"))
-
-    branches = tuple(pillar.earthly_branch for pillar in pillars)
-    facts.append(Fact("four_branches", tuple(dict.fromkeys(branches)), "chart.pillars[*].earthly_branch"))
-    facts.append(Fact(
-        "repeated_branches",
-        tuple(branch for branch in dict.fromkeys(branches) if branches.count(branch) >= 2),
-        "chart.pillars[*].earthly_branch",
-    ))
-    facts.append(Fact("relation_count", len(chart.relations), "chart.relations"))
-    facts.append(Fact("relation_density", _density(len(chart.relations)), "chart.relations"))
-    for relation in chart.relations:
-        facts.append(Fact("has_relation", relation["type"], "chart.relations"))
-
-    rooted = "有根" if day_element in hidden_elements else "无根"
-    facts.append(Fact("day_master_root", rooted, "chart.pillars[*].hidden_stems"))
-    same_element = sum(
-        1
-        for element in [ELEMENTS[p.heavenly_stem] for p in pillars] + hidden_elements
-        if element == day_element
-    )
-    facts.append(Fact("day_master_same_element_count", same_element, "chart.pillars"))
-    facts.append(Fact(
-        "day_master_same_element_level", _same_element_level(same_element), "chart.pillars"
-    ))
-
-    return tuple(fact for fact in facts if fact.value is not None)
-
-
-def _density(count: int) -> str:
-    """地支关系密度分档；分档阈值是本实现选定的，不是典籍规定。"""
-    if count == 0:
-        return "无"
-    return "少" if count <= 2 else "多"
-
-
-def _same_element_level(count: int) -> str:
-    """日主同类多寡分档。
-
-    计数口径是「四柱天干 + 全部藏干」，量级约 13 项，所以分档取 2 / 4 为界，
-    而不是常见的百分位。
-    """
-    if count <= 2:
-        return "偏少"
-    return "中等" if count <= 4 else "偏多"
-
-
-def group_facts(facts: tuple[Fact, ...]) -> dict[str, Any]:
-    """按类型归并事实值：同类型多条事实收成元组，只有一条时保持标量。
-
-    不能写成 ``{fact.type: fact.value}`` —— 一个命盘里往往同时存在六合、自刑
-    等多种地支关系，直接建字典会让后一条覆盖前一条，只剩最后一条能被规则看到，
-    地支关系类规则于是永远匹配不上。
-    """
-    grouped: dict[str, list[Any]] = {}
-    for fact in facts:
-        grouped.setdefault(fact.type, []).append(fact.value)
-    return {
-        key: values[0] if len(values) == 1 else tuple(values)
-        for key, values in grouped.items()
-    }
-
-
-CONFIDENCE_SCORES = {"LOW": 0.4, "MEDIUM": 0.7, "HIGH": 1.0}
-"""置信等级到分值的映射。分值表示证据等级，不是事件发生概率。"""
-
-CONFLICT_PENALTY = 0.15
-"""每处规则冲突对证据强度的扣减。"""
 
 
 def build_evidence(
     chart: Chart,
     registry: RuleRegistry,
-    topic: str = "general",
+    topic: str = STRUCTURAL_TOPIC,
     *,
     production_only: bool = False,
 ) -> Evidence:
+    """构建一份带证据链与主题覆盖说明的证据。
+
+    匹配在**全量规则**上进行，再按 ``rule.topic`` 拆成基础层与主题层。
+    不能把 ``topic`` 直接传给 ``match()`` 做过滤：那样问「事业」会命中 0 条
+    规则，用户连命盘的结构事实都看不到；而只返回基础层又会把结构事实
+    冒充成事业结论。两层并列、覆盖状态如实报告，才是诚实的做法。
+    """
     facts = extract_facts(chart)
-    fact_map = group_facts(facts)
-    matches = registry.match(fact_map, production_only=production_only)
-    rule_ids = [match.rule.id for match in matches]
-    # 冲突有两个来源：规则自己声明的静态对，以及同一结论槽上的真实分歧。
-    slot_pairs, slot_notes = registry.slot_conflicts(matches)
-    conflicts = tuple(sorted(set(registry.conflicts(rule_ids)) | set(slot_pairs)))
-    base = (
-        sum(CONFIDENCE_SCORES[match.rule.confidence] for match in matches) / len(matches)
-        if matches
-        else 0.0
+    matches = registry.match(facts, production_only=production_only)
+    resolved = resolve(topic)
+    selected = tuple(
+        match
+        for match in matches
+        if match.rule.topic in {STRUCTURAL_TOPIC, resolved.id}
     )
-    strength = max(0.0, min(1.0, base - len(conflicts) * CONFLICT_PENALTY))
-    return Evidence(topic, facts, matches, conflicts, round(strength, 4), slot_notes)
+    domain = tuple(match for match in selected if match.rule.topic == resolved.id)
+
+    rule_ids = [match.rule.id for match in selected]
+    # 冲突有两个来源：规则自己声明的静态对，以及同一结论槽上的真实分歧。
+    slot_pairs, slot_notes = registry.slot_conflicts(selected)
+    conflicts = tuple(sorted(set(registry.conflicts(rule_ids)) | set(slot_pairs)))
+
+    breakdown = score_strength(selected, conflicts)
+    status = status_for(resolved, len(domain))
+    return Evidence(
+        topic=topic,
+        topic_id=resolved.id,
+        topic_name=resolved.name,
+        status=status,
+        coverage_note=_coverage_note(resolved.name, status, resolved.blocked_by),
+        schools=tuple(sorted({match.rule.school for match in selected})),
+        facts=facts,
+        matches=selected,
+        conflicts=conflicts,
+        strength=breakdown.final,
+        strength_breakdown=breakdown,
+        conflict_notes=slot_notes,
+    )
+
+
+def _coverage_note(name: str, status: TopicStatus, blocked_by: str) -> str:
+    if status is TopicStatus.COVERED:
+        return f"「{name}」主题有专属规则命中。"
+    if status is TopicStatus.BASE_ONLY:
+        return (
+            f"「{name}」主题尚无断语规则：{blocked_by}"
+            "以下仅为公共结构层证据，说明命盘里有什么，不构成对该主题的判断。"
+        )
+    return (
+        f"「{name}」不是已登记的主题，没有对应的规则层。"
+        "以下仅为公共结构层证据，不构成对该主题的判断。"
+    )

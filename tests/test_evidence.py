@@ -2,7 +2,8 @@
 
 from engines.bazi import BirthInput, SxtwlBaziProvider
 from knowledge.default_rules import default_registry
-from knowledge.evidence import build_evidence, extract_facts, group_facts
+from knowledge.evidence import build_evidence
+from knowledge.facts import extract_facts, group_facts
 
 
 def chart():
