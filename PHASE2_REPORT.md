@@ -85,7 +85,7 @@ MINGLI_PLAN.md §2.1 要求「优先《滴天髓》」，§2.4 验收标准 1 �
 | `knowledge/evidence.py` | 事实词表扩到 **37 键**；新增十神透干有根/虚透、藏干十神、月支本气与透干十神、五行计数与缺失/偏旺、关系密度、日主同类多寡；`build_evidence` 接入值级冲突与 `CONFLICT_PENALTY` |
 | `knowledge/default_rules.py` | 改为组装 `structural_rules()` + 流派注册表，并做条件键与流派双重校验 |
 | `api/server.py` | 新增 5 个规则库端点 |
-| `agents/mingli.py` | Critic 新增「引用了未激活的典籍规则」检查 |
+| `agents/mingli.py` | Critic 新增「引用了未通过校核的规则」检查（`unreviewed_rule_ids` 覆盖所有非 `ACTIVE` 规则，未激活的典籍规则自然包含在内）；Analyst 结论改为按置信度排序后内联前 6 条，其余留在证据链里 |
 | `runtime/mingli_service.py` | 暴露 `registry` / `schools` |
 | `engines/bazi/sxtwl_provider.py` | 定义表迁出（净 −36 行），行为不变 |
 | `engines/bazi/time_engine.py` | 导入路径跟随调整 |
