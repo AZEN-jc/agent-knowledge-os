@@ -15,7 +15,7 @@ from datetime import date, timedelta
 import pytest
 
 from engines.bazi import BirthInput, SxtwlBaziProvider
-from engines.bazi.sxtwl_provider import BRANCHES, STEMS
+from engines.bazi.ten_gods import BRANCHES, STEMS
 
 PROVIDER = SxtwlBaziProvider()
 

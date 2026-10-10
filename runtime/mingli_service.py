@@ -11,7 +11,9 @@ from typing import Any
 
 from agents.mingli import AnalystAgent, CriticAgent
 from engines.bazi import BaziCalculator, BirthInput, SxtwlBaziProvider
-from knowledge.default_rules import default_registry
+from knowledge.default_rules import build_registry, default_schools
+from knowledge.rules import RuleRegistry
+from knowledge.schools import SchoolRegistry
 
 
 @dataclass(frozen=True)
@@ -27,9 +29,15 @@ class AnalysisResponse:
 class MingLiService:
     """本地命理服务；所有输出都保留 provider、规则和证据来源。"""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        registry: RuleRegistry | None = None,
+        schools: SchoolRegistry | None = None,
+    ) -> None:
+        self.schools = schools if schools is not None else default_schools()
+        self.registry = registry if registry is not None else build_registry(schools=self.schools)
         self.calculator = BaziCalculator(SxtwlBaziProvider())
-        self.analyst = AnalystAgent(default_registry())
+        self.analyst = AnalystAgent(self.registry)
         self.critic = CriticAgent()
 
     def analyze(self, birth_data: dict[str, Any], question: str) -> AnalysisResponse:

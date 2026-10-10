@@ -1,47 +1,42 @@
-"""第一批结构规则样例。
+"""默认规则库装配。
 
-这里只收录可由当前 Chart 事实直接验证的结构描述。经典文献的精确卷章和
-版本需要后续逐条核校；在核校前，source 使用明确的“待校核”标记，不冒充
-权威引文。
+装配期做两件校验，都放在这里而不是靠人工自觉：
+
+1. **流派校验**：每条规则的 ``school`` 必须是已注册流派，拼错即报错。
+2. **条件键校验**：每条规则的条件键必须存在于 :data:`knowledge.evidence.FACT_SCHEMA`。
+   条件键写错不会抛异常，只会让规则永远匹配不上 —— 一条死规则比一条错规则
+   更难发现，所以在装配期一次性挡住。
+
+当前默认规则库全部是 ``structural`` 层级。典籍层（``classical``）一条都没有，
+原因与后续动作见 :mod:`knowledge.classical_backlog`。
 """
 
-from knowledge.rules import Rule, RuleRegistry
+from __future__ import annotations
 
-DEFAULT_RULES = (
-    Rule(
-        id="STRUCT_TEN_GOD_001",
-        source="传统十神分类（待版本核校）",
-        school="zi_ping_structural",
-        category="ten_god",
-        condition={"month_ten_god": "正官"},
-        conclusion="月柱天干呈现正官关系；仅说明结构事实，不单独推出职业结论。",
-        confidence="MEDIUM",
-        evidence_required=("month_ten_god", "day_master"),
-    ),
-    Rule(
-        id="STRUCT_RELATION_001",
-        source="地支关系表（算法定义，待流派解释核校）",
-        school="zi_ping_structural",
-        category="relation",
-        condition={"has_relation": "六冲"},
-        conclusion="四支中存在六冲结构；具体取象需结合流派和其他证据。",
-        confidence="HIGH",
-        evidence_required=("relations",),
-    ),
-    Rule(
-        id="STRUCT_RELATION_002",
-        source="地支关系表（算法定义，待流派解释核校）",
-        school="zi_ping_structural",
-        category="relation",
-        condition={"has_relation": "六合"},
-        conclusion="四支中存在六合结构；具体取象需结合流派和其他证据。",
-        confidence="HIGH",
-        evidence_required=("relations",),
-    ),
-)
+from knowledge.evidence import FACT_SCHEMA
+from knowledge.rules import RuleRegistry
+from knowledge.schools import SchoolRegistry, default_school_registry
+from knowledge.structural_rules import structural_rules
+
+
+def build_registry(
+    *,
+    schools: SchoolRegistry | None = None,
+    validate: bool = True,
+) -> RuleRegistry:
+    """装配规则库；``validate=False`` 仅供构造非法库的测试使用。"""
+    school_registry = schools if schools is not None else default_school_registry()
+    registry = RuleRegistry()
+    registry.add_many(structural_rules())
+    if validate:
+        registry.validate_schools(school_registry)
+        registry.validate_condition_keys(set(FACT_SCHEMA))
+    return registry
 
 
 def default_registry() -> RuleRegistry:
-    registry = RuleRegistry()
-    registry.add_many(list(DEFAULT_RULES))
-    return registry
+    return build_registry()
+
+
+def default_schools() -> SchoolRegistry:
+    return default_school_registry()

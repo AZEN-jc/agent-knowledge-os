@@ -24,9 +24,7 @@ import sxtwl
 
 from engines.bazi.jieqi import month_pillar, year_pillar
 from engines.bazi.models import BirthInput, Chart, Pillar
-
-STEMS = "甲乙丙丁戊己庚辛壬癸"
-BRANCHES = "子丑寅卯辰巳午未申酉戌亥"
+from engines.bazi.ten_gods import BRANCHES, ELEMENTS, STEMS, ten_god
 
 HIDDEN_STEMS: dict[str, tuple[str, ...]] = {
     "子": ("癸",),
@@ -43,24 +41,12 @@ HIDDEN_STEMS: dict[str, tuple[str, ...]] = {
     "亥": ("壬", "甲"),
 }
 
-ELEMENTS = {
-    "甲": "木", "乙": "木", "丙": "火", "丁": "火", "戊": "土", "己": "土",
-    "庚": "金", "辛": "金", "壬": "水", "癸": "水",
-}
-
 NA_YIN = (
     "海中金", "炉中火", "大林木", "路旁土", "剑锋金", "山头火", "涧下水", "城头土",
     "白蜡金", "杨柳木", "泉中水", "屋上土", "霹雳火", "松柏木", "长流水", "砂中金",
     "山下火", "平地木", "壁上土", "金箔金", "覆灯火", "天河水", "大驿土", "钗钏金",
     "桑柘木", "大溪水", "沙中土", "天上火", "石榴木", "大海水",
 )
-
-POLARITY = {
-    "甲": "阳", "乙": "阴", "丙": "阳", "丁": "阴", "戊": "阳", "己": "阴",
-    "庚": "阳", "辛": "阴", "壬": "阳", "癸": "阴",
-}
-GENERATES = {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"}
-CONTROLS = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"}
 
 BRANCH_RELATIONS = {
     "六合": {frozenset(pair) for pair in ("子丑", "寅亥", "卯戌", "辰酉", "巳申", "午未")},
@@ -73,24 +59,6 @@ MUTUAL_PUNISHMENT = {frozenset(pair) for pair in ("丑戌未", "寅巳申")}
 
 LATE_ZI_POLICIES = ("no_roll", "roll")
 DEFAULT_LATE_ZI_POLICY = "no_roll"
-
-
-def _ten_god(day_master: str, stem: str, *, is_day_pillar: bool = False) -> str:
-    """按日主五行、生克和阴阳计算天干十神。"""
-    if is_day_pillar:
-        return "日主"
-    master_element = ELEMENTS[day_master]
-    stem_element = ELEMENTS[stem]
-    same_polarity = POLARITY[day_master] == POLARITY[stem]
-    if stem_element == master_element:
-        return "比肩" if same_polarity else "劫财"
-    if stem_element == GENERATES[master_element]:
-        return "食神" if same_polarity else "伤官"
-    if master_element == GENERATES[stem_element]:
-        return "偏印" if same_polarity else "正印"
-    if stem_element == CONTROLS[master_element]:
-        return "偏财" if same_polarity else "正财"
-    return "七杀" if same_polarity else "正官"
 
 
 def _gz_text(gz: object) -> tuple[str, str]:
@@ -220,7 +188,7 @@ class SxtwlBaziProvider:
                 heavenly_stem=stem,
                 earthly_branch=branch,
                 hidden_stems=HIDDEN_STEMS[branch],
-                ten_god=_ten_god(day_stem, stem, is_day_pillar=name == "day"),
+                ten_god=ten_god(day_stem, stem, is_day_pillar=name == "day"),
                 na_yin=_na_yin(stem, branch),
             )
             for name, stem, branch in values

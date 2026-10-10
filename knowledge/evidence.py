@@ -1,4 +1,17 @@
-"""从确定性命盘构建可追溯证据。"""
+"""从确定性命盘构建可追溯证据。
+
+事实（Fact）只描述**命盘里有什么**，不做吉凶判断。这里是整个证据链的
+唯一入口：规则只能看到本模块产出的事实，因此「规则条件键是否存在于事实
+词表」是一个可以静态校验的硬约束 —— 见 :data:`FACT_SCHEMA`。
+
+两条约定，写下来免得后人猜：
+
+1. **五行计数口径**：按「四柱天干 + 四支本气（藏干第一位）」共 8 项计数。
+   不同流派对藏干是否计入、计几位存在分歧，本实现只选一种并明示，不声称
+   这是唯一正确口径。
+2. **有根口径**：四支藏干中存在与日主**同五行**者即为有根（不要求同阴阳）。
+   更严格的本气根口径（同五行且同阴阳）是另一个流派分歧点，尚未录入。
+"""
 
 from __future__ import annotations
 
@@ -6,7 +19,58 @@ from dataclasses import dataclass
 from typing import Any
 
 from engines.bazi.models import Chart
+from engines.bazi.ten_gods import ELEMENTS, POLARITY, stem_relation, ten_god
 from knowledge.rules import RuleMatch, RuleRegistry
+
+PILLAR_NAMES = ("year", "month", "day", "hour")
+ELEMENT_NAMES = ("木", "火", "土", "金", "水")
+
+FACT_SCHEMA: dict[str, str] = {
+    # 日主
+    "day_master": "日主天干",
+    "day_master_element": "日主五行",
+    "day_master_polarity": "日主阴阳",
+    "day_master_root": "日主在四支是否有根（有根 / 无根）",
+    "day_master_same_element_count": "四柱天干与藏干中与日主同五行的个数",
+    # 四柱干支
+    "year_stem": "年柱天干",
+    "month_stem": "月柱天干",
+    "day_stem": "日柱天干",
+    "hour_stem": "时柱天干",
+    "year_branch": "年支",
+    "month_branch": "月支",
+    "day_branch": "日支",
+    "hour_branch": "时支",
+    "four_branches": "四支去重后的集合",
+    "repeated_branches": "四支中重复出现的地支",
+    # 十神
+    "year_ten_god": "年柱天干十神",
+    "month_ten_god": "月柱天干十神",
+    "hour_ten_god": "时柱天干十神",
+    "transparent_ten_gods": "天干（除日主外）出现的十神",
+    "hidden_ten_gods": "四支藏干对应的十神",
+    "ten_god_with_root": "既透干又见根的十神",
+    "ten_god_without_root": "透干但四支无根的十神（虚透）",
+    # 月令
+    "month_branch_element": "月支本气五行",
+    "month_branch_ten_god": "月支本气对日主的十神",
+    "month_branch_extended_ten_god": "月支藏干中在天干（年月时）透出者对应的十神",
+    "day_master_vs_month": "日主与月令的生克关系（同我 / 生我 / 我生 / 我克 / 克我）",
+    # 五行计数
+    "count_木": "木的计数",
+    "count_火": "火的计数",
+    "count_土": "土的计数",
+    "count_金": "金的计数",
+    "count_水": "水的计数",
+    "missing_elements": "四柱未出现的五行",
+    "dominant_elements": "计数 ≥3 的五行",
+    # 地支结构
+    "has_relation": "四支关系类型（六合 / 六冲 / 六害 / 相破 / 自刑 / 三刑）",
+    "relation_count": "地支关系总条数",
+    "relation_density": "地支关系密度（无 / 少 / 多）",
+    # 旺衰结构计数
+    "day_master_same_element_level": "日主同类（比劫与印）在命局中的多寡（偏少 / 中等 / 偏多）",
+}
 
 
 @dataclass(frozen=True)
@@ -24,6 +88,18 @@ class Evidence:
     matches: tuple[RuleMatch, ...]
     conflicts: tuple[tuple[str, str], ...]
     strength: float
+    conflict_notes: tuple[str, ...] = ()
+
+    @property
+    def unreviewed_rule_ids(self) -> tuple[str, ...]:
+        """命中的规则里尚未通过校核的那些。
+
+        生产报告必须能一眼看出「这个结论里有多少依据还没核过」，
+        否则未校核规则会被当成和已校核规则同等权威的东西展示出去。
+        """
+        return tuple(
+            match.rule.id for match in self.matches if not match.rule.is_production_ready
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -31,20 +107,137 @@ class Evidence:
             "facts": [fact.__dict__ for fact in self.facts],
             "rules": [match.rule.id for match in self.matches],
             "sources": [match.rule.source for match in self.matches],
-            "conflicts": list(self.conflicts),
+            "rule_provenance": [
+                {
+                    "id": match.rule.id,
+                    "school": match.rule.school,
+                    "source_tier": str(match.rule.source_tier),
+                    "review_status": str(match.rule.review_status),
+                    "confidence": match.rule.confidence,
+                }
+                for match in self.matches
+            ],
+            "unreviewed_rules": list(self.unreviewed_rule_ids),
+            "conflicts": [list(pair) for pair in self.conflicts],
+            "conflict_notes": list(self.conflict_notes),
             "strength": self.strength,
         }
 
 
 def extract_facts(chart: Chart) -> tuple[Fact, ...]:
     """只提取命盘中实际存在的结构事实。"""
-    facts = [
-        Fact("day_master", chart.day_master, "chart.day_master"),
-        Fact("month_ten_god", chart.pillars[1].ten_god, "chart.pillars[1].ten_god"),
+    pillars = chart.pillars
+    day_stem = chart.day_master or pillars[2].heavenly_stem
+    day_element = ELEMENTS[day_stem]
+
+    facts: list[Fact] = [
+        Fact("day_master", day_stem, "chart.day_master"),
+        Fact("day_master_element", day_element, "chart.day_master"),
+        Fact("day_master_polarity", POLARITY[day_stem], "chart.day_master"),
     ]
+
+    hidden_gods: list[str] = []
+    hidden_elements: list[str] = []
+    for pillar in pillars:
+        facts.append(Fact(f"{pillar.name}_stem", pillar.heavenly_stem, f"chart.pillars.{pillar.name}"))
+        facts.append(Fact(f"{pillar.name}_branch", pillar.earthly_branch, f"chart.pillars.{pillar.name}"))
+        # 日柱天干恒为「日主」，不是一个十神，产出来只会污染事实链。
+        if pillar.name != "day" and pillar.ten_god:
+            facts.append(Fact(f"{pillar.name}_ten_god", pillar.ten_god, f"chart.pillars.{pillar.name}"))
+        for hidden in pillar.hidden_stems:
+            hidden_gods.append(ten_god(day_stem, hidden))
+            hidden_elements.append(ELEMENTS[hidden])
+
+    transparent = tuple(pillar.ten_god for pillar in pillars if pillar.name != "day" and pillar.ten_god)
+    hidden_set = set(hidden_gods)
+    facts.append(Fact("transparent_ten_gods", transparent, "chart.pillars[*].ten_god"))
+    facts.append(Fact("hidden_ten_gods", tuple(hidden_gods), "chart.pillars[*].hidden_stems"))
+    facts.append(Fact(
+        "ten_god_with_root",
+        tuple(god for god in dict.fromkeys(transparent) if god in hidden_set),
+        "chart.pillars[*].hidden_stems",
+    ))
+    facts.append(Fact(
+        "ten_god_without_root",
+        tuple(god for god in dict.fromkeys(transparent) if god not in hidden_set),
+        "chart.pillars[*].hidden_stems",
+    ))
+
+    month_main = pillars[1].hidden_stems[0]
+    month_element = ELEMENTS[month_main]
+    facts.append(Fact("month_branch_element", month_element, "chart.pillars.month.hidden_stems"))
+    facts.append(Fact("month_branch_ten_god", ten_god(day_stem, month_main), "chart.pillars.month.hidden_stems"))
+    facts.append(Fact("day_master_vs_month", stem_relation(day_element, month_element), "chart.pillars.month"))
+
+    # 透干定格法所需的事实：月支藏干中，出现在年月时天干上的那些十神。
+    # 不含日柱天干 —— 日干是日主本身，不是十神，混进来会让「透干」的含义走样。
+    stem_gods = {
+        pillar.heavenly_stem: pillar.ten_god
+        for pillar in pillars
+        if pillar.name != "day" and pillar.ten_god
+    }
+    facts.append(Fact(
+        "month_branch_extended_ten_god",
+        tuple(dict.fromkeys(
+            god for hidden in pillars[1].hidden_stems
+            if (god := stem_gods.get(hidden)) is not None
+        )),
+        "chart.pillars.month.hidden_stems",
+    ))
+
+    # 五行计数：四柱天干 + 四支本气，共 8 项（口径见模块文档）。
+    counts = dict.fromkeys(ELEMENT_NAMES, 0)
+    for pillar in pillars:
+        counts[ELEMENTS[pillar.heavenly_stem]] += 1
+        counts[ELEMENTS[pillar.hidden_stems[0]]] += 1
+    for element, count in counts.items():
+        facts.append(Fact(f"count_{element}", count, "chart.pillars"))
+    facts.append(Fact("missing_elements", tuple(e for e in ELEMENT_NAMES if counts[e] == 0), "chart.pillars"))
+    facts.append(Fact("dominant_elements", tuple(e for e in ELEMENT_NAMES if counts[e] >= 3), "chart.pillars"))
+
+    branches = tuple(pillar.earthly_branch for pillar in pillars)
+    facts.append(Fact("four_branches", tuple(dict.fromkeys(branches)), "chart.pillars[*].earthly_branch"))
+    facts.append(Fact(
+        "repeated_branches",
+        tuple(branch for branch in dict.fromkeys(branches) if branches.count(branch) >= 2),
+        "chart.pillars[*].earthly_branch",
+    ))
+    facts.append(Fact("relation_count", len(chart.relations), "chart.relations"))
+    facts.append(Fact("relation_density", _density(len(chart.relations)), "chart.relations"))
     for relation in chart.relations:
         facts.append(Fact("has_relation", relation["type"], "chart.relations"))
+
+    rooted = "有根" if day_element in hidden_elements else "无根"
+    facts.append(Fact("day_master_root", rooted, "chart.pillars[*].hidden_stems"))
+    same_element = sum(
+        1
+        for element in [ELEMENTS[p.heavenly_stem] for p in pillars] + hidden_elements
+        if element == day_element
+    )
+    facts.append(Fact("day_master_same_element_count", same_element, "chart.pillars"))
+    facts.append(Fact(
+        "day_master_same_element_level", _same_element_level(same_element), "chart.pillars"
+    ))
+
     return tuple(fact for fact in facts if fact.value is not None)
+
+
+def _density(count: int) -> str:
+    """地支关系密度分档；分档阈值是本实现选定的，不是典籍规定。"""
+    if count == 0:
+        return "无"
+    return "少" if count <= 2 else "多"
+
+
+def _same_element_level(count: int) -> str:
+    """日主同类多寡分档。
+
+    计数口径是「四柱天干 + 全部藏干」，量级约 13 项，所以分档取 2 / 4 为界，
+    而不是常见的百分位。
+    """
+    if count <= 2:
+        return "偏少"
+    return "中等" if count <= 4 else "偏多"
 
 
 def group_facts(facts: tuple[Fact, ...]) -> dict[str, Any]:
@@ -63,13 +256,31 @@ def group_facts(facts: tuple[Fact, ...]) -> dict[str, Any]:
     }
 
 
-def build_evidence(chart: Chart, registry: RuleRegistry, topic: str = "general") -> Evidence:
+CONFIDENCE_SCORES = {"LOW": 0.4, "MEDIUM": 0.7, "HIGH": 1.0}
+"""置信等级到分值的映射。分值表示证据等级，不是事件发生概率。"""
+
+CONFLICT_PENALTY = 0.15
+"""每处规则冲突对证据强度的扣减。"""
+
+
+def build_evidence(
+    chart: Chart,
+    registry: RuleRegistry,
+    topic: str = "general",
+    *,
+    production_only: bool = False,
+) -> Evidence:
     facts = extract_facts(chart)
     fact_map = group_facts(facts)
-    matches = registry.match(fact_map)
+    matches = registry.match(fact_map, production_only=production_only)
     rule_ids = [match.rule.id for match in matches]
-    conflicts = registry.conflicts(rule_ids)
-    confidence = {"LOW": 0.4, "MEDIUM": 0.7, "HIGH": 1.0}
-    base = sum(confidence[match.rule.confidence] for match in matches) / len(matches) if matches else 0.0
-    strength = max(0.0, min(1.0, base - len(conflicts) * 0.15))
-    return Evidence(topic, facts, matches, conflicts, round(strength, 4))
+    # 冲突有两个来源：规则自己声明的静态对，以及同一结论槽上的真实分歧。
+    slot_pairs, slot_notes = registry.slot_conflicts(matches)
+    conflicts = tuple(sorted(set(registry.conflicts(rule_ids)) | set(slot_pairs)))
+    base = (
+        sum(CONFIDENCE_SCORES[match.rule.confidence] for match in matches) / len(matches)
+        if matches
+        else 0.0
+    )
+    strength = max(0.0, min(1.0, base - len(conflicts) * CONFLICT_PENALTY))
+    return Evidence(topic, facts, matches, conflicts, round(strength, 4), slot_notes)

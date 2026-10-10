@@ -18,7 +18,7 @@ from engines.bazi.jieqi import (
     surrounding_jie,
 )
 from engines.bazi.models import Chart
-from engines.bazi.sxtwl_provider import BRANCHES, POLARITY, STEMS
+from engines.bazi.ten_gods import BRANCHES, POLARITY, STEMS
 
 DAYS_PER_YEAR = 3.0  # 三日折一年
 MONTHS_PER_DAY = 4  # 一日折四个月
