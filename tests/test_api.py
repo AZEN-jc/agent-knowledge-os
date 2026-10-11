@@ -233,3 +233,58 @@ def test_openapi_documents_the_evidence_chain_and_topics():
     assert "conditions" in chain
     assert "证据链" in chain["conditions"]["description"]
     assert "/api/topics" in schema["paths"]
+
+
+def test_analyze_reports_how_the_conclusion_was_drafted():
+    """结论的来路必须写在响应里。
+
+    ``draft.cited_rules`` 是「结论能追溯到具体规则」这条验收标准的机器可读形式：
+    它是 ``evidence.chain`` 里规则 ID 的子集，可以断言，不用人去读文本比对。
+    """
+    body = client.post("/api/analyze", json={**payload(), "question": "事业"}).json()
+    draft = body["analysis"]["draft"]
+    chain_ids = {item["rule_id"] for item in body["analysis"]["evidence"]["chain"]}
+
+    assert draft["source"] == "template", "默认服务不注入 provider，必须走确定性模板"
+    assert draft["provider"] == ""
+    assert draft["model"] == ""
+    assert draft["revisions"] == 0
+    assert draft["contract_violations"] == []
+    assert draft["certainty_risk"] is False
+    assert draft["cited_rules"], "模板路径也要报出引用了哪几条规则"
+    assert set(draft["cited_rules"]) <= chain_ids
+
+
+def test_llm_contract_endpoint_exposes_the_boundary():
+    response = client.get("/api/llm/contract")
+
+    assert response.status_code == 200
+    body = response.json()
+
+    assert body["version"]
+    assert body["draft_schema"]["required"] == ["rule_ids", "text"]
+    assert body["draft_schema"]["additionalProperties"] is False
+    assert len(body["boundary"]) >= 5
+    assert body["forbidden_certainty_words"], "禁用词表必须公开，否则无从审计"
+    assert body["strength_marker"] in body["system_prompt"]
+    assert 0.0 < body["low_strength_ceiling"] < 1.0
+    for word in body["forbidden_certainty_words"]:
+        assert word in body["system_prompt"]
+
+
+def test_llm_contract_says_the_model_never_sees_the_chart():
+    body = client.get("/api/llm/contract").json()
+
+    assert any("证据链" in rule and "命盘" in rule for rule in body["boundary"])
+    assert "没有原始命盘" in body["system_prompt"]
+
+
+def test_openapi_documents_the_llm_contract():
+    schema = client.get("/openapi.json").json()
+
+    assert "/api/llm/contract" in schema["paths"]
+    assert "LLMContractResponse" in schema["components"]["schemas"]
+    assert "DraftResponse" in schema["components"]["schemas"]
+    draft = schema["components"]["schemas"]["DraftResponse"]["properties"]
+    assert "cited_rules" in draft
+    assert "证据链的子集" in draft["cited_rules"]["description"]

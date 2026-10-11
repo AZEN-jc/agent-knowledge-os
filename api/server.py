@@ -15,6 +15,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
+from agents.prompt import contract as llm_contract
 from knowledge.classical_backlog import CLASSICAL_BACKLOG, BacklogStatus, next_action
 from knowledge.provenance import ReviewStatus, SourceTier
 from knowledge.topics import TOPICS
@@ -218,16 +219,52 @@ class EvidenceResponse(BaseModel):
     strength_breakdown: StrengthBreakdownResponse
 
 
+class DraftResponse(BaseModel):
+    """结论草稿的生成元信息。
+
+    ``cited_rules`` 必定是 ``evidence.chain`` 里规则 ID 的子集 ——
+    这一条由契约层保证，Critic 会独立复算一遍。
+    """
+
+    source: str = Field(description="template（确定性模板）或 llm（provider 出稿）")
+    provider: str = Field(description="provider 名称；模板路径下为空字符串")
+    model: str = Field(description="模型标识；模板路径下为空字符串")
+    revisions: int = Field(description="为通过审查而重写的轮数；0 表示一次通过")
+    cited_rules: list[str] = Field(description="结论引用的规则 ID，必定是证据链的子集")
+    contract_violations: list[str] = Field(
+        description="提示契约的违约记录；空列表表示没有越界引用"
+    )
+    certainty_risk: bool = Field(description="结论是否含禁用词表里的确定性措辞")
+
+
 class AnalysisPayload(BaseModel):
     question: str
     evidence: EvidenceResponse
     conclusion: str
+    draft: DraftResponse
 
 
 class AnalysisResponse(BaseModel):
     chart: dict[str, Any]
     analysis: AnalysisPayload
     critique: dict[str, Any]
+
+
+class LLMContractResponse(BaseModel):
+    """LLM 提示契约本身。
+
+    把契约作为数据暴露出来，是为了让它可审计：一份只写在源码注释里的契约
+    等于没有契约 —— 读 API 的人无法确认模型到底能看到什么。
+    """
+
+    version: str
+    system_prompt: str = Field(description="每次请求都原样发送的系统提示词")
+    draft_schema: dict[str, Any] = Field(description="模型输出必须满足的 JSON Schema")
+    boundary: list[str] = Field(description="契约的边界规则清单")
+    forbidden_certainty_words: list[str] = Field(description="任意强度下都禁用的措辞")
+    strength_marker: str = Field(description="结论里必须出现的强度披露标记")
+    low_strength_ceiling: float = Field(description="低于此强度必须披露强度")
+    notes: list[str]
 
 
 service = MingLiService()
@@ -272,7 +309,12 @@ def chart(request: BirthRequest) -> dict[str, Any]:
         "冲突与审查结果。\n\n"
         "``evidence.status`` 说明该主题有没有专属规则：``base_only`` 表示"
         "只有公共结构层证据，此时结论不构成对该主题的判断，"
-        "``evidence.coverage_note`` 里写了原因。"
+        "``evidence.coverage_note`` 里写了原因。\n\n"
+        "``analysis.draft`` 说明结论是怎么来的：``source=template`` 是确定性"
+        "模板（默认，离线），``source=llm`` 是 provider 出稿。后者的"
+        "``cited_rules`` 必定是证据链的子集，越界引用会出现在"
+        "``contract_violations`` 里并由 Critic 披露。当前服务未注入 provider，"
+        "因此默认恒为 ``template``；契约见 ``GET /api/llm/contract``。"
     ),
     tags=["分析"],
     response_model=AnalysisResponse,
@@ -303,6 +345,26 @@ def list_topics() -> TopicListResponse:
         note="covered = 有专属规则；base_only = 只有公共结构层；unknown = 未登记的主题。",
         topics=[TopicResponse(**topic.to_dict()) for topic in TOPICS],  # type: ignore[arg-type]
     )
+
+
+# ── LLM 提示契约 ──────────────────────────────────────────────────────
+
+
+@app.get(
+    "/api/llm/contract",
+    summary="查询 LLM 提示契约",
+    description=(
+        "返回推理层与大模型之间的契约：系统提示词、输出 JSON Schema、"
+        "边界规则、禁用词表与强度披露阈值。\n\n"
+        "契约的三层约束：**输入层**只给证据链（不含原始命盘与全量规则库）、"
+        "**输出层**只接受 rule_ids 与 text 两个键、**边界层**把越界引用剔除并"
+        "记入违约记录。这份契约由假 provider 全量测试覆盖，不依赖外部网络。"
+    ),
+    tags=["推理"],
+    response_model=LLMContractResponse,
+)
+def get_llm_contract() -> LLMContractResponse:
+    return LLMContractResponse(**llm_contract())
 
 
 # ── 规则库查询 ─────────────────────────────────────────────────────────

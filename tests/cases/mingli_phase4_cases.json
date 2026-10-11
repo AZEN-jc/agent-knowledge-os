@@ -1,0 +1,80 @@
+{
+  "version": "1",
+  "note": "Phase 4 验收案例：10 个命盘 × 问句。断言的是**管道行为** —— 匹配条数、主题覆盖状态、强度下限、披露义务是否履行 —— 不是预测准确率。命理对错需要典籍断语与外部基准，本文件不声称任何一条。",
+  "defaults": {
+    "min_rules": 8,
+    "min_strength": 0.4
+  },
+  "cases": [
+    {
+      "id": "P4-01",
+      "birth": {"year": 1990, "month": 2, "day": 1, "hour": 12, "minute": 0},
+      "question": "命盘结构",
+      "expect_status": "covered",
+      "min_conflicts": 0
+    },
+    {
+      "id": "P4-02",
+      "birth": {"year": 1990, "month": 2, "day": 1, "hour": 12, "minute": 0},
+      "question": "事业",
+      "expect_status": "base_only",
+      "min_conflicts": 0
+    },
+    {
+      "id": "P4-03",
+      "birth": {"year": 1984, "month": 6, "day": 15, "hour": 8, "minute": 30},
+      "question": "婚姻",
+      "expect_status": "base_only",
+      "min_conflicts": 0
+    },
+    {
+      "id": "P4-04",
+      "birth": {"year": 2000, "month": 12, "day": 31, "hour": 23, "minute": 50},
+      "question": "健康",
+      "expect_status": "base_only",
+      "min_conflicts": 0
+    },
+    {
+      "id": "P4-05",
+      "birth": {"year": 1975, "month": 3, "day": 8, "hour": 5, "minute": 15},
+      "question": "财运",
+      "expect_status": "base_only",
+      "min_conflicts": 0
+    },
+    {
+      "id": "P4-06",
+      "birth": {"year": 2024, "month": 2, "day": 4, "hour": 16, "minute": 45},
+      "question": "事业",
+      "expect_status": "base_only",
+      "min_conflicts": 2
+    },
+    {
+      "id": "P4-07",
+      "birth": {"year": 1968, "month": 11, "day": 11, "hour": 11, "minute": 11},
+      "question": "风水",
+      "expect_status": "unknown",
+      "min_conflicts": 0
+    },
+    {
+      "id": "P4-08",
+      "birth": {"year": 1995, "month": 7, "day": 7, "hour": 19, "minute": 7},
+      "question": "命盘结构",
+      "expect_status": "covered",
+      "min_conflicts": 0
+    },
+    {
+      "id": "P4-09",
+      "birth": {"year": 2010, "month": 10, "day": 10, "hour": 10, "minute": 10},
+      "question": "婚姻",
+      "expect_status": "base_only",
+      "min_conflicts": 1
+    },
+    {
+      "id": "P4-10",
+      "birth": {"year": 1955, "month": 5, "day": 5, "hour": 5, "minute": 5},
+      "question": "事业",
+      "expect_status": "base_only",
+      "min_conflicts": 1
+    }
+  ]
+}
