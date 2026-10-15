@@ -26,6 +26,9 @@ from dataclasses import dataclass
 from agents.llm import LLMProvider
 from agents.prompt import (
     CERTAINTY_WORDS,
+    FOOTNOTE_CLOSE,
+    FOOTNOTE_OPEN,
+    FOOTNOTE_PATTERN,
     LOW_STRENGTH_CEILING,
     STRENGTH_MARKER,
     Draft,
@@ -35,8 +38,9 @@ from agents.prompt import (
 )
 from engines.bazi.models import Chart
 from knowledge.evidence import Evidence, build_evidence
+from knowledge.provenance import SourceTier
 from knowledge.rules import RuleMatch, RuleRegistry
-from knowledge.topics import TopicStatus
+from knowledge.topics import STRUCTURAL_TOPIC, TopicStatus
 
 CONFIDENCE_RANK = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
 CONCLUSION_LIMIT = 6
@@ -127,11 +131,34 @@ class AnalystAgent:
             )
         return self._draft(evidence, question, critic, provider)
 
+    def _domain_rule_ids(self, evidence: Evidence) -> set[str]:
+        """主题层规则的 ID 集合。
+
+        问公共结构层时主题层与基础层**重合**，此时返回空集 —— 否则「典籍断语」
+        这个标签会把全部结构规则都算进去，标签又变成谎话（这正是 Phase 3 修掉的
+        那类问题）。``Evidence.domain_matches`` 已经处理了这层重合，
+        这里只需把「基础层不算主题层」这件事在排序上落实。
+        """
+        if evidence.topic_id == STRUCTURAL_TOPIC:
+            return set()
+        return {match.rule.id for match in evidence.domain_matches}
+
     def _ordered(self, evidence: Evidence) -> tuple[RuleMatch, ...]:
-        """按置信度排序；同置信度按规则 ID 稳定排序，保证输出可复现。"""
+        """排序：**主题层优先** → 置信度 → 规则 ID。
+
+        主题层必须排最前。纯按置信度排会把典籍断语挤进「另有 N 条」里 ——
+        典籍断语的置信度是 MEDIUM，而结构层命中里 HIGH 一大片。用户问「命局」，
+        典籍断语才是答案，结构层是背景。把答案藏在「详见证据链」后面，
+        等于没给答案。
+        """
+        domain_ids = self._domain_rule_ids(evidence)
         return tuple(sorted(
             evidence.matches,
-            key=lambda match: (CONFIDENCE_RANK[match.rule.confidence], match.rule.id),
+            key=lambda match: (
+                0 if match.rule.id in domain_ids else 1,
+                CONFIDENCE_RANK[match.rule.confidence],
+                match.rule.id,
+            ),
         ))
 
     def _cited(self, evidence: Evidence) -> tuple[str, ...]:
@@ -147,7 +174,21 @@ class AnalystAgent:
             return "当前规则库没有匹配到足够结构证据，不能形成可靠结论。"
         ordered = self._ordered(evidence)
         shown = ordered[:CONCLUSION_LIMIT]
-        parts = ["基于已匹配的结构规则：" + "；".join(match.rule.conclusion for match in shown)]
+        domain_ids = self._domain_rule_ids(evidence)
+        domain_shown = [match for match in shown if match.rule.id in domain_ids]
+        base_shown = [match for match in shown if match.rule.id not in domain_ids]
+
+        parts: list[str] = []
+        if domain_shown:
+            # 典籍断语必须带出处角标：结论里每一句「典籍说」都要能点回去。
+            # 不挂 URN 的典籍断语和「我听说」没有区别。
+            parts.append("典籍断语（附出处）：" + "；".join(
+                f"{match.rule.conclusion}〔{match.rule.urn}〕" for match in domain_shown
+            ))
+        if base_shown:
+            parts.append("基于已匹配的结构规则：" + "；".join(
+                match.rule.conclusion for match in base_shown
+            ))
         if len(ordered) > CONCLUSION_LIMIT:
             parts.append(f"另有 {len(ordered) - CONCLUSION_LIMIT} 条规则命中，详见证据链。")
         if evidence.conflicts:
@@ -213,6 +254,7 @@ class CriticAgent:
         rule_ids = {match.rule.id for match in evidence.matches}
 
         issues.extend(self._contract_issues(analysis, rule_ids))
+        issues.extend(self._provenance_issues(analysis))
 
         if not analysis.conclusion.strip():
             issues.append("结论为空，无法形成可读输出")
@@ -258,6 +300,57 @@ class CriticAgent:
                 "该主题没有专属规则，不能让它看起来像是对该主题的判断"
             )
         return Critique(not issues, tuple(issues))
+
+    def _provenance_issues(self, analysis: Analysis) -> list[str]:
+        """典籍断语的出处角标，**双向**校验。
+
+        结构层规则可以自证：它的条件就写在证据链里，读者能顺着 ``conditions``
+        一路点回命盘要素。典籍规则不行 —— 它引用的是别处的文本，不给出处，
+        读者只能选择信或不信，而「信或不信」正是这套系统要消灭的东西。
+
+        两个方向都要查，因为它们是两种不同的失败：
+
+        * **该挂没挂** —— 结论说了「古法记为子遥巳格」，却不说是哪本书哪一卷。
+          读者无法回查，这句话和道听途说没有区别。
+        * **挂了但不该挂** —— 结论里出现证据链之外的 URN。这是编造出处，
+          比不挂更糟：它伪装成可核验的样子。
+
+        只查 ``cited_rule_ids`` 里的规则，不查全部命中规则：没写进结论的规则
+        本来就不需要角标，要求它们挂等于逼模型把没说的话也标注一遍。
+        """
+        cited = set(analysis.cited_rule_ids)
+        known = {
+            match.rule.urn
+            for match in analysis.evidence.matches
+            if match.rule.urn
+        }
+
+        missing: list[str] = []
+        for match in analysis.evidence.matches:
+            rule = match.rule
+            if rule.id not in cited or rule.source_tier is not SourceTier.CLASSICAL:
+                continue
+            if not rule.urn:
+                # 规则自己没有 URN —— 这是加载期的漏洞（rule_atoms 的引证
+                # 守卫本该拦住），不是模型的错。但结论里同样不能就这么算了。
+                missing.append(f"{rule.id} 没有可引用的 URN")
+                continue
+            if f"{FOOTNOTE_OPEN}{rule.urn}{FOOTNOTE_CLOSE}" not in analysis.conclusion:
+                missing.append(f"{rule.id} 需挂 {FOOTNOTE_OPEN}{rule.urn}{FOOTNOTE_CLOSE}")
+
+        issues: list[str] = []
+        if missing:
+            issues.append(
+                "典籍断语未挂出处角标，读者无法回查原文：" + "；".join(missing)
+            )
+
+        mentioned = set(FOOTNOTE_PATTERN.findall(analysis.conclusion))
+        stray = sorted(mentioned - known)
+        if stray:
+            issues.append(
+                "结论引用了证据链之外的出处，疑似编造：" + "、".join(stray)
+            )
+        return issues
 
     def _contract_issues(self, analysis: Analysis, rule_ids: set[str]) -> list[str]:
         """契约层违约 + 对 ``cited_rule_ids`` 的独立复算。

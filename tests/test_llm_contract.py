@@ -16,6 +16,9 @@ from agents.prompt import (
     CERTAINTY_WORDS,
     CONTRACT_VERSION,
     DRAFT_KEYS,
+    FOOTNOTE_CLOSE,
+    FOOTNOTE_OPEN,
+    FOOTNOTE_PATTERN,
     LOW_STRENGTH_CEILING,
     STRENGTH_MARKER,
     SYSTEM_PROMPT,
@@ -282,8 +285,50 @@ def test_contract_exposes_the_whole_boundary():
     assert data["draft_schema"]["additionalProperties"] is False
     assert data["forbidden_certainty_words"] == list(CERTAINTY_WORDS)
     assert data["low_strength_ceiling"] == LOW_STRENGTH_CEILING
-    assert len(data["boundary"]) == 6
+    assert data["boundary"]
     assert data["notes"]
+
+
+def test_contract_exposes_the_attribution_protocol():
+    """溯源协议必须是契约的一部分，不能只活在 Critic 的源码里。
+
+    契约暴露给 ``/api/llm/contract``，是给**人**看的：接真 provider 的人
+    要知道模型被要求挂出处角标，才能判断一份输出是不是合规。协议只写在
+    Critic 里，接线的人就只会看到「模型有时候被退回重写」而不知道为什么。
+    """
+    data = contract()
+    footnote = data["footnote"]
+
+    assert footnote["open"] == FOOTNOTE_OPEN
+    assert footnote["close"] == FOOTNOTE_CLOSE
+    assert footnote["required_for"] == "classical"
+    assert FOOTNOTE_OPEN in SYSTEM_PROMPT
+    assert "urn" in SYSTEM_PROMPT
+
+    # 两条边界规则：该挂的挂了没有 / 挂的存不存在。少一条就只剩单向校验。
+    joined = "\n".join(data["boundary"])
+    assert "典籍断语必须挂出处角标" in joined
+    assert "视为编造出处" in joined
+
+
+def test_the_footnote_marker_does_not_collide_with_ordinary_prose():
+    """角标记号必须是正常行文里不会自然出现的东西。
+
+    这条不是吹毛求疵：Critic 用**字符串包含**判定「挂没挂角标」。如果记号是
+    半角方括号，正文里一个普通的 ``[注]`` 就会被读成角标，校验形同虚设。
+    """
+    assert FOOTNOTE_OPEN == "〔"
+    assert FOOTNOTE_CLOSE == "〕"
+    assert "[" not in (FOOTNOTE_OPEN + FOOTNOTE_CLOSE)
+
+
+def test_the_footnote_pattern_only_accepts_canonical_urns():
+    assert FOOTNOTE_PATTERN.findall("见〔urn:divination:bazi:e:v:j1.c.e〕") == [
+        "urn:divination:bazi:e:v:j1.c.e"
+    ]
+    # 半角括号、非 URN 内容都不算
+    assert FOOTNOTE_PATTERN.findall("见[urn:divination:bazi:e:v:j1.c.e]") == []
+    assert FOOTNOTE_PATTERN.findall("见〔滴天髓卷一〕") == []
 
 
 def test_contract_is_json_serializable():

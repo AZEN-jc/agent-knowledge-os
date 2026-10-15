@@ -27,9 +27,21 @@ from typing import Any
 from agents.llm import LLMRequest
 from knowledge.evidence import Evidence
 
-CONTRACT_VERSION = "1"
+CONTRACT_VERSION = "2"
 
 DRAFT_KEYS = ("rule_ids", "text")
+
+FOOTNOTE_OPEN = "〔"
+FOOTNOTE_CLOSE = "〕"
+"""出处角标的分隔符。
+
+全角方括号而不是 ``[...]``：半角方括号在中文正文里太常见（注释、补字），
+把它当角标会误判。这里要的是一个**在正常行文里不会自然出现**的记号，
+否则「挂没挂出处」这件事就没法用字符串判定，只能靠模型自觉。
+"""
+
+FOOTNOTE_PATTERN = re.compile(r"〔(urn:divination:[^〕\s]+)〕")
+"""从结论正文里回收出处角标，用来反向查「有没有编造出处」。"""
 
 LOW_STRENGTH_CEILING = 0.5
 """低于这个证据强度时，结论**必须**披露强度。
@@ -67,6 +79,11 @@ SYSTEM_PROMPT = """你是命理证据的复述者，不是推断者。
 6. 主题覆盖状态不是 covered 时，必须原样带上 coverage_note 的内容。
 7. 证据链里 conflicts 非空时，必须写明存在规则分歧，并列呈现，不得替读者取舍。
 8. 证据链为空时，只回一句「证据不足」，rule_ids 必须是空数组。
+9. **凡引用 source_tier 为 classical 的规则，必须在该句断语后面挂上它的 urn，
+   写作〔urn:divination:...〕，一字不改。** 出处就在该规则的 urn 字段里，
+   照抄即可。不得改写、不得简写、不得凭记忆重建 —— 缺角标或角标对不上
+   都会被判违约。结构层规则（source_tier 为 structural）不需要角标，
+   它的条件追踪本身就是出处。
 
 只输出下面这个 JSON，不要任何其他文字，不要 Markdown 代码块：
 
@@ -85,7 +102,10 @@ DRAFT_SCHEMA: dict[str, Any] = {
         },
         "text": {
             "type": "string",
-            "description": "结论正文，只复述证据，不做预测",
+            "description": (
+                "结论正文，只复述证据，不做预测。"
+                "引用了 classical 规则时，该句断语必须挂 〔urn:...〕 角标"
+            ),
         },
     },
 }
@@ -97,6 +117,8 @@ BOUNDARY_RULES: tuple[str, ...] = (
     "禁用词表在任意证据强度下都生效。",
     "证据强度低于阈值时，结论必须披露强度，否则视为违约。",
     "主题覆盖不足与规则冲突都必须披露 —— Critic 查的是「说了没有」，不是「有没有」。",
+    "典籍断语必须挂出处角标：引用了 classical 规则却没写它的 urn，视为违约。",
+    "出处角标只能取自证据链：结论里出现证据链之外的 urn，视为编造出处。",
 )
 
 _FENCE = re.compile(r"^```[a-zA-Z0-9_-]*\s*\n(.*?)\n?```$", re.DOTALL)
@@ -223,9 +245,16 @@ def contract() -> dict[str, Any]:
         "forbidden_certainty_words": list(CERTAINTY_WORDS),
         "strength_marker": STRENGTH_MARKER,
         "low_strength_ceiling": LOW_STRENGTH_CEILING,
+        "footnote": {
+            "open": FOOTNOTE_OPEN,
+            "close": FOOTNOTE_CLOSE,
+            "pattern": FOOTNOTE_PATTERN.pattern,
+            "required_for": "classical",
+        },
         "notes": [
             "模型输入只有证据链；原始命盘与全量规则库不在签名里。",
             "越界引用不会被静默丢弃，会记入 violations 并由 Critic 披露。",
+            "典籍规则的出处角标由 Critic 双向校验：该挂的挂了没有、挂的存不存在。",
             "本契约当前只由假 provider 驱动；真 provider 接线属于后续工作。",
         ],
     }

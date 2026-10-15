@@ -358,3 +358,122 @@ def test_critic_flags_an_empty_conclusion():
     assert critique.passed is False
     assert any("结论为空" in issue for issue in critique.issues)
 
+
+# ── Phase 5：典籍断语的位置与出处角标 ─────────────────────────────────
+
+
+def destiny_chart():
+    """日柱甲子、时柱甲子 —— 命中《三命通會》卷八「甲子日甲子时」。"""
+    return SxtwlBaziProvider().calculate(BirthInput(1980, 2, 21, 0))
+
+
+def destiny_analysis():
+    return AnalystAgent(default_registry()).analyze(destiny_chart(), "命局")
+
+
+def the_classical_match(analysis):
+    """本盘命中的那条典籍规则（当前底本下只有一条）。"""
+    assert analysis.evidence.domain_matches
+    return analysis.evidence.domain_matches[0]
+
+
+def test_classical_verdict_leads_the_conclusion():
+    """问「命局」时，典籍断语是答案，结构层是背景。
+
+    回归：排序若只看置信度，典籍断语（MEDIUM）会被结构层命中（HIGH）挤到
+    后面，落进「另有 N 条规则命中，详见证据链」里。用户问命局，答案却藏在
+    「详见」后面 —— 那等于没给答案。
+    """
+    analysis = destiny_analysis()
+    urn = the_classical_match(analysis).rule.urn
+
+    assert analysis.conclusion.startswith("典籍断语")
+    assert f"〔{urn}〕" in analysis.conclusion
+    # 典籍断语整段必须排在结构层那一段之前，而不是被夹在中间
+    assert analysis.conclusion.index(urn) < analysis.conclusion.index("结构规则")
+
+
+def test_classical_rule_is_cited_first():
+    """引用顺序也要跟着排序走，否则 API 消费者按 cited_rule_ids 渲染时又是错的。"""
+    analysis = destiny_analysis()
+
+    assert analysis.cited_rule_ids[0] == the_classical_match(analysis).rule.id
+
+
+def test_deterministic_destiny_analysis_passes_the_critic():
+    """模板路径自己就要挂对角标 —— 否则 Critic 会拦下自家产出。"""
+    critique = CriticAgent().critique(destiny_analysis())
+
+    assert critique.passed is True, critique.issues
+
+
+def test_critic_flags_a_classical_verdict_without_a_footnote():
+    """模型说了「古法记为子遥巳格」却不说是哪本书哪一卷 —— 必须拦下。
+
+    不挂出处的典籍断语和道听途说没有区别：读者无法回查，只能选择信或不信，
+    而「信或不信」正是这套系统要消灭的东西。
+    """
+    analysis = destiny_analysis()
+    match = the_classical_match(analysis)
+    unfootnoted = replace(
+        analysis,
+        draft_source=DRAFT_LLM,
+        conclusion=f"古法记为子遥巳格。证据强度 {analysis.evidence.strength:.2f}。",
+        cited_rule_ids=(match.rule.id,),
+    )
+
+    critique = CriticAgent().critique(unfootnoted)
+
+    assert critique.passed is False
+    assert any("出处角标" in issue and match.rule.urn in issue for issue in critique.issues)
+
+
+def test_critic_accepts_a_classical_verdict_with_its_footnote():
+    """同一份草稿，补上角标就通过 —— 否则这条检查只是「一律拦下」。"""
+    analysis = destiny_analysis()
+    match = the_classical_match(analysis)
+    footnoted = replace(
+        analysis,
+        draft_source=DRAFT_LLM,
+        conclusion=(
+            f"古法记为子遥巳格〔{match.rule.urn}〕。"
+            f"证据强度 {analysis.evidence.strength:.2f}。"
+        ),
+        cited_rule_ids=(match.rule.id,),
+    )
+
+    assert CriticAgent().critique(footnoted).passed is True
+
+
+def test_critic_flags_a_footnote_that_is_not_in_the_evidence_chain():
+    """编造出处比不挂出处更糟：它伪装成可核验的样子。
+
+    这里换上的 URN 是**真实存在**的原子（甲午日那条），只是本盘没命中它。
+    所以「URN 格式合法」「底本里查得到」都拦不住 —— 只有跟证据链比对才行。
+    """
+    analysis = destiny_analysis()
+    real_urn = the_classical_match(analysis).rule.urn
+    foreign_urn = "urn:divination:bazi:sanmingtonghui:ws845354:j8.liujia_ri.jiawu_jiazi"
+
+    assert foreign_urn != real_urn
+    tampered = replace(
+        analysis, conclusion=analysis.conclusion.replace(real_urn, foreign_urn)
+    )
+
+    critique = CriticAgent().critique(tampered)
+
+    assert critique.passed is False
+    assert any("编造" in issue and foreign_urn in issue for issue in critique.issues)
+
+
+def test_structural_rules_do_not_need_a_footnote():
+    """要求不能扩到结构层 —— 它的出处是条件追踪，不是文本。
+
+    过度要求会让 Critic 对一份完全合规的结构层结论报错。误报的代价比漏报更重：
+    一旦 Critic 的意见里混进噪音，人就不再逐条读了。
+    """
+    analysis = AnalystAgent(default_registry()).analyze(chart(), "命盘结构")
+
+    assert "〔urn:" not in analysis.conclusion
+    assert CriticAgent().critique(analysis).passed is True
+
