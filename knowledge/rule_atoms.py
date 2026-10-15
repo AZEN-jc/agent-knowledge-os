@@ -12,6 +12,14 @@
    交叉核对是为了让它可以自证 —— 两者都要，不然「可读」会变成「可以撒谎」。
 4. **条件键必须在事实词表内、主题与流派必须已登记** —— 拼错的条件键不会报错，
    只会让规则永远匹配不上，变成一条没人发现的死规则。
+5. **引文声明的时空限制必须在条件里落地** —— 见 :func:`_check_time_restriction`。
+   这一条是 2026-10-15 补的，起因是一次真实的录入失误：引文写「申月，煞星会印，
+   俱贵」，condition 漏了 ``month_branch``，结果这条断语对**任何月份**的甲辰日
+   甲子时都命中。前四条守卫一条都拦不住它 —— 引文逐字对得上、键都在词表里、
+   元数据也一致。问题不在引文，在**条件没有表达引文说过的限制**。
+   当天就发现同一个洞还有第二个口子：「若水位年月，水泛木浮」的限制落在
+   ``year_month_elements`` 上，而月令那一侧的正则根本不认识「年月」这种写法。
+   所以这条守卫查两种形态：**干支 + 月**与**年月**。
 
 **出处信息从底本反查，不从原子文件抄。** 原子只给 ``urn`` + ``exact_quote``，
 ``book`` / ``edition`` / ``chapter`` / ``url`` / ``retrieved_on`` 全部由
@@ -22,6 +30,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -200,6 +209,7 @@ def _build_rule(
             f"{where} 的 condition 引用了事实词表里不存在的键：{'、'.join(unknown_keys)}。"
             "条件键拼错不会报错，只会让这条规则永远匹配不上。"
         )
+    _check_time_restriction(quote, condition, where)
 
     assertion = item["assertion"]
     if not isinstance(assertion, dict):
@@ -297,6 +307,58 @@ def _cross_check_citation(
                 f"{where} 的 citation.chapter 与篇章表不符："
                 f"原子写 {chapter!r}，底本篇章表写 {label!r}。"
             )
+
+
+_MONTH_MENTION = re.compile(r"[甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥]+月")
+"""引文里形如「申月」「乙卯月」的月令限制。
+
+不含「寅午戌月俱吉」中间的「午」—— 正则取最长串，命中的是「戌月」那一串，
+效果等价（三种月令都是限制）。也不含「水位年月」：紧贴「月」的是「年」。
+"""
+
+_YEAR_MONTH_MENTION = re.compile(r"年月")
+"""引文里形如「若水位年月」「年月無庚辛申酉」的年月两层限制。
+
+卷八这一章里「年月」出现 242 次，**几乎全是条件从句**（「寅午年月大貴」
+「子未年月，煞助印生，四品」）。它不是修辞，是断语的生效范围。
+"""
+
+_MONTH_KEYS = ("month_branch", "month_pillar")
+_YEAR_MONTH_KEYS = ("year_month_elements", "month_pillar", "month_branch", "year_pillar")
+
+
+def _check_time_restriction(quote: str, condition: dict[str, Any], where: str) -> None:
+    """引文声明了月令 / 年月限制时，condition 必须落到对应层的事实上。
+
+    这一条守的是「**引文说了限制，条件没表达**」。前四条守卫都不管这件事：
+    引文可以逐字对得上、键可以都在词表里、元数据也可以一致，而 predicate
+    照样对任何月份命中 —— 于是「申月，煞星会印，俱贵」被当成了一条
+    无条件的吉断语。那不是转述，是扩大。
+
+    检查两种形态，各自独立判定，一次报全：
+
+    - 「申月」「乙卯月」→ condition 要有 ``month_branch`` 或 ``month_pillar``；
+    - 「若水位年月」→ condition 要有年月层的事实。
+
+    反向不查：condition 有时空事实而引文没提，是条件过严，只会让规则更难命中，
+    不会出错话。所以只查一个方向，否则每加一条规则都要跟守卫吵一架。
+
+    它是**下限，不是上限**。「年月無庚辛申酉」需要年、月两层的干与支都在条件里，
+    当前事实词表表达不了整句，就只能用能表达的那部分去覆盖；剩下的写进
+    ``conclusion`` 交代，而不是假装这条规则无懈可击。
+    """
+    missing: list[str] = []
+    if _MONTH_MENTION.search(quote) and not any(key in condition for key in _MONTH_KEYS):
+        missing.append(" 或 ".join(_MONTH_KEYS) + "（月令）")
+    if _YEAR_MONTH_MENTION.search(quote) and not any(key in condition for key in _YEAR_MONTH_KEYS):
+        missing.append(" 或 ".join(_YEAR_MONTH_KEYS) + "（年月）")
+    if not missing:
+        return
+    raise AtomError(
+        f"{where} 的引文提到了月令或年月（{quote[:40]}…），但 condition 里没有 "
+        f"{'、'.join(missing)}。引文说过的限制必须落进条件，"
+        "否则这条断语会被当成无条件的用。"
+    )
 
 
 def _require_text(value: Any, where: str) -> str:

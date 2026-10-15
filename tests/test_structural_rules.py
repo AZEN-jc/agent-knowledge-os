@@ -398,4 +398,19 @@ RULE_WITNESS: dict[str, tuple[int, int, int, int]] = {
     "rule_bazi_sanmingtonghui_j8_jiashen_jiazi_01": (1980, 1, 12, 0),
     "rule_bazi_sanmingtonghui_j8_jiashen_jiazi_02": (1980, 1, 12, 0),
     "rule_bazi_sanmingtonghui_j8_jiaxu_jiazi": (1980, 1, 2, 0),
+    # ── 典籍层（《三命通會》卷八 · 甲辰日甲子时断）──────────────────────
+    # 七条的条件都是「甲辰日甲子时」再加一条年月限制，所以必须先落定日柱与
+    # 时辰，再去不同的月份里找各自的见证。甲辰日的日干是甲，甲日子时正是
+    # 「甲子时」，因此扫描 1950-2030 的所有甲辰日子时即可覆盖七条。
+    # 挑盘时刻意避开「同一条见证命盘命中多条本组规则」：一张盘同时匹配
+    # 两条，就无法证明见证是**因为各自的条件**而命中的。
+    # 唯一例外是 _06 / _07：癸巳月、癸亥月自己就带水，必然同时命中
+    # 「水位年月」那条 —— 那不是挑盘不慎，是原文两句都适用于这张盘。
+    "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_01": (1951, 1, 4, 0),
+    "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_02": (1950, 9, 6, 0),
+    "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_03": (1956, 10, 4, 0),
+    "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_04": (1951, 3, 5, 0),
+    "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_05": (1958, 3, 28, 0),
+    "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_06": (1956, 6, 6, 0),
+    "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_07": (1958, 11, 23, 0),
 }

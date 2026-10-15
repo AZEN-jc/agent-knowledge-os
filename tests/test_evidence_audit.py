@@ -125,9 +125,32 @@ def audit_fact_map(chart) -> dict[str, object]:
         for pillar in pillars
         for suffix, value in (("stem", pillar.heavenly_stem), ("branch", pillar.earthly_branch))
     }
+    # 整柱干支四键。「癸巳月水火中死」读的是整柱，不是月干或月支之一 ——
+    # 拆成两个键就表达不了「干与支必须同时是这个组合」。
+    pillar_full_codes = {
+        f"{pillar.name}_pillar": pillar.heavenly_stem + pillar.earthly_branch
+        for pillar in pillars
+    }
+
+    # 年月两柱的五行构成。与 ``year_month_elements`` 的边界同一口径：
+    # 只看年、月两柱的天干与本气藏干，**不含日时两柱**。
+    # 断语「若水位年月，水泛木浮」说的是年月这一层的水势；
+    # 复核路径如果顺手把四柱都算进去，就把判定范围放宽了 ——
+    # 那会让「规则多命中」被算成一致，而它恰恰是这次要复核的错误。
+    year_month_stem_elements = [
+        ELEMENT_OF[p.heavenly_stem] for p in pillars[:2]
+    ]
+    year_month_main_elements = [
+        ELEMENT_OF[p.hidden_stems[0]] for p in pillars[:2]
+    ]
+    year_month_elements = tuple(dict.fromkeys(
+        year_month_stem_elements + year_month_main_elements
+    ))
 
     return {
         **pillar_codes,
+        **pillar_full_codes,
+        "year_month_elements": year_month_elements,
         "day_master_root": "有根" if day_element in {ELEMENT_OF[s] for s in hidden} else "无根",
         "day_master_same_element_level": audit_same_element_level(same_element),
         "day_master_vs_month": audit_month_relation(day_element, ELEMENT_OF[month_main]),

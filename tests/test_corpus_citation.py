@@ -12,8 +12,10 @@ Phase 5 的机制（``knowledge/urn.py`` / ``knowledge/corpus.py`` /
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -311,9 +313,13 @@ def test_manifest_entry_rejects_an_unregistered_role() -> None:
 # ── 四条引证守卫：加载器就是守卫本身 ────────────────────────────────
 
 
-def test_the_six_real_atoms_load_and_every_quote_locates() -> None:
-    assert len(REPORT.rules) == 6
-    assert len(REPORT.located) == 6
+def test_every_real_atom_loads_and_every_quote_locates() -> None:
+    """不写死条数 —— 底本会继续录，写死就等于每次录新原子都要改测试。
+
+    要守的不变式是「**每条都真的对回了底本**」。
+    """
+    assert REPORT.rules
+    assert len(REPORT.rules) == len(REPORT.located)
 
     for rule in REPORT.rules:
         assert rule.source_tier is SourceTier.CLASSICAL
@@ -569,3 +575,250 @@ def test_the_atom_template_documents_the_required_shape() -> None:
         assert key in template
     assert template["urn"].startswith("urn:divination:")
     assert "逐字原文" in template["citation"]["exact_quote"]
+
+
+# ── 第 5 轮：事实词表扩展后解锁的甲辰日，与「引文说了限制条件没表达」守卫 ──
+
+
+def chart_1980():
+    from engines.bazi import BaziCalculator, BirthInput, SxtwlBaziProvider
+
+    return BaziCalculator(SxtwlBaziProvider()).calculate_chart(BirthInput(1980, 2, 21, 0, 30))
+
+
+def facts_of(chart) -> dict:
+    from knowledge.facts import extract_facts
+
+    return {fact.type: fact.value for fact in extract_facts(chart)}
+
+
+def test_the_new_pillar_facts_are_verbatim_combinations() -> None:
+    """整柱干支必须真的等于干加支，不能是另一个算出来的东西。"""
+    facts = facts_of(chart_1980())
+
+    for pillar in chart_1980().pillars:
+        assert facts[f"{pillar.name}_pillar"] == pillar.heavenly_stem + pillar.earthly_branch
+        assert facts[f"{pillar.name}_stem"] == pillar.heavenly_stem
+        assert facts[f"{pillar.name}_branch"] == pillar.earthly_branch
+
+
+def test_year_month_elements_covers_only_the_year_and_month_pillars() -> None:
+    """「水位年月」判的是年月两层，不是全命局。
+
+    拿时柱的一水把全局计数抬起来，会把一条年月断语判成全局命中 ——
+    那不是断语说的范围。这条测试把范围钉住。
+    """
+    from engines.bazi.ten_gods import ELEMENTS
+
+    chart = chart_1980()
+    values = facts_of(chart)
+    pillars = chart.pillars[:2]
+    expected = {ELEMENTS[p.heavenly_stem] for p in pillars} | {
+        ELEMENTS[p.hidden_stems[0]] for p in pillars
+    }
+
+    assert set(values["year_month_elements"]) == expected
+    # 时柱不参与：它的五行若不在 expected 里，正说明它没被算进来
+    hour = chart.pillars[3]
+    assert ELEMENTS[hour.hidden_stems[0]] in expected or (
+        ELEMENTS[hour.heavenly_stem] in expected
+    )
+
+
+def test_every_emitted_fact_key_is_registered_in_the_schema() -> None:
+    """产出了却没登记的事实键 = 规则永远用不上的死事实。"""
+    from knowledge.facts import FACT_SCHEMA
+
+    emitted = set(facts_of(chart_1980()))
+
+    assert emitted <= set(FACT_SCHEMA)
+    assert {"year_pillar", "month_pillar", "year_month_elements"} <= emitted
+
+
+def test_condition_holds_treats_a_container_expectation_as_membership() -> None:
+    """「寅午戌月俱吉」要能一条规则表达，而不是拆成三条。
+
+    拆开的代价不只是重复：第三条一旦漏录，集合少一块而不报错。
+    """
+    from knowledge.rules import condition_holds
+
+    assert condition_holds("寅", ["寅", "午", "戌"]) is True
+    assert condition_holds("午", ["寅", "午", "戌"]) is True
+    assert condition_holds("亥", ["寅", "午", "戌"]) is False
+    assert condition_holds("寅", ("寅", "午")) is True
+    # 原有的两侧语义都不能破
+    assert condition_holds(("六合", "自刑"), "六合") is True
+    assert condition_holds(("六合", "自刑"), "三刑") is False
+    assert condition_holds("甲", "甲") is True
+    assert condition_holds("甲", "乙") is False
+    # 字符串不许被当成容器：否则 "六合" in "六合六冲" 会误命中
+    assert condition_holds("六合六冲", "六合") is False
+
+
+def test_a_month_restriction_in_the_quote_must_reach_the_condition() -> None:
+    """第五条守卫：引文说了月令，条件里必须有月令事实。
+
+    2026-10-15 的真实事故：引文写「申月，煞星会印，俱贵」而 condition 漏了
+    ``month_branch``，于是这条吉断语对任何月份的甲辰日甲子时都命中。
+    前四条守卫一条都没拦 —— 引文逐字对得上、键都在词表、元数据也一致。
+    问题不在引文，在**条件没有表达引文说过的限制**。
+    """
+    target = next(
+        a for a in real_atoms() if a["rule_id"].endswith("jiachen_jiazi_02")
+    )
+    del target["condition"]["month_branch"]
+
+    with pytest.raises(AtomError, match="引文提到了月令"):
+        _load_single(target)
+
+
+def test_a_year_month_restriction_in_the_quote_must_reach_the_condition() -> None:
+    """第五条守卫的第二种形态：引文说「水位年月」也要有年月层的事实。
+
+    「若水位年月，水泛木浮」的限制落在 ``year_month_elements`` 上。
+    月令那一侧的正则只认「干支 + 月」，认不出「年月」——
+    所以补守卫的同一天就要问一句：**这个洞还有没有第二个口子。**
+    有，就是这一条。去掉 ``year_month_elements``，这条凶断就会对任何
+    甲辰日甲子时生效，而前四条守卫照样全绿。
+    """
+    target = next(
+        a for a in real_atoms() if a["rule_id"].endswith("jiachen_jiazi_01")
+    )
+    del target["condition"]["year_month_elements"]
+
+    with pytest.raises(AtomError, match=r"引文提到了月令或年月"):
+        _load_single(target)
+
+
+def _load_single(atom: dict):
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "atom.json"
+        path.write_text(
+            json.dumps({"atom_version": 1, "atoms": [atom]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        return load_atom_file(
+            path, CORPUS, schools=default_schools(), known_topics=known_topic_ids()
+        )
+
+
+def test_both_restriction_forms_are_reported_together() -> None:
+    """一句引文同时提了「年月」和「申月」时，两个口子要一次报全。
+
+    只报第一个是偷懒：录规则的人改完一处、再跑一次、再改一处，
+    而这两处本来是同一次录入里一起漏的。
+
+    引文由文件里两条真原子的原文拼接而成，**不手打汉字** ——
+    手打的那一版我在验证时打错了一个异体字，`locate` 直接以「引文不是原文」
+    报错，白白绕到第二条守卫上去。拼接的两个片段在底本里本来就相邻
+    （甲辰日甲子时条「…主移根换叶」紧接着「申月…」），所以拼起来仍是原文。
+    """
+    atoms = {a["rule_id"].rsplit("_", 1)[-1]: a for a in real_atoms() if "jiachen" in a["rule_id"]}
+    target = atoms["02"]
+    target["citation"]["exact_quote"] = (
+        atoms["01"]["citation"]["exact_quote"] + atoms["02"]["citation"]["exact_quote"]
+    )
+    del target["condition"]["month_branch"]
+
+    with pytest.raises(AtomError) as caught:
+        _load_single(target)
+
+    message = str(caught.value)
+    assert "month_branch" in message, "月令那一侧没报出来"
+    assert "year_month_elements" in message, "年月那一侧没报出来"
+
+
+def test_a_quote_without_a_time_restriction_is_not_blocked() -> None:
+    """反向不能过严：引文没提月令 / 年月的规则不碰这条守卫。"""
+    base = next(a for a in real_atoms() if a["rule_id"].endswith("jiayin_jiazi"))
+
+    assert not any(key.startswith("month") for key in base["condition"])
+    _load_single(base)
+
+
+def test_the_previously_deferred_jiachen_entry_is_now_covered() -> None:
+    """甲辰日从「整条暂缓」变成 7 条真原子 —— 事实词表扩展的直接成果。"""
+    jiachen = [
+        rule for rule in default_registry().select(topic="destiny")
+        if "jiachen" in rule.id
+    ]
+
+    assert len(jiachen) == 7
+    assert {rule.polarity for rule in jiachen} == {"positive", "negative"}
+    assert all(rule.citation is not None and rule.citation.is_canonical for rule in jiachen)
+    for rule in jiachen:
+        assert revalidate_against_corpus(rule, CORPUS)
+
+
+def test_the_jiachen_atoms_distinguish_the_months_they_state() -> None:
+    """申月与酉月必须是两条不同的规则，而不是一条对所有月份生效的规则。"""
+    rules = {
+        rule.id: rule
+        for rule in default_registry().select(topic="destiny")
+        if "jiachen" in rule.id
+    }
+    shen = rules["rule_bazi_sanmingtonghui_j8_jiachen_jiazi_02"]
+    you = rules["rule_bazi_sanmingtonghui_j8_jiachen_jiazi_03"]
+
+    assert shen.condition["month_branch"] == "申"
+    assert you.condition["month_branch"] == "酉"
+    assert shen.id != you.id
+
+
+def test_problems_reports_a_truncated_manifest_hash() -> None:
+    """sha256 少了后半段也要报出来 —— 逐字符比，不是前缀比。"""
+    original = (REPO / BASE.path).read_text(encoding="utf-8")
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "juan8.txt").write_text(original, encoding="utf-8")
+        corpus = Corpus(root, (entry(path="juan8.txt", text_sha256=BASE.text_sha256[:32]),), root)
+
+        assert any("内容与 manifest 不符" in p for p in corpus.problems())
+
+
+def test_problems_reports_a_hash_taken_from_a_different_file() -> None:
+    """拿别卷的哈希来标本卷，也要报 —— 否则「哈希对得上」会被误读成「文件没动」。"""
+    other = REPO / "corpus/canonical/bazi_sanmingtonghui/juan8_collation.txt"
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "juan8.txt").write_text((REPO / BASE.path).read_text(encoding="utf-8"), encoding="utf-8")
+        wrong = entry(
+            path="juan8.txt",
+            text_sha256=hashlib.sha256(other.read_bytes()).hexdigest(),
+        )
+        corpus = Corpus(root, (wrong,), root)
+
+        assert any("内容与 manifest 不符" in p for p in corpus.problems())
+
+
+def test_chapter_keys_of_other_juan_are_not_errors() -> None:
+    """篇章表是整部书共用的，别人的卷号不是错误 —— 但也不能拿来标本卷。
+
+    ``_chapter_problems`` 跳过非本卷的键是对的（j9 归 j9 那一卷管）。
+    这里钉住这一点，免得后人把「跳过」当成漏校验给「修」成报错。
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "juan8.txt").write_text((REPO / BASE.path).read_text(encoding="utf-8"), encoding="utf-8")
+        (root / "chapters.json").write_text(
+            json.dumps(
+                {"edition_code": "sanmingtonghui",
+                 "chapters": {"j9.liujia_ri": "六甲日甲子時斷"}},
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        corpus = Corpus(root, (entry(path="juan8.txt"),), root)
+
+        assert corpus.problems() == []
+        assert corpus.chapter_label(parse(BASE_URN)) == ""
+
+
+def test_flatten_drops_whitespace_only() -> None:
+    """折叠只动空白，不动字。"""
+    from knowledge.corpus import _flatten
+
+    flat, positions = _flatten("甲寅日\n甲子時\t拱丑中辛　貴")
+
+    assert flat == "甲寅日甲子時拱丑中辛貴"
+    assert len(positions) == len(flat)

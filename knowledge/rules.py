@@ -38,9 +38,19 @@ def condition_holds(actual: Any, expected: Any) -> bool:
     同一类型的事实可以有多条（一个命盘里常常同时存在六合与自刑），归并后
     以元组形式传入；此时按「包含」判断。标量仍按相等判断，保持既有调用方式。
     只把容器当成多值，字符串不在此列，避免 ``"六合" in "六合六冲"`` 这类误命中。
+
+    **期望值也可以是容器**，含义与上面对称 —— 实际值是否在其中：
+
+        {"month_branch": ["寅", "午", "戌"]}   # 月支是这三者之一
+
+    没有这个写法，「寅午戌月俱吉」就得拆成三条规则。三条规则会各自命中、
+    各自出一段结论，读者看到的是同一句话重复三遍，而不是一个集合；
+    更要紧的是第三条一旦漏录，集合就少一块而不报错。
     """
     if isinstance(actual, (list, tuple, set, frozenset)):
         return expected in actual
+    if isinstance(expected, (list, tuple, set, frozenset)):
+        return actual in expected
     return actual == expected
 
 

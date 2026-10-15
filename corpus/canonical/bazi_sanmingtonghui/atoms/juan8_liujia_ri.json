@@ -5,11 +5,13 @@
   "section": "六甲日甲子時斷",
   "coverage": {
     "entries_in_section": 6,
-    "extracted": 6,
-    "deferred": 1,
-    "note": "甲辰日甲子時一条全部断语都依赖年月（「若水位年月，水泛木浮，主移根換葉」「申月，煞星㑹印，俱貴」…），当前事实词表表达不了年月层面的条件，故不提取。这是当前管道的主要缺口，不是遗漏。"
+    "entries_covered": 6,
+    "atoms": 13,
+    "deferred_entries": [],
+    "deferred_note": "甲辰日甲子时条原有的「子月，行水木運，亦貴」未提取 —— 它依赖大运走向，事实词表里没有大运事实。这是 BLOCKED_SCHEMA，不是遗漏。",
+    "note": "六甲日甲子时断共 6 个日柱条目，现已全部覆盖。2026-10-15 之前甲辰日整条暂缓：它的断语全部带年月条件（水位年月 / 申月 / 酉月 / 寅午戌月 / 乙卯月 / 癸巳月 / 癸亥月），而当时事实词表只有单干单支，表达不了。补了 month_pillar、year_month_elements 两个事实键，并让 condition_holds 支持「期望值为容器按成员判定」之后才解锁。"
   },
-  "note": "六甲日甲子時段的规则原子。每条 exact_quote 都是《三命通會》卷八底本（欽定四庫全書本，维基文库 revid=761697）里的逐字原文，加载时会对回底本核对，改一个字就加载失败。**引文用底本原字**（繁体、異體字如 㑹/併/衝/遥），不加标点 —— 底本没有标点，替它加标点是改写。conclusion 才是现代汉语转述，用简体。转述里**显式写出哪些原文条件没有纳入判定** —— 断语带条件而条件没进 predicate，就等于把有条件的断语当无条件的用。",
+  "note": "六甲日甲子時段的规则原子。每条 exact_quote 都是《三命通會》卷八底本（欽定四庫全書本，维基文库 revid=761697）里的逐字原文，加载时会对回底本核对，改一个字就加载失败。**引文用底本原字**（繁体、異體字如 㑹/併/衝/遥），不加标点 —— 底本没有标点，替它加标点是改写。conclusion 才是现代汉语转述，用简体。转述里**显式写出哪些原文条件没有纳入判定** —— 断语带条件而条件没进 predicate，就等于把有条件的断语当无条件的用。 2026-10-15 补：甲辰日甲子时 7 条原子，用到 month_pillar / year_month_elements 与集合条件。甲辰日的引文刻意不含后面的命例（「壬辰布政…」），命例不是断语。",
   "collation_note": "同一部书的另一传本（维基文库转录本 revid=845354，role=collation）已一并固化，用于核异文。两本在甲午日甲子時一条上**确有异文**：四庫本作「…俱貴（一云）髙（一云）身孤有財清貴有名乙巳月破祖夭乙亥月自刑刃死癸亥月旺中惡死」，转录本止于「俱貴」。留对照本就是为了让这类差异有据可查，而不是被悄悄抹平。对照本不可供引用（Corpus.citation 会拒绝 role 非 base 的版本）。",
   "atoms": [
     {
@@ -28,7 +30,9 @@
       "assertion": {
         "theme_domain": "destiny",
         "polarity": "neutral",
-        "keywords": ["子遥巳格"],
+        "keywords": [
+          "子遥巳格"
+        ],
         "conclusion": "甲子日甲子时，古法记为「子遥巳格」。原文的吉凶断语（「离祖自立，贵」）另需年月条件（年月无庚辛申酉、丑绊午冲），当前事实词表无法表达，未纳入判定。"
       },
       "confidence": "MEDIUM",
@@ -53,7 +57,10 @@
       "assertion": {
         "theme_domain": "destiny",
         "polarity": "positive",
-        "keywords": ["拱丑中辛", "貴"],
+        "keywords": [
+          "拱丑中辛",
+          "貴"
+        ],
         "conclusion": "甲寅日甲子时，古法记为「拱丑中辛」。原文断为「贵」，倾向正面。原文另有更强的「大贵」需年月无庚辛申酉丑未，未纳入判定。"
       },
       "confidence": "MEDIUM",
@@ -77,7 +84,10 @@
       "assertion": {
         "theme_domain": "destiny",
         "polarity": "negative",
-        "keywords": ["時日併衝", "憂傷妻子"],
+        "keywords": [
+          "時日併衝",
+          "憂傷妻子"
+        ],
         "conclusion": "甲午日甲子时，日支与时支相冲（子午冲）。原文断为「时日并冲，忧伤妻子」，倾向对配偶不利。原文另有「月通木气者显贵」，依赖月令条件，未纳入判定。"
       },
       "confidence": "MEDIUM",
@@ -102,7 +112,10 @@
       "assertion": {
         "theme_domain": "destiny",
         "polarity": "positive",
-        "keywords": ["甲胎逢印印化煞", "貴"],
+        "keywords": [
+          "甲胎逢印印化煞",
+          "貴"
+        ],
         "conclusion": "甲申日甲子时，古法记为「甲胎逢印印化煞」。原文断为「贵」，倾向正面。原文另有「若行东南方运，文武职居间」，依赖大运方向，未纳入判定。"
       },
       "confidence": "MEDIUM",
@@ -126,7 +139,10 @@
       "assertion": {
         "theme_domain": "destiny",
         "polarity": "negative",
-        "keywords": ["鴛鴦重疊", "子嗣難為"],
+        "keywords": [
+          "鴛鴦重疊",
+          "子嗣難為"
+        ],
         "conclusion": "甲申日甲子时，古法记为「鸳鸯重叠」。原文断为「子嗣难为」，倾向子嗣方面不顺。"
       },
       "confidence": "MEDIUM",
@@ -151,7 +167,11 @@
       "assertion": {
         "theme_domain": "destiny",
         "polarity": "neutral",
-        "keywords": ["拱亥天門", "㑹同帝闕", "不可以隔角論"],
+        "keywords": [
+          "拱亥天門",
+          "㑹同帝闕",
+          "不可以隔角論"
+        ],
         "conclusion": "甲戌日甲子时，古法记为「拱亥天门，会同帝阙，甲长生地也」，并明言「不可以隔角论」。此条为结构判定，原文未在此句给出吉凶。原文的「大贵」另需年月通申巳酉丑金气，未纳入判定。"
       },
       "confidence": "MEDIUM",
@@ -159,6 +179,209 @@
       "category": "day_hour",
       "review_status": "ACTIVE",
       "note": "底本作「㑹」「闕」「長」，分别为「會」「阙」「长」之異體，非误字。"
+    },
+    {
+      "atom_version": 1,
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "confidence": "MEDIUM",
+      "review_status": "ACTIVE",
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiachen_jiazi_01",
+      "citation": {
+        "exact_quote": "甲辰日甲子時若水位年月水泛木浮主移根換葉"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "甲",
+        "hour_branch": "子",
+        "year_month_elements": "水"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "水泛木浮",
+          "移根換葉"
+        ],
+        "conclusion": "甲辰日甲子时，若年月两层见水，古法断为「水泛木浮，主移根换叶」，倾向根基不稳。原文「水位」按年月两柱干与支本气是否出现水来判定；「水泛」的程度（几处方算泛）原文未给量，未纳入判定。"
+      },
+      "note": "这条是 2026-10-15 之后第一批用上新事实键的原子：年月条件以前无处落地，整条甲辰日只能暂缓。判定范围取年月两层，不用全命局的 count_水 —— 时柱带一水也会把全局计数抬起来，那不是断语说的范围。"
+    },
+    {
+      "atom_version": 1,
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "confidence": "MEDIUM",
+      "review_status": "ACTIVE",
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiachen_jiazi_02",
+      "citation": {
+        "exact_quote": "申月煞星㑹印俱貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "甲",
+        "hour_branch": "子",
+        "month_branch": "申"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "positive",
+        "keywords": [
+          "煞星㑹印",
+          "貴"
+        ],
+        "conclusion": "甲辰日甲子时生于申月，古法记为「煞星会印」，断为贵。"
+      }
+    },
+    {
+      "atom_version": 1,
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "confidence": "MEDIUM",
+      "review_status": "ACTIVE",
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiachen_jiazi_03",
+      "citation": {
+        "exact_quote": "酉月正官大貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "甲",
+        "hour_branch": "子",
+        "month_branch": "酉"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "positive",
+        "keywords": [
+          "正官",
+          "大貴"
+        ],
+        "conclusion": "甲辰日甲子时生于酉月，古法断为「正官大贵」。"
+      }
+    },
+    {
+      "atom_version": 1,
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "confidence": "MEDIUM",
+      "review_status": "ACTIVE",
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiachen_jiazi_04",
+      "citation": {
+        "exact_quote": "寅午戌月俱吉"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "甲",
+        "hour_branch": "子",
+        "month_branch": [
+          "寅",
+          "午",
+          "戌"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "positive",
+        "keywords": [
+          "寅午戌月",
+          "俱吉"
+        ],
+        "conclusion": "甲辰日甲子时生于寅、午、戌三月，古法一律断吉。"
+      },
+      "note": "三条并列不断语合成一个集合条件。拆成三条规则会各自命中、各自出一段结论，读者看到的是同一句话重复三遍而不是一个集合；更要紧的是第三条一旦漏录，集合就少一块而不报错。"
+    },
+    {
+      "atom_version": 1,
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "confidence": "MEDIUM",
+      "review_status": "ACTIVE",
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_05",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiachen_jiazi_05",
+      "citation": {
+        "exact_quote": "乙卯月刑折"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "甲",
+        "hour_branch": "子",
+        "month_pillar": "乙卯"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "乙卯月",
+          "刑折"
+        ],
+        "conclusion": "甲辰日甲子时生于乙卯月，古法断为「刑折」。"
+      },
+      "note": "用整柱干支而不是「乙干且卯支」两个条件 —— 后者会把甲卯、乙寅等组合一起命中，而它们不是原文说的那种情形。"
+    },
+    {
+      "atom_version": 1,
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "confidence": "MEDIUM",
+      "review_status": "ACTIVE",
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_06",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiachen_jiazi_06",
+      "citation": {
+        "exact_quote": "癸巳月水火中死"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "甲",
+        "hour_branch": "子",
+        "month_pillar": "癸巳"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "癸巳月",
+          "水火中死"
+        ],
+        "conclusion": "甲辰日甲子时生于癸巳月，古法断为「水火中死」，原文方向极不利。"
+      }
+    },
+    {
+      "atom_version": 1,
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "confidence": "MEDIUM",
+      "review_status": "ACTIVE",
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_07",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiachen_jiazi_07",
+      "citation": {
+        "exact_quote": "癸亥月凶死"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "甲",
+        "hour_branch": "子",
+        "month_pillar": "癸亥"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "癸亥月",
+          "凶死"
+        ],
+        "conclusion": "甲辰日甲子时生于癸亥月，古法断为「凶死」。"
+      }
     }
   ]
 }

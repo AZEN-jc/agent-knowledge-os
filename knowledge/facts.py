@@ -49,6 +49,13 @@ FACT_SCHEMA: dict[str, str] = {
     "hour_branch": "时支",
     "four_branches": "四支去重后的集合",
     "repeated_branches": "四支中重复出现的地支",
+    # 整柱干支：典籍断语常按月柱整体取断（「乙卯月刑折」），只有单干单支时
+    # 就得写两条条件，而「乙干且卯支」不等于「乙卯月」—— 还要防甲卯、乙寅等
+    # 组合被误命中。所以整柱必须是一等事实。
+    "year_pillar": "年柱完整干支（如「庚申」）",
+    "month_pillar": "月柱完整干支（如「乙卯」）",
+    "day_pillar": "日柱完整干支",
+    "hour_pillar": "时柱完整干支",
     # 十神
     "year_ten_god": "年柱天干十神",
     "month_ten_god": "月柱天干十神",
@@ -62,6 +69,7 @@ FACT_SCHEMA: dict[str, str] = {
     "month_branch_ten_god": "月支本气对日主的十神",
     "month_branch_extended_ten_god": "月支藏干中在天干（年月时）透出者对应的十神",
     "day_master_vs_month": "日主与月令的生克关系（同我 / 生我 / 我生 / 我克 / 克我）",
+    "year_month_elements": "年月两柱干与本气出现的五行（去重）",
     # 五行计数
     "count_木": "木的计数",
     "count_火": "火的计数",
@@ -110,6 +118,11 @@ def extract_facts(chart: Chart) -> tuple[Fact, ...]:
     for pillar in pillars:
         facts.append(Fact(f"{pillar.name}_stem", pillar.heavenly_stem, f"chart.pillars.{pillar.name}"))
         facts.append(Fact(f"{pillar.name}_branch", pillar.earthly_branch, f"chart.pillars.{pillar.name}"))
+        facts.append(Fact(
+            f"{pillar.name}_pillar",
+            pillar.heavenly_stem + pillar.earthly_branch,
+            f"chart.pillars.{pillar.name}",
+        ))
         # 日柱天干恒为「日主」，不是一个十神，产出来只会污染事实链。
         if pillar.name != "day" and pillar.ten_god:
             facts.append(Fact(f"{pillar.name}_ten_god", pillar.ten_god, f"chart.pillars.{pillar.name}"))
@@ -137,6 +150,20 @@ def extract_facts(chart: Chart) -> tuple[Fact, ...]:
     facts.append(Fact("month_branch_element", month_element, "chart.pillars.month.hidden_stems"))
     facts.append(Fact("month_branch_ten_god", ten_god(day_stem, month_main), "chart.pillars.month.hidden_stems"))
     facts.append(Fact("day_master_vs_month", stem_relation(day_element, month_element), "chart.pillars.month"))
+
+    # 年月两柱的五行构成。典籍说「若水位年月，水泛木浮」—— 断的是年月这一层的
+    # 水势，不是全命局的水数。全命局的 count_水 在这里答不上话：时柱带一水也会
+    # 把计数抬起来，而那不是断语说的范围。引文范围必须与判定范围一致。
+    year_month_elements = tuple(dict.fromkeys(
+        ELEMENTS[p.heavenly_stem] for p in pillars[:2]
+    )) + tuple(dict.fromkeys(
+        ELEMENTS[p.hidden_stems[0]] for p in pillars[:2]
+    ))
+    facts.append(Fact(
+        "year_month_elements",
+        tuple(dict.fromkeys(year_month_elements)),
+        "chart.pillars[*].hidden_stems",
+    ))
 
     # 透干定格法所需的事实：月支藏干中，出现在年月时天干上的那些十神。
     # 不含日柱天干 —— 日干是日主本身，不是十神，混进来会让「透干」的含义走样。
