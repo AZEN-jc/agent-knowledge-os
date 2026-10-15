@@ -1,0 +1,164 @@
+{
+  "atom_version": 1,
+  "corpus_id": "bazi_sanmingtonghui_j8",
+  "urn_edition": "bazi:sanmingtonghui:ws761697",
+  "section": "六甲日甲子時斷",
+  "coverage": {
+    "entries_in_section": 6,
+    "extracted": 6,
+    "deferred": 1,
+    "note": "甲辰日甲子時一条全部断语都依赖年月（「若水位年月，水泛木浮，主移根換葉」「申月，煞星㑹印，俱貴」…），当前事实词表表达不了年月层面的条件，故不提取。这是当前管道的主要缺口，不是遗漏。"
+  },
+  "note": "六甲日甲子時段的规则原子。每条 exact_quote 都是《三命通會》卷八底本（欽定四庫全書本，维基文库 revid=761697）里的逐字原文，加载时会对回底本核对，改一个字就加载失败。**引文用底本原字**（繁体、異體字如 㑹/併/衝/遥），不加标点 —— 底本没有标点，替它加标点是改写。conclusion 才是现代汉语转述，用简体。转述里**显式写出哪些原文条件没有纳入判定** —— 断语带条件而条件没进 predicate，就等于把有条件的断语当无条件的用。",
+  "collation_note": "同一部书的另一传本（维基文库转录本 revid=845354，role=collation）已一并固化，用于核异文。两本在甲午日甲子時一条上**确有异文**：四庫本作「…俱貴（一云）髙（一云）身孤有財清貴有名乙巳月破祖夭乙亥月自刑刃死癸亥月旺中惡死」，转录本止于「俱貴」。留对照本就是为了让这类差异有据可查，而不是被悄悄抹平。对照本不可供引用（Corpus.citation 会拒绝 role 非 base 的版本）。",
+  "atoms": [
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_jiazi",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiazi_jiazi",
+      "citation": {
+        "exact_quote": "甲子日甲子時子遥巳格"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "甲",
+        "hour_branch": "子"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["子遥巳格"],
+        "conclusion": "甲子日甲子时，古法记为「子遥巳格」。原文的吉凶断语（「离祖自立，贵」）另需年月条件（年月无庚辛申酉、丑绊午冲），当前事实词表无法表达，未纳入判定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "只取格局命名这一句，因为它纯粹由日时组合决定；后续吉凶断语带年月条件，见 conclusion。底本作「遥」，为「遙」之異體，非误字。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_jiazi",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiayin_jiazi",
+      "citation": {
+        "exact_quote": "甲寅日甲子時拱丑中辛貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "甲",
+        "hour_branch": "子"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "positive",
+        "keywords": ["拱丑中辛", "貴"],
+        "conclusion": "甲寅日甲子时，古法记为「拱丑中辛」。原文断为「贵」，倾向正面。原文另有更强的「大贵」需年月无庚辛申酉丑未，未纳入判定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_jiazi",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiawu_jiazi",
+      "citation": {
+        "exact_quote": "甲午日甲子時時日併衝憂傷妻子"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "甲",
+        "hour_branch": "子"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": ["時日併衝", "憂傷妻子"],
+        "conclusion": "甲午日甲子时，日支与时支相冲（子午冲）。原文断为「时日并冲，忧伤妻子」，倾向对配偶不利。原文另有「月通木气者显贵」，依赖月令条件，未纳入判定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "引文刻意停在「憂傷妻子」，不含后面带月令条件的「顯貴」半句 —— 引文范围必须与判定的范围一致。四庫本此后还有「（一云）髙（一云）身孤有財清貴有名…」一段，转录本无，属两传本异文（见文件级 collation_note）；那段同样带年月条件，不在本条判定范围内。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_jiazi_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiashen_jiazi_01",
+      "citation": {
+        "exact_quote": "甲申日甲子時甲胎逢印印化煞貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "甲",
+        "hour_branch": "子"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "positive",
+        "keywords": ["甲胎逢印印化煞", "貴"],
+        "conclusion": "甲申日甲子时，古法记为「甲胎逢印印化煞」。原文断为「贵」，倾向正面。原文另有「若行东南方运，文武职居间」，依赖大运方向，未纳入判定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_jiazi_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiashen_jiazi_02",
+      "citation": {
+        "exact_quote": "鴛鴦重疊子嗣難為"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "甲",
+        "hour_branch": "子"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": ["鴛鴦重疊", "子嗣難為"],
+        "conclusion": "甲申日甲子时，古法记为「鸳鸯重叠」。原文断为「子嗣难为」，倾向子嗣方面不顺。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "与 _01 共用同一个条件与 URN 前缀，但断语方向相反（貴 / 子嗣難為），所以拆成两条 —— 单值的 polarity 字段装不下两个方向，硬塞会把凶断语标成吉。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_jiazi",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiaxu_jiazi",
+      "citation": {
+        "exact_quote": "甲戌日甲子時拱亥天門㑹同帝闕甲長生地也不可以隔角論"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "甲",
+        "hour_branch": "子"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["拱亥天門", "㑹同帝闕", "不可以隔角論"],
+        "conclusion": "甲戌日甲子时，古法记为「拱亥天门，会同帝阙，甲长生地也」，并明言「不可以隔角论」。此条为结构判定，原文未在此句给出吉凶。原文的「大贵」另需年月通申巳酉丑金气，未纳入判定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "底本作「㑹」「闕」「長」，分别为「會」「阙」「长」之異體，非误字。"
+    }
+  ]
+}

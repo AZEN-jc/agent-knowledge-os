@@ -127,9 +127,29 @@ def test_registry_filters_by_topic_status_and_tier():
     assert registry.select(topic="不存在的主题") == ()
     assert len(registry.select(review_status=ReviewStatus.ACTIVE)) == len(registry.select())
     assert registry.select(review_status=ReviewStatus.UNREVIEWED) == ()
-    assert registry.select(source_tier=SourceTier.CLASSICAL) == ()
-    assert len(registry.select(source_tier=SourceTier.STRUCTURAL)) == len(registry.select())
+    assert registry.select(source_tier=SourceTier.CLASSICAL)
+    assert len(registry.select(source_tier=SourceTier.STRUCTURAL)) < len(registry.select())
     assert registry.select(confidence="HIGH")
+
+
+def test_the_two_tiers_partition_the_library():
+    """两层必须正好切分全库：不重、不漏。
+
+    写死条数没有意义（库会长），写死「典籍层为空」更是 Phase 5 之前的口径。
+    真正要守的是**分层是完备的** —— 每条规则都能被说出它凭什么成立，
+    而且只属于一层。
+    """
+    registry = default_registry()
+    structural = registry.select(source_tier=SourceTier.STRUCTURAL)
+    classical = registry.select(source_tier=SourceTier.CLASSICAL)
+
+    assert len(structural) + len(classical) == len(registry.select())
+    assert {rule.id for rule in structural} & {rule.id for rule in classical} == set()
+
+    # 典籍层规则必须能指向可核验原文，结构层规则不该有引文 ——
+    # 否则「结构层规则不许有引文」这条纪律会被一条顺手抄来的 citation 破坏。
+    assert all(rule.urn for rule in classical)
+    assert all(rule.citation is None for rule in structural)
 
 
 def test_registry_rejects_condition_keys_outside_the_fact_schema():
@@ -155,7 +175,8 @@ def test_registry_stats_describe_the_library():
 
     assert stats["total"] == len(default_registry().select())
     assert stats["production_ready"] == stats["total"]
-    assert stats["by_school"] == {STRUCTURAL_SCHOOL: stats["total"]}
+    assert stats["by_school"][STRUCTURAL_SCHOOL] >= 1
+    assert sum(stats["by_school"].values()) == stats["total"]
     assert stats["conflict_slots"] >= 1
 
 

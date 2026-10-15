@@ -18,6 +18,7 @@ def citation(**overrides) -> Citation:
         "edition": "测试底本",
         "chapter": "卷一",
         "original_text": "测试原文",
+        "urn": "urn:divination:bazi:test_edition:ws1:j1.ch1.e1",
         "url": "https://example.invalid/classic",
     }
     values.update(overrides)
@@ -55,6 +56,25 @@ def test_citation_is_verifiable_only_with_text_and_url():
     assert citation(original_text="", url="").is_verifiable is False
 
 
+def test_citation_without_urn_is_not_canonical():
+    """有书名、有底本、有地址，但说不出是哪一卷哪一条 —— 仍不算可核验。
+
+    Phase 5 加的一层。之前的判据是「有原文 + 有地址」，但地址指向的是一整卷
+    甚至一整部书；同一个底本的不同版本里，同一条的条文会打架。URN 是唯一
+    能把「这一条」钉死的东西。
+    """
+    assert citation().is_canonical is True
+    assert citation(urn="").is_canonical is False
+    assert citation(urn="").parsed_urn is None
+
+
+def test_citation_rejects_a_malformed_urn_at_construction():
+    with pytest.raises(ValueError, match="URN 格式不合法"):
+        citation(urn="urn:divination:bazi:test_edition")
+    with pytest.raises(ValueError, match="URN 格式不合法"):
+        citation(urn="滴天髓卷一一")
+
+
 def test_citation_serialises_retrieval_date_as_isoformat():
     payload = citation(retrieved_on=date(2026, 10, 9)).to_dict()
 
@@ -86,6 +106,17 @@ def test_classical_rule_cannot_activate_with_unverifiable_citation():
         with_status(classical_rule(citation=citation(original_text="")), ReviewStatus.ACTIVE)
     with pytest.raises(ValueError, match="不可核验"):
         with_status(classical_rule(citation=citation(url="")), ReviewStatus.ACTIVE)
+
+
+def test_classical_rule_cannot_activate_without_a_canonical_urn():
+    """有原文、有地址，但指不到具体某一条 —— 同样不许激活。
+
+    这是引证守卫的第三层。前两层（有 citation、有原文和地址）挡住的是
+    「凭记忆引一句」；这一层挡的是「引一句真的、但说不清是哪一版哪一条」——
+    后者更难发现，因为它看起来什么都有。
+    """
+    with pytest.raises(ValueError, match="缺少规范标识 URN"):
+        with_status(classical_rule(citation=citation(urn="")), ReviewStatus.ACTIVE)
 
 
 def test_classical_rule_activates_once_citation_is_complete():
@@ -145,12 +176,25 @@ def test_conflict_slot_and_value_must_be_paired():
 
 
 def test_rule_to_dict_exposes_full_provenance():
-    payload = with_status(classical_rule(citation=citation()), ReviewStatus.ACTIVE).to_dict()
+    rule = with_status(classical_rule(citation=citation()), ReviewStatus.ACTIVE)
+    payload = rule.to_dict()
 
     assert payload["source_tier"] == "classical"
     assert payload["review_status"] == "ACTIVE"
     assert payload["citation"]["book"] == "《滴天髓》"
     assert payload["citation"]["edition"] == "测试底本"
+    assert payload["citation"]["urn"] == "urn:divination:bazi:test_edition:ws1:j1.ch1.e1"
+    assert payload["urn"] == "urn:divination:bazi:test_edition:ws1:j1.ch1.e1"
+    assert rule.urn == rule.citation.urn  # type: ignore[union-attr]
+
+
+def test_structural_rule_has_no_urn():
+    """结构层规则不该有 URN —— 它的出处是可执行的表，不是文本。"""
+    rule = classical_rule(id="STRUCTURAL_TEST_002", source_tier=SourceTier.STRUCTURAL)
+
+    assert rule.urn == ""
+    assert rule.to_dict()["urn"] is None
+    assert rule.to_dict()["citation"] is None
 
 
 # ── 生产门禁 ───────────────────────────────────────────────────────────

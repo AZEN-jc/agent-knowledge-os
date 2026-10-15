@@ -28,6 +28,8 @@ from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
 
+from knowledge.urn import DivinationUrn, try_parse
+
 
 class SourceTier(StrEnum):
     """规则依据的性质。"""
@@ -59,6 +61,10 @@ class Citation:
     刻意要求 ``edition``（底本/版本）：同一部典籍不同底本的条文有出入，
     只写书名无法复核。「甲戊庚牛羊」与「甲戊兼牛羊」这类分歧，差别恰恰在
     底本，不在书名。
+
+    ``urn`` 是规范标识（见 :mod:`knowledge.urn`），它把「书名 + 底本 + 版本 +
+    卷 + 篇 + 条目」压成一段可解析、可反查、可写进 URL 的字符串。有了它，
+    「这条断语出自哪一版的哪一页」才是一个**机器可回答**的问题。
     """
 
     book: str
@@ -66,6 +72,7 @@ class Citation:
     chapter: str = ""
     original_text: str = ""
     url: str = ""
+    urn: str = ""
     retrieved_on: date | None = None
 
     def __post_init__(self) -> None:
@@ -73,6 +80,13 @@ class Citation:
             raise ValueError("引文必须标明典籍名。")
         if not self.edition.strip():
             raise ValueError(f"引文《{self.book}》必须标明底本或版本。")
+        if self.urn.strip() and try_parse(self.urn) is None:
+            # 格式错的 URN 比没有 URN 更糟：它看起来像是能反查的。
+            raise ValueError(f"引文《{self.book}》的 URN 格式不合法：{self.urn!r}")
+
+    @property
+    def parsed_urn(self) -> DivinationUrn | None:
+        return try_parse(self.urn) if self.urn.strip() else None
 
     @property
     def is_verifiable(self) -> bool:
@@ -83,6 +97,11 @@ class Citation:
         """
         return bool(self.original_text.strip() and self.url.strip())
 
+    @property
+    def is_canonical(self) -> bool:
+        """是否带规范标识。典籍断语进入 ``ACTIVE`` 要求这一条为真。"""
+        return self.parsed_urn is not None
+
     def to_dict(self) -> dict[str, str | None]:
         return {
             "book": self.book,
@@ -90,5 +109,6 @@ class Citation:
             "chapter": self.chapter,
             "original_text": self.original_text,
             "url": self.url,
+            "urn": self.urn or None,
             "retrieved_on": self.retrieved_on.isoformat() if self.retrieved_on else None,
         }

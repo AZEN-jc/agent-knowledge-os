@@ -23,6 +23,14 @@ from knowledge.schools import SchoolRegistry
 
 VALID_CONFIDENCE = {"LOW", "MEDIUM", "HIGH"}
 
+VALID_POLARITY = {"positive", "negative", "neutral"}
+"""断语的倾向。
+
+不是「吉凶预测」，而是**原文明说了方向**时的一个标签。典籍断语常直接写
+「大贵」「主刑死」「平常」—— 不把这个方向带下去，语言层就可能把一条
+凶断语转述成中性甚至正面的话。``neutral`` 是默认值，表示原文没有明确方向。
+"""
+
 
 def condition_holds(actual: Any, expected: Any) -> bool:
     """判断某个事实值是否满足规则条件。
@@ -55,6 +63,8 @@ class Rule:
     version: str = "1"
     conflict_slot: str = ""
     conflict_value: str = ""
+    polarity: str = "neutral"
+    keywords: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         # 先把枚举字段收敛成枚举成员。否则调用方传字符串 "ACTIVE" 时，
@@ -73,6 +83,10 @@ class Rule:
             raise ValueError(f"规则 {self.id} 必须有 topic。")
         if self.confidence not in VALID_CONFIDENCE:
             raise ValueError(f"规则 {self.id} 的 confidence 非法：{self.confidence}")
+        if self.polarity not in VALID_POLARITY:
+            raise ValueError(f"规则 {self.id} 的 polarity 非法：{self.polarity}")
+        if any(not str(word).strip() for word in self.keywords):
+            raise ValueError(f"规则 {self.id} 的 keywords 含空串。")
         if not self.condition:
             raise ValueError(f"规则 {self.id} 必须有 condition。")
         if any(not str(key).strip() for key in self.condition):
@@ -87,19 +101,33 @@ class Rule:
                 f"只给槽不给值，无法判断两条规则是否真的给出不同结论。"
             )
 
+    @property
+    def urn(self) -> str:
+        """规范标识；结构层规则没有，返回空串。"""
+        return self.citation.urn if self.citation else ""
+
     def _guard_classical_citation(self) -> None:
         """典籍断语进入 ACTIVE 前必须能指向可核验原文。
 
         这是整个规则库最重要的一条约束。没有它，「不编造命理规则」就只是
         一句写在文档里的口号：任何人都可以录一条听起来很像《滴天髓》的话，
         系统照样会把它当权威引用出去。
+
+        要求分三层，缺一层都不够：
+
+        1. **有引文对象** —— 不然连书名都没有。
+        2. **引文可核验** —— 逐字原文 + 可打开的地址。没有原文就无法判断
+           引用有没有走样；没有地址就无从复核是不是转抄自二手断语。
+        3. **引文带规范标识（URN）** —— 前两层只说明「有这么一段话」，
+           说明不了「是哪一版、哪一卷、哪一条」。而版本恰恰是断语会打架的地方
+           （「甲戊庚牛羊」与「甲戊兼牛羊」）。
         """
         if self.review_status is not ReviewStatus.ACTIVE:
             return
         if self.citation is None:
             raise ValueError(
                 f"规则 {self.id} 是典籍断语且已置为 ACTIVE，必须提供 citation"
-                f"（典籍名 + 底本 + 原文 + 可核验地址）。"
+                f"（典籍名 + 底本 + 原文 + 可核验地址 + 规范标识 URN）。"
             )
         if not self.citation.is_verifiable:
             raise ValueError(
@@ -107,6 +135,13 @@ class Rule:
                 f"当前 book={self.citation.book!r} edition={self.citation.edition!r} "
                 f"original_text={'有' if self.citation.original_text.strip() else '缺'} "
                 f"url={'有' if self.citation.url.strip() else '缺'}。"
+            )
+        if not self.citation.is_canonical:
+            raise ValueError(
+                f"规则 {self.id} 的引文缺少规范标识 URN："
+                "只有书名和地址，无法说明是哪一版、哪一卷、哪一条。"
+                "同一部典籍不同底本的条文会打架，URN 是区分它们的唯一手段。"
+                f"当前 urn={self.citation.urn!r}。"
             )
 
     @property
@@ -125,11 +160,14 @@ class Rule:
             "condition": dict(self.condition),
             "conclusion": self.conclusion,
             "confidence": self.confidence,
+            "polarity": self.polarity,
+            "keywords": list(self.keywords),
             "source_tier": str(self.source_tier),
             "review_status": str(self.review_status),
             "conflicts_with": list(self.conflicts_with),
             "evidence_required": list(self.evidence_required),
             "citation": self.citation.to_dict() if self.citation else None,
+            "urn": self.urn or None,
             "conflict_slot": self.conflict_slot,
             "conflict_value": self.conflict_value,
             "note": self.note,
@@ -180,6 +218,13 @@ class RuleMatch:
         return all(trace.sources for trace in self.traces)
 
     def to_dict(self) -> dict[str, Any]:
+        """序列化给提示词与 API 用。
+
+        ``urn`` 与 ``citation`` 是**必须**带上的：Phase 4 的提示契约要求模型
+        给每条断语挂出处角标，而模型只能引用它拿得到的东西。之前这里只有
+        ``source``（一句自由文本），模型无法据此写出可核验的出处 ——
+        要么不写脚注，要么自己编一个。两者都比不给更糟。
+        """
         return {
             "rule_id": self.rule.id,
             "conclusion": self.rule.conclusion,
@@ -191,6 +236,8 @@ class RuleMatch:
             "source_tier": str(self.rule.source_tier),
             "review_status": str(self.rule.review_status),
             "is_production_ready": self.rule.is_production_ready,
+            "urn": self.rule.urn or None,
+            "citation": self.rule.citation.to_dict() if self.rule.citation else None,
             "conditions": [trace.to_dict() for trace in self.traces],
         }
 

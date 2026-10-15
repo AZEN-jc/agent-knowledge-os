@@ -52,18 +52,40 @@ def test_every_rule_condition_key_exists_in_the_fact_schema():
     assert unknown == set(), f"规则引用了不存在的事实键：{sorted(unknown)}"
 
 
-def test_rule_library_is_structural_only_for_now():
-    """典籍层当前一条都没有 —— 这是刻意的，不是遗漏。
+def test_the_structural_layer_is_still_purely_structural():
+    """结构层必须保持「零引文」—— 它的依据是可执行的表，不是文本。
 
-    在底本确认之前录入断语就等于编造典籍。这条测试把「当前状态」钉住，
-    等典籍层真正开始录入时，它会失败并提醒作者同步更新来源治理文档。
+    上一版这条测试叫 ``test_rule_library_is_structural_only_for_now``，
+    断言**整个库**只有结构层。Phase 5 录入了第一批典籍原子，那个前提到期了。
+    但「结构层自己不许有引文」这条纪律没有到期，而且现在更重要：
+    一旦允许结构规则挂 citation，两层就会互相渗 —— 一条查表算出来的规则
+    看起来像是有文献背书的，而它的 citation 没人核对过。
     """
-    rules = default_registry().select()
+    structural = default_registry().select(source_tier=SourceTier.STRUCTURAL)
 
-    assert {rule.source_tier for rule in rules} == {SourceTier.STRUCTURAL}
-    assert {rule.review_status for rule in rules} == {ReviewStatus.ACTIVE}
-    assert {rule.school for rule in rules} == {STRUCTURAL_SCHOOL}
-    assert all(rule.citation is None for rule in rules)
+    assert structural
+    assert {rule.review_status for rule in structural} == {ReviewStatus.ACTIVE}
+    assert {rule.school for rule in structural} == {STRUCTURAL_SCHOOL}
+    assert all(rule.citation is None for rule in structural)
+    assert all(rule.urn == "" for rule in structural)
+
+
+def test_the_classical_layer_keeps_its_evidence_discipline():
+    """典籍层每条都必须指得出「哪一版、哪一卷、哪一条」。
+
+    这是 Phase 5 的核心承诺。加这条测试的理由很直接：典籍层的规则会越来越多，
+    而引证守卫只在**规则构造时**跑一次。如果有人后来绕过 ``rule_atoms``
+    手工 ``registry.add`` 一条，守卫不会重跑 —— 除非这里再查一遍。
+    """
+    classical = default_registry().select(source_tier=SourceTier.CLASSICAL)
+
+    assert classical, "典籍层为空说明原子没被加载进来，而不是「还没录」"
+    for rule in classical:
+        assert rule.citation is not None, f"{rule.id} 没有引文"
+        assert rule.urn, f"{rule.id} 没有 URN"
+        assert rule.citation.is_canonical, f"{rule.id} 的引文不是规范引证"
+        assert rule.citation.original_text.strip(), f"{rule.id} 没有原文"
+        assert rule.review_status is ReviewStatus.ACTIVE, f"{rule.id} 未通过校核"
 
 
 def test_rule_ids_are_unique_and_prefixed():
@@ -71,7 +93,34 @@ def test_rule_ids_are_unique_and_prefixed():
     ids = [rule.id for rule in rules]
 
     assert len(ids) == len(set(ids))
-    assert all(rule_id.startswith("STRUCT_") for rule_id in ids)
+
+
+def test_rule_id_prefix_matches_the_tier():
+    """ID 前缀必须与来源层级一致 —— 看 ID 就知道该去哪儿核。
+
+    结构层的 ``STRUCT_`` 指向 ``engines/bazi`` 的表，典籍层的 ``rule_`` 指向
+    ``corpus/canonical`` 下的底本。前缀错了，人就会去错地方找依据。
+    """
+    for rule in default_registry().select():
+        if rule.source_tier is SourceTier.STRUCTURAL:
+            assert rule.id.startswith("STRUCT_"), f"{rule.id} 是结构层规则，前缀应为 STRUCT_"
+        else:
+            assert rule.id.startswith("rule_"), f"{rule.id} 是典籍层规则，前缀应为 rule_"
+
+
+def test_classical_rule_ids_are_greppable_back_to_their_corpus():
+    """典籍规则的 ID 里必须出现它的底本代码与卷号。
+
+    没有这条，从一个 ID 回到 ``corpus/canonical/<edition>/`` 只能靠 URN，
+    而 URN 在报错日志里常常被截断。ID 自带的这一小段冗余，是故障时唯一
+    还留在屏幕上、能让人摸回底本的线索。
+    """
+    for rule in default_registry().select(source_tier=SourceTier.CLASSICAL):
+        assert rule.citation is not None
+        urn = rule.citation.parsed_urn
+        assert urn is not None, f"{rule.id} 的 URN 解析不出来"
+        assert urn.edition in rule.id, f"{rule.id} 的 ID 里看不到底本代码 {urn.edition}"
+        assert urn.juan in rule.id, f"{rule.id} 的 ID 里看不到卷号 {urn.juan}"
 
 
 def test_rule_versions_are_declared():
@@ -340,4 +389,13 @@ RULE_WITNESS: dict[str, tuple[int, int, int, int]] = {
     "STRUCT_VOID_009": (1990, 1, 21, 12),
     "STRUCT_VOID_010": (1990, 1, 13, 0),
     "STRUCT_YUEREN_001": (1990, 1, 13, 0),
+    # ── 典籍层（《三命通會》卷八 · 六甲日甲子时断）──────────────────────
+    # 这六条的条件只看日柱与时柱，所以见证命盘取「日柱为六甲之一、时柱甲子」。
+    # 甲申日一条命中两条规则（贵 / 子嗣难为 两个方向拆开了），共用同一张盘。
+    "rule_bazi_sanmingtonghui_j8_jiazi_jiazi": (1980, 2, 21, 0),
+    "rule_bazi_sanmingtonghui_j8_jiayin_jiazi": (1980, 2, 11, 0),
+    "rule_bazi_sanmingtonghui_j8_jiawu_jiazi": (1980, 1, 22, 0),
+    "rule_bazi_sanmingtonghui_j8_jiashen_jiazi_01": (1980, 1, 12, 0),
+    "rule_bazi_sanmingtonghui_j8_jiashen_jiazi_02": (1980, 1, 12, 0),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_jiazi": (1980, 1, 2, 0),
 }

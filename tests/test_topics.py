@@ -13,7 +13,7 @@ import pytest
 from engines.bazi import BirthInput, SxtwlBaziProvider
 from knowledge.default_rules import default_registry
 from knowledge.evidence import build_evidence
-from knowledge.provenance import ReviewStatus
+from knowledge.provenance import ReviewStatus, SourceTier
 from knowledge.rules import Rule, RuleRegistry
 from knowledge.schools import STRUCTURAL_SCHOOL
 from knowledge.topics import (
@@ -96,8 +96,48 @@ def test_career_question_is_not_labelled_as_a_career_conclusion():
     assert "不构成" in evidence.coverage_note
 
 
-def test_every_structural_rule_sits_on_the_structural_topic():
-    assert {rule.topic for rule in default_registry().select()} == {STRUCTURAL_TOPIC}
+def test_every_rule_sits_on_a_registered_topic():
+    """每条规则都必须挂在已登记主题上，且主题与层级对得上。
+
+    上一版断言「全部规则都在 structure 主题上」—— 那在只有结构层时成立，
+    Phase 5 录了 destiny 主题的典籍断语之后就不再成立。要守的不变式其实是
+    「主题是登记过的，不是随手写的字符串」，与 ``validate_topics`` 同一口径。
+
+    这里额外钉一条分层纪律：**结构层规则不许挂在领域主题上**。
+    结构规则不区分事业/婚姻，它能被任何主题选中当背景；一旦给它贴上
+    「婚姻」标签，它就会以「婚姻规则」的身份出现在结论里。
+    """
+    known = known_topic_ids()
+    rules = default_registry().select()
+
+    assert {rule.topic for rule in rules} <= set(known)
+    for rule in rules:
+        if rule.source_tier is SourceTier.STRUCTURAL:
+            assert rule.topic == STRUCTURAL_TOPIC, (
+                f"{rule.id} 是结构层规则，却挂在领域主题 {rule.topic} 上"
+            )
+
+
+def test_the_destiny_topic_is_covered_by_real_classical_rules():
+    """destiny 主题不再空 —— 这是 Phase 5 的交付物本身。
+
+    写死「有几条」没有意义（底本会继续录），要守的是**它确实通了**：
+    问「命局」拿到 covered，且命中的是带 URN 的典籍规则，而不是结构层充数。
+
+    命盘取 1980-02-21 00:00（日柱甲子、时柱甲子），命中《三命通會》卷八
+    「甲子日甲子时」那一条。同一张盘也用作该规则的见证命盘。
+    """
+    destiny = PROVIDER.calculate(BirthInput(1980, 2, 21, 0))
+    evidence = build_evidence(destiny, default_registry(), topic="命局")
+
+    assert evidence.topic_id == "destiny"
+    assert evidence.status is TopicStatus.COVERED
+    assert evidence.domain_matches
+    assert all(match.rule.urn for match in evidence.domain_matches)
+    assert all(
+        match.rule.source_tier is SourceTier.CLASSICAL
+        for match in evidence.domain_matches
+    )
 
 
 def test_domain_rules_are_selected_when_the_topic_has_them():

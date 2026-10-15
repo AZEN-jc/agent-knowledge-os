@@ -111,7 +111,23 @@ def audit_fact_map(chart) -> dict[str, object]:
         1 for element in stem_elements + hidden_elements if element == day_element
     )
 
+    # 四柱干支八键。日时断这类规则的条件就是「日柱是甲子、时柱是甲子」，
+    # 读的正是这八个键。
+    #
+    # 刻意不复用上面那个 `day_stem`：那个变量是
+    # ``chart.day_master or pillars[2].heavenly_stem``，语义是「日主」；
+    # 而产品产出的**事实键** ``day_stem`` 取自 ``pillars[2].heavenly_stem``。
+    # 两者在真实命盘上恒等，但共用一个变量就等于这条独立路径少走了一步 ——
+    # 将来 provider 若让 day_master 与日柱天干不一致，复核会跟着一起错，
+    # 而那正是它存在的意义。
+    pillar_codes = {
+        f"{pillar.name}_{suffix}": value
+        for pillar in pillars
+        for suffix, value in (("stem", pillar.heavenly_stem), ("branch", pillar.earthly_branch))
+    }
+
     return {
+        **pillar_codes,
         "day_master_root": "有根" if day_element in {ELEMENT_OF[s] for s in hidden} else "无根",
         "day_master_same_element_level": audit_same_element_level(same_element),
         "day_master_vs_month": audit_month_relation(day_element, ELEMENT_OF[month_main]),

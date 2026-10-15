@@ -68,7 +68,8 @@ DEFAULT_SCHOOLS: tuple[School, ...] = (
             "格局取用与调候取用冲突时的优先级",
             "月令本气不透时，是取月令本气定格还是取透干者定格",
         ),
-        note="断语类规则需待底本确认后录入，当前规则库中不含该流派的成文规则。",
+        note="断语类规则自 Phase 5 起录入：底本为《三命通會》卷八（维基文库转录本，"
+             "版本已固化并逐条核对原文）。当前仅覆盖六甲日甲子时一段，范围有限。",
     ),
     School(
         id="di_tian_sui",
@@ -124,6 +125,15 @@ class SchoolRegistry:
 
     def has(self, school_id: str) -> bool:
         return school_id in self._schools
+
+    def ids(self) -> tuple[str, ...]:
+        """全部已注册流派 ID（已排序）。
+
+        给报错消息用：把「已注册的有哪些」直接摆出来，比只报「你写错了」
+        少一轮来回。排序是为了让消息可复现 —— 字典序不确定的话，
+        同一条错误每次跑出来顺序都不一样，测试没法断言。
+        """
+        return tuple(sorted(self._schools))
 
     def require(self, school_id: str) -> School:
         """校验一个流派已注册；规则挂载时用它挡住拼错的 school。"""

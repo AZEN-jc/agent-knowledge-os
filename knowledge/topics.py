@@ -9,9 +9,10 @@
 
 - **基础层**（``structure``）：十神、藏干、五行生克、地支关系。所有主题共享，
   它只说明「命盘里有什么」。
-- **主题层**（``career`` / ``marriage`` / …）：针对该主题的断语规则。
-  **当前一条都没有** —— 断语需要典籍原文，而底本未确认（见
-  :mod:`knowledge.classical_backlog`）。
+- **主题层**（``destiny`` / ``career`` / ``marriage`` / …）：针对该主题的断语规则。
+  ``destiny``（命局）自 Phase 5 起有规则：底本是《三命通會》卷八的日时断，
+  原文已固化到 ``corpus/`` 并逐条核对。其余主题仍然为空 —— 它们的底本还没定，
+  见 :mod:`knowledge.classical_backlog`。
 
 于是 ``build_evidence`` 的语义变成：返回基础层 + 该主题专属层，并如实报告
 主题层是否为空。用户看到的不再是「事业分析」，而是「公共结构层证据，该主题
@@ -70,7 +71,8 @@ class Topic:
 
 
 CLASSICAL_BLOCKER = (
-    "该主题的断语规则需要可核验的典籍原文，底本尚未确认（见 /api/classics/backlog）。"
+    "该主题的断语规则需要可核验的典籍原文，本主题的底本尚未确认"
+    "（见 /api/classics/backlog）。"
 )
 
 TOPICS: tuple[Topic, ...] = (
@@ -79,6 +81,16 @@ TOPICS: tuple[Topic, ...] = (
         name="公共结构层",
         description="十神、藏干、五行生克、地支关系的结构描述；只说明命盘里有什么，不做吉凶判断。",
         aliases=("结构", "structure", "命盘结构"),
+    ),
+    Topic(
+        id="destiny",
+        name="命局",
+        description=(
+            "日时组合与格局成败的综合断语。底本为《三命通會》卷八（欽定四庫全書本，"
+            "明 萬民英 撰），当前覆盖「六甲日甲子時斷」一段的 6 个日时组合；"
+            "其余日时组合尚未录入。"
+        ),
+        aliases=("命局", "格局", "命格", "日时断", "destiny"),
     ),
     Topic(
         id="career",
