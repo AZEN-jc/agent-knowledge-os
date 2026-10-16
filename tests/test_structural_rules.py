@@ -194,6 +194,71 @@ def test_witness_charts_actually_match_their_rule():
         )
 
 
+def classical_chapter_of() -> dict[str, str]:
+    """每条典籍规则的 <卷>.<篇>，用来界定「同组」。"""
+    return {
+        rule.id: f"{rule.citation.parsed_urn.juan}.{rule.citation.parsed_urn.chapter}"
+        for rule in default_registry().select(source_tier=SourceTier.CLASSICAL)
+    }
+
+
+def test_a_witness_chart_does_not_silently_pick_up_other_rules():
+    """见证盘只该命中它见证的那条规则 —— 多命中的要显式登记。
+
+    上面那条测试只查「命中了没有」。漏掉的是反方向：**多命中了别的**。
+    新加一条原子，如果它的 condition 比原文宽，它会在别人的见证盘上冒出来，
+    而没有任何测试会响 —— 那是「甲辰日甲子时生癸巳月被判成水火中死」级别的错误，
+    只是从另一个方向来。
+
+    同组 = 同一卷同一篇（``j8.liujia_ri``）。跨章的命中不查：甲辰日甲子时
+    的盘命中一条讲月令格局的结构层规则，本来就该发生，不是异常。
+
+    真实存在的重叠只有四种，都登记在 :data:`WITNESS_ALSO_MATCHES` 里并写明理由。
+    以后再出现第五种，要么是规则条件过松，要么是原文真的两句都适用 ——
+    两种情况都必须显式表态，不能让「多命中」悄悄变成常态。
+    """
+    chapter_of = classical_chapter_of()
+
+    for rule_id, (year, month, day, hour) in sorted(RULE_WITNESS.items()):
+        if rule_id not in chapter_of:
+            continue  # 结构层规则不同组，交由冲突测试管
+        chapter = chapter_of[rule_id]
+        matched = matched_rule_ids(year, month, day, hour)
+        same_group = {r for r in matched if chapter_of.get(r) == chapter}
+        extra = same_group - {rule_id} - WITNESS_ALSO_MATCHES.get(rule_id, frozenset())
+
+        assert not extra, (
+            f"见证盘 {year}-{month}-{day} {hour}时 多命中了 {sorted(extra)}，"
+            f"而 {rule_id} 没登记这个重叠。"
+            "要么那条规则的条件比原文宽（要收紧），要么原文两句真的都适用于这张盘"
+            "（要登记进 WITNESS_ALSO_MATCHES 并写明理由）。"
+        )
+
+
+def test_every_declared_overlap_is_real_and_still_needed():
+    """登记表本身也要复核：登记了却不发生 = 条件变了，登记项过期了。
+
+    只查「多余」不查「过期」，表就会慢慢长出一堆不再成立的豁免，
+    而下一个人看到表里有四条豁免，会以为那四种情况真的还重叠着。
+    """
+    chapter_of = classical_chapter_of()
+
+    for rule_id, also in sorted(WITNESS_ALSO_MATCHES.items()):
+        year, month, day, hour = RULE_WITNESS[rule_id]
+        matched = matched_rule_ids(year, month, day, hour)
+
+        stale = {r for r in also if r not in matched}
+        assert not stale, (
+            f"{rule_id} 登记了与 {sorted(stale)} 重叠，但那张盘现在命中不了它们了。"
+            "登记项过期就该删掉，否则它会掩盖下一次真的多命中。"
+        )
+        assert also <= set(chapter_of), f"{rule_id} 登记的 {sorted(also - set(chapter_of))} 不是典籍规则"
+        for other in also:
+            assert chapter_of[other] == chapter_of[rule_id], (
+                f"{other} 与 {rule_id} 不同组，不该登记为同组重叠"
+            )
+
+
 # ── 冲突：值级比较，不误报 ─────────────────────────────────────────────
 #
 # 用两张真实命盘对照：
@@ -405,7 +470,8 @@ RULE_WITNESS: dict[str, tuple[int, int, int, int]] = {
     # 挑盘时刻意避开「同一条见证命盘命中多条本组规则」：一张盘同时匹配
     # 两条，就无法证明见证是**因为各自的条件**而命中的。
     # 唯一例外是 _06 / _07：癸巳月、癸亥月自己就带水，必然同时命中
-    # 「水位年月」那条 —— 那不是挑盘不慎，是原文两句都适用于这张盘。
+    # 「水位年月」那条 —— 那不是挑盘不慎，是原文两句都适用于这张盘，
+    # 已登记进 WITNESS_ALSO_MATCHES 并写明理由。
     "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_01": (1951, 1, 4, 0),
     "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_02": (1950, 9, 6, 0),
     "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_03": (1956, 10, 4, 0),
@@ -413,4 +479,30 @@ RULE_WITNESS: dict[str, tuple[int, int, int, int]] = {
     "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_05": (1958, 3, 28, 0),
     "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_06": (1956, 6, 6, 0),
     "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_07": (1958, 11, 23, 0),
+}
+
+# ── 见证盘的同组重叠豁免 ──────────────────────────────────────────────
+# 默认一张见证盘只该命中它见证的那条规则。这里是**经过论证的例外**，
+# 每一条都要写明「为什么重叠是真的」，由 test_every_declared_overlap_is_real_and_still_needed
+# 复核：登记了却不发生 = 过期；发生了却没收 = 多命中。两头都堵。
+WITNESS_ALSO_MATCHES: dict[str, frozenset[str]] = {
+    # 甲申日甲子时两条断语的条件**完全相同**（只按日柱与时柱），
+    # 一个断「甲胎逢印，印化煞，贵」，一个断「鸳鸯重叠，子嗣难为」。
+    # 同一张盘必然同时命中两条 —— 拆成两条本来就是原文两句话，
+    # 共用见证盘是构造决定的，不是挑盘不慎。
+    "rule_bazi_sanmingtonghui_j8_jiashen_jiazi_01": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiashen_jiazi_02",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiashen_jiazi_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiashen_jiazi_01",
+    }),
+    # 癸巳月 / 癸亥月自己就带水（癸为阴水），年月两柱的五行里必然有水，
+    # 所以同时命中「若水位年月，水泛木浮，主移根换叶」。
+    # 原文确实两句都适用于这张盘：既是水位年月，也是水火中死 / 凶死。
+    "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_06": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_07": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_01",
+    }),
 }
