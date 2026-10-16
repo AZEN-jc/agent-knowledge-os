@@ -11,17 +11,20 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 from typing import Any
 
 from agents.llm import LLMProvider
 from agents.mingli import MAX_REVISIONS, AnalystAgent, CriticAgent
 from engines.bazi import BaziCalculator, BirthInput, SxtwlBaziProvider
+from engines.bazi.models import Chart
 from engines.bazi.time_engine import ClassicalApproxDayunPolicy
 from knowledge.default_rules import build_registry, default_schools
 from knowledge.rules import RuleRegistry
 from knowledge.schools import SchoolRegistry
 from knowledge.time_windows import analyze_period
+from knowledge.topics import resolve
 
 
 @dataclass(frozen=True)
@@ -32,6 +35,58 @@ class AnalysisResponse:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class TopicResult:
+    """一个主题的分析结果。失败也是一个结果，如实带回原因。"""
+
+    topic: str
+    topic_name: str
+    ok: bool
+    error: str = ""
+    analysis: AnalysisResponse | None = None
+
+
+@dataclass(frozen=True)
+class MultiAnalysisResponse:
+    """跨主题并发分析的汇总。``chart`` 只出现一次 —— 扇出点在它之后。"""
+
+    chart: dict[str, Any]
+    topics: tuple[str, ...]
+    results: tuple[TopicResult, ...]
+
+    @property
+    def succeeded(self) -> tuple[TopicResult, ...]:
+        return tuple(result for result in self.results if result.ok)
+
+    @property
+    def failed(self) -> tuple[TopicResult, ...]:
+        return tuple(result for result in self.results if not result.ok)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "chart": self.chart,
+            "topics": list(self.topics),
+            "results": [
+                {
+                    "topic": result.topic,
+                    "topic_name": result.topic_name,
+                    "ok": result.ok,
+                    "error": result.error,
+                    # chart 已在顶层；每个主题只带 analysis 与 critique，
+                    # 不重复那份命盘。
+                    "analysis": (
+                        {"analysis": result.analysis.analysis,
+                         "critique": result.analysis.critique}
+                        if result.analysis else None
+                    ),
+                }
+                for result in self.results
+            ],
+            "succeeded": len(self.succeeded),
+            "failed": len(self.failed),
+        }
 
 
 class MingLiService:
@@ -54,6 +109,15 @@ class MingLiService:
     def analyze(self, birth_data: dict[str, Any], question: str) -> AnalysisResponse:
         birth = BirthInput(**birth_data)
         chart = self.calculator.calculate_chart(birth)
+        return self._analyze_chart(chart, question)
+
+    def _analyze_chart(self, chart: Chart, question: str) -> AnalysisResponse:
+        """在**已算好**的命盘上分析。多主题扇出复用这一条路径，不另写一份。
+
+        ``question`` 同时充当主题：``AnalystAgent`` 把它交给
+        ``topics.resolve`` 处理别名（「事业」→ career）。所以多主题调用
+        直接把主题名当 question 传，不需要一张「主题 → 问句」的映射表。
+        """
         # 把 Critic 交给 Analyst：provider 路径下它构成多轮修正的闭环。
         # 模板路径会忽略这个参数（模板不会越界，重写没有意义）。
         analysis = self.analyst.analyze(chart, question, critic=self.critic)
@@ -75,6 +139,49 @@ class MingLiService:
                 },
             },
             critique={"passed": critique.passed, "issues": list(critique.issues)},
+        )
+
+    def analyze_multi(
+        self, birth_data: dict[str, Any], topics: list[str] | tuple[str, ...]
+    ) -> MultiAnalysisResponse:
+        """跨主题**并发**分析。命盘只算一次，扇出点在它之后。
+
+        为什么值得并发：主题之间彼此独立，没有跨主题依赖，所以依赖图只有
+        一层 —— 不需要 DAG 调度器，一把提交即可。确定性路径下 Python 的
+        GIL 让线程拿不到 CPU 并行度，收益主要是**故障隔离**（一个主题炸了
+        不影响其余）与**为 I/O 密集的 provider 路径预留形状**；注入真 LLM
+        后每个主题是一次网络调用，线程池这时才真正并行。
+
+        ``ponytail:`` 线程池而非进程池 —— 进程池要把规则注册表 pickle 给每个
+        任务，而建表要读语料，开销远超收益。provider 必须线程安全：
+        ``FakeLLMProvider`` 会 pop/append，并发下会丢脚本；生产 provider
+        若要并发，在 provider 内部加锁。
+        """
+        if not topics:
+            raise ValueError("topics 不能为空。")
+
+        birth = BirthInput(**birth_data)
+        chart = self.calculator.calculate_chart(birth)
+        names = {topic: resolve(topic).name for topic in topics}
+
+        with ThreadPoolExecutor(max_workers=len(topics)) as pool:
+            futures = [(topic, pool.submit(self._analyze_chart, chart, topic))
+                       for topic in topics]
+            results: list[TopicResult] = []
+            for topic, future in futures:
+                try:
+                    payload = future.result()
+                except Exception as exc:  # 单主题失败不波及其他主题
+                    results.append(TopicResult(
+                        topic=topic, topic_name=names[topic], ok=False, error=str(exc),
+                    ))
+                else:
+                    results.append(TopicResult(
+                        topic=topic, topic_name=names[topic], ok=True, analysis=payload,
+                    ))
+
+        return MultiAnalysisResponse(
+            chart=chart.to_dict(), topics=tuple(topics), results=tuple(results)
         )
 
     def analyze_timeline(

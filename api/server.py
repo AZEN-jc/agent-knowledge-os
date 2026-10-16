@@ -158,7 +158,14 @@ class ConditionTraceResponse(BaseModel):
 
 
 class RuleChainResponse(BaseModel):
-    """证据链的一环：结论 → 规则 → 条件 → 命盘要素。"""
+    """证据链的一环：结论 → 规则 → 条件 → 命盘要素。
+
+    ``urn`` 与 ``citation`` 必须随链返回。知识层的 ``RuleMatch.to_dict``
+    注释写明这两项是「必须」：没有它们，模型要么不写出处角标，要么自己编
+    一个 —— 两者都比不给更糟。API 早先把它们裁掉了（``EvidenceResponse``
+    是 ``extra="ignore"``），于是「可验证的出处」在服务层成立、在 API 层
+    消失。这是 2026-10-16 补的。
+    """
 
     rule_id: str
     conclusion: str
@@ -170,6 +177,10 @@ class RuleChainResponse(BaseModel):
     source_tier: str
     review_status: str
     is_production_ready: bool
+    urn: str | None = Field(default=None, description="典籍规则的规范引用标识；结构层为 null")
+    citation: CitationResponse | None = Field(
+        default=None, description="文献出处；结构层为 null。original_text 与 url 同时具备才算可核验"
+    )
     conditions: list[ConditionTraceResponse] = Field(
         description="证据链的最后一跳：每条条件的命盘取值与出处"
     )
@@ -412,6 +423,71 @@ def timeline(request: TimelineRequest) -> dict[str, Any]:
             "不是事件概率。dayun 为 null 表示未提供 gender，此时不算大运。"
         ),
     ).model_dump()
+
+
+class MultiAnalyzeRequest(BirthRequest):
+    """生辰 + 一组主题。主题之间彼此独立，服务端并发执行。"""
+
+    topics: list[str] = Field(
+        min_length=1,
+        description="要分析的主题，可为中文别名；彼此独立，服务端并发执行",
+        examples=[["事业", "财运", "婚姻"]],
+    )
+
+
+class TopicAnalysisResponse(BaseModel):
+    """一个主题的分析与审查。命盘在响应顶层，这里不重复。"""
+
+    analysis: AnalysisPayload
+    critique: dict[str, Any]
+
+
+class TopicResultResponse(BaseModel):
+    """一个主题的结果。失败也是一个结果，``ok=false`` 且 ``error`` 说明原因。"""
+
+    topic: str = Field(description="调用方传入的原始主题，可能是别名")
+    topic_name: str = Field(description="解析后的规范主题名")
+    ok: bool = Field(description="该主题是否分析成功")
+    error: str = Field(description="失败原因；成功时为空字符串")
+    analysis: TopicAnalysisResponse | None = Field(
+        description="该主题的分析结果；失败时为 null"
+    )
+
+
+class MultiAnalysisResponse(BaseModel):
+    chart: dict[str, Any] = Field(description="命盘只算一次，扇出点在它之后")
+    topics: list[str]
+    results: list[TopicResultResponse]
+    succeeded: int
+    failed: int
+
+
+@app.post(
+    "/api/analyze/multi",
+    summary="多主题并发分析",
+    description=(
+        "一次请求分析多个主题，服务端**并发**执行。\n\n"
+        "主题之间彼此独立、没有跨主题依赖，所以依赖图只有一层。"
+        "命盘只算一次 —— 扇出点在它之后，各主题共享同一张不可变命盘。\n\n"
+        "**故障隔离**：单个主题失败不影响其余，失败项以 ``ok=false`` 如实带回"
+        "原因，而不是让整个请求 500。\n\n"
+        "确定性路径下 Python 的 GIL 让线程拿不到 CPU 并行度，所以这里的"
+        "并发收益主要是故障隔离与故障定位；注入真 LLM provider 后每个主题"
+        "是一次网络调用，线程池这时才真正并行。"
+    ),
+    tags=["分析"],
+    response_model=MultiAnalysisResponse,
+    responses=UNPROCESSABLE,
+)
+def analyze_multi(request: MultiAnalyzeRequest) -> dict[str, Any]:
+    try:
+        response = service.analyze_multi(
+            request.model_dump(exclude={"topics"}), request.topics
+        )
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return response.to_dict()
 
 
 @app.get(
