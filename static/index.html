@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MingLi Agent · 可验证的命理推理</title>
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b6b; --line: #d8d4cc; --bg: #faf8f4;
+    --card: #ffffff; --accent: #8c2f39; --ok: #2f6b4f; --warn: #a8641a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px; background: var(--bg); color: var(--ink);
+    font: 15px/1.6 "Songti SC", "Noto Serif CJK SC", serif;
+  }
+  main { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .04em; }
+  h2 { font-size: 16px; margin: 28px 0 10px; padding-bottom: 6px;
+       border-bottom: 1px solid var(--line); }
+  .thesis { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  form, .card { background: var(--card); border: 1px solid var(--line);
+                border-radius: 4px; padding: 16px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; color: var(--muted); }
+  input, select, button {
+    font: inherit; padding: 6px 8px; border: 1px solid var(--line);
+    border-radius: 3px; background: #fff; color: var(--ink);
+  }
+  input { width: 84px; }
+  button { cursor: pointer; background: var(--ink); color: #fff; border-color: var(--ink); }
+  button.ghost { background: #fff; color: var(--ink); }
+  button:hover { opacity: .85; }
+  .topics { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
+  .topics label { display: flex; gap: 5px; align-items: center; font-size: 14px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 6px 9px; text-align: left;
+           vertical-align: top; }
+  th { background: #f2efe9; font-weight: 600; font-size: 13px; }
+  .pillar-glyph { font-size: 20px; letter-spacing: .1em; }
+  .rule { border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px;
+          margin-top: 10px; background: var(--card); }
+  .rule-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .rule-id { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); }
+  .tag { font-size: 11px; padding: 1px 6px; border: 1px solid var(--line);
+         border-radius: 10px; color: var(--muted); }
+  .tag.classical { color: var(--accent); border-color: var(--accent); }
+  .conclusion { margin: 8px 0; }
+  .cond { font-size: 13px; color: var(--muted); margin-left: 14px; }
+  .cond code { font-family: ui-monospace, monospace; color: var(--ink); }
+  .citation { margin-top: 8px; padding: 8px 10px; background: #f7f3ec;
+              border-left: 3px solid var(--accent); font-size: 13px; }
+  .citation a { color: var(--accent); }
+  .verdict { font-weight: 600; }
+  .verdict.ok { color: var(--ok); }
+  .verdict.bad { color: var(--warn); }
+  .report-line { font-size: 15px; margin-top: 6px; }
+  .signal { font-size: 13px; color: var(--muted); margin-left: 16px; }
+  .empty { color: var(--muted); font-style: italic; }
+  .error { color: var(--accent); background: #fdf3f4; border: 1px solid var(--accent);
+           padding: 10px 12px; border-radius: 4px; margin-top: 12px; white-space: pre-wrap; }
+  footer { margin: 36px 0 8px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>MingLi Agent</h1>
+  <p class="thesis">
+    确定性排盘 → 事实提取 → 规则匹配 → 证据链。每个结论都能追到命盘要素与规则出处；
+    信号是结构描述，不是预测。证据强度是证据等级，不是事件概率。
+  </p>
+
+  <form id="form">
+    <div class="row">
+      <div class="field"><label for="year">公历年</label><input id="year" type="number" value="1990"></div>
+      <div class="field"><label for="month">月</label><input id="month" type="number" value="2" min="1" max="12"></div>
+      <div class="field"><label for="day">日</label><input id="day" type="number" value="1" min="1" max="31"></div>
+      <div class="field"><label for="hour">时（0-23）</label><input id="hour" type="number" value="12" min="0" max="23"></div>
+      <div class="field"><label for="gender">性别</label>
+        <select id="gender"><option value="">不填（只算流年）</option><option>男</option><option>女</option></select>
+      </div>
+      <div class="field"><label>&nbsp;</label>
+        <button type="submit" id="run">多主题分析</button>
+      </div>
+      <div class="field"><label>&nbsp;</label>
+        <button type="button" class="ghost" id="chart-only">只看命盘</button>
+      </div>
+    </div>
+
+    <div class="topics" id="topics"></div>
+
+    <div class="row" style="margin-top:14px">
+      <div class="field"><label for="from">时间轴起</label><input id="from" type="number" value="2024"></div>
+      <div class="field"><label for="to">时间轴止</label><input id="to" type="number" value="2030"></div>
+      <div class="field"><label>&nbsp;</label>
+        <button type="button" class="ghost" id="timeline">流年时间轴</button>
+      </div>
+    </div>
+  </form>
+
+  <div id="error"></div>
+
+  <section id="out-chart" hidden>
+    <h2>命盘</h2>
+    <div class="card" id="chart"></div>
+  </section>
+
+  <section id="out-analysis" hidden>
+    <h2>证据链</h2>
+    <div id="analysis"></div>
+  </section>
+
+  <section id="out-timeline" hidden>
+    <h2>流年时间轴</h2>
+    <div class="card" id="timeline-out"></div>
+  </section>
+
+  <footer>
+    确定性部分由 <code>engines.bazi</code> 计算（寿星天文历对拍）；结构层规则来自可执行定义表；
+    典籍层规则逐字回对固化底本，出处带书名、底本、逐字原文与可打开地址。
+  </footer>
+</main>
+
+<script>
+"use strict";
+
+const TOPIC_OPTIONS = ["事业", "财运", "婚姻", "健康", "命局"];
+const $ = (id) => document.getElementById(id);
+
+/** 建元素。**全程用 textContent，不用 innerHTML** —— 数据来自 API 与用户输入，
+ *  拼 HTML 字符串等于自己开一个注入口。 */
+function el(tag, text, cls) {
+  const node = document.createElement(tag);
+  if (text !== undefined && text !== null) node.textContent = String(text);
+  if (cls) node.className = cls;
+  return node;
+}
+
+function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+
+function showError(message) {
+  const box = $("error");
+  clear(box);
+  box.appendChild(el("div", message, "error"));
+}
+
+async function post(path, body) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+  return data;
+}
+
+function birth() {
+  const body = {
+    year: Number($("year").value),
+    month: Number($("month").value),
+    day: Number($("day").value),
+    hour: Number($("hour").value),
+  };
+  const gender = $("gender").value;
+  if (gender) body.gender = gender;
+  return body;
+}
+
+function selectedTopics() {
+  return Array.from(document.querySelectorAll('input[name="topic"]:checked')).map((n) => n.value);
+}
+
+function buildTopicPicker() {
+  const box = $("topics");
+  for (const topic of TOPIC_OPTIONS) {
+    const label = el("label");
+    const input = el("input");
+    input.type = "checkbox";
+    input.name = "topic";
+    input.value = topic;
+    input.checked = topic === "事业" || topic === "财运";
+    label.appendChild(input);
+    label.appendChild(el("span", null, null));
+    label.lastChild.textContent = topic;
+    box.appendChild(label);
+  }
+}
+
+// ── 命盘 ───────────────────────────────────────────────────────────────
+
+function renderChart(chart) {
+  const box = $("chart");
+  clear(box);
+
+  box.appendChild(el("p", null, "report-line"));
+  box.lastChild.textContent =
+    `日主 ${chart.day_master}　·　${chart.provider}　·　算法 ${chart.algorithm_version}`;
+
+  const table = el("table");
+  const head = el("tr");
+  for (const title of ["柱", "干支", "藏干", "天干十神", "纳音"]) head.appendChild(el("th", title));
+  table.appendChild(head);
+
+  for (const pillar of chart.pillars) {
+    const row = el("tr");
+    row.appendChild(el("td", pillar.name));
+    row.appendChild(el("td", pillar.heavenly_stem + pillar.earthly_branch, "pillar-glyph"));
+    row.appendChild(el("td", (pillar.hidden_stems || []).join(" ")));
+    row.appendChild(el("td", pillar.ten_god || ""));
+    row.appendChild(el("td", pillar.na_yin || ""));
+    table.appendChild(row);
+  }
+  box.appendChild(table);
+
+  // relations 的形状是 {type, branches, pillars}，不是 {type, pair} ——
+  // 读错字段不会报错，只会让这一行永远空白。
+  const relations = (chart.relations || []).map(
+    (r) => `${r.type}：${(r.branches || []).join("")}（${(r.pillars || []).join("+")}）`
+  );
+  box.appendChild(el("p", null, "signal"));
+  box.lastChild.textContent =
+    relations.length ? `地支关系 ${relations.join("；")}` : "四支之间无结构关系";
+
+  const missing = chart.elements && chart.elements.missing;
+  if (missing && missing.length) {
+    box.appendChild(el("p", null, "signal"));
+    box.lastChild.textContent = `缺五行：${missing.join("、")}`;
+  }
+}
+
+// ── 证据链 ─────────────────────────────────────────────────────────────
+
+function renderCondition(condition) {
+  const line = el("div", null, "cond");
+  line.appendChild(el("code", condition.key));
+  line.appendChild(document.createTextNode(
+    `　要求 ${JSON.stringify(condition.expected)}　实际 ${JSON.stringify(condition.actual)}`
+  ));
+  const sources = condition.sources || [];
+  if (sources.length) {
+    line.appendChild(document.createTextNode(`　← ${sources.join("、")}`));
+  }
+  return line;
+}
+
+function renderCitation(citation, urn) {
+  if (!citation && !urn) return null;
+  const box = el("div", null, "citation");
+  if (urn) box.appendChild(el("div", urn));
+  if (citation) {
+    box.appendChild(el("div", null, null));
+    box.lastChild.textContent =
+      `${citation.book}　·　${citation.edition}${citation.chapter ? "　·　" + citation.chapter : ""}`;
+    if (citation.original_text) {
+      box.appendChild(el("div", null, null));
+      box.lastChild.textContent = `原文：「${citation.original_text}」`;
+    }
+    if (citation.url) {
+      const link = el("a", "打开出处");
+      link.href = citation.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      box.appendChild(link);
+    }
+  }
+  return box;
+}
+
+function renderChain(evidence) {
+  const host = $("analysis");
+  clear(host);
+
+  const status = el("p", null, "report-line");
+  status.appendChild(el("span", `主题「${evidence.topic_name}」覆盖状态：${evidence.status}`, null));
+  host.appendChild(status);
+  host.appendChild(el("p", evidence.coverage_note, "signal"));
+
+  if (evidence.untraced_rules && evidence.untraced_rules.length) {
+    host.appendChild(el("p", `证据链断环：${evidence.untraced_rules.join("、")}`, "error"));
+  }
+  if (evidence.unreviewed_rules && evidence.unreviewed_rules.length) {
+    host.appendChild(el("p", `含未校核规则：${evidence.unreviewed_rules.join("、")}`, "signal"));
+  }
+
+  const strength = el("p", null, "report-line");
+  strength.textContent =
+    `证据强度 ${evidence.strength.toFixed(2)}（支持 ${evidence.strength_breakdown.supporting_rules} 条`
+    + `，原始支持量 ${evidence.strength_breakdown.raw_support}，饱和常数 ${evidence.strength_breakdown.saturation_k}）`;
+  host.appendChild(strength);
+
+  if (!evidence.chain.length) {
+    host.appendChild(el("p", "这条命盘没有命中任何规则。", "empty"));
+    return;
+  }
+
+  for (const link of evidence.chain) {
+    const rule = el("div", null, "rule");
+    const head = el("div", null, "rule-head");
+    head.appendChild(el("span", link.conclusion, "conclusion"));
+    rule.appendChild(head);
+
+    const meta = el("div", null, "rule-head");
+    meta.appendChild(el("span", link.rule_id, "rule-id"));
+    meta.appendChild(el("span", link.confidence, "tag"));
+    meta.appendChild(el("span", link.source_tier, link.source_tier === "classical" ? "tag classical" : "tag"));
+    meta.appendChild(el("span", link.review_status, "tag"));
+    if (!link.is_production_ready) meta.appendChild(el("span", "未达生产就绪", "tag"));
+    rule.appendChild(meta);
+
+    for (const condition of link.conditions || []) {
+      rule.appendChild(renderCondition(condition));
+    }
+
+    const citation = renderCitation(link.citation, link.urn);
+    if (citation) rule.appendChild(citation);
+
+    host.appendChild(rule);
+  }
+}
+
+function renderCritique(critique) {
+  const host = $("analysis");
+  const verdict = el("p", null, "verdict " + (critique.passed ? "ok" : "bad"));
+  verdict.textContent = critique.passed ? "审查通过" : `审查未通过：${(critique.issues || []).join("；")}`;
+  host.appendChild(verdict);
+}
+
+// ── 时间轴 ─────────────────────────────────────────────────────────────
+
+function renderTimeline(payload) {
+  const host = $("timeline-out");
+  clear(host);
+
+  const intro = el("p", payload.note, "signal");
+  host.appendChild(intro);
+
+  for (const window of payload.windows) {
+    const block = el("div", null, "rule");
+    const head = el("div", null, "rule-head");
+    head.appendChild(el("span",
+      `${window.liunian.stem}${window.liunian.branch}年`, "pillar-glyph"));
+    head.appendChild(el("span", `证据强度 ${window.strength.toFixed(2)}`, "tag"));
+    if (window.dayun) {
+      head.appendChild(el("span",
+        `大运 ${window.dayun.heavenly_stem}${window.dayun.earthly_branch}`, "tag"));
+    }
+    block.appendChild(head);
+    block.appendChild(el("p", window.report, "report-line"));
+
+    for (const signal of window.signals) {
+      const line = el("div", null, "signal");
+      line.appendChild(el("span", signal.label, null));
+      line.appendChild(document.createTextNode(`　—　${signal.detail}`));
+      block.appendChild(line);
+    }
+    if (!window.signals.length) {
+      block.appendChild(el("p", "本年无显著结构信号", "empty"));
+    }
+    host.appendChild(block);
+  }
+}
+
+// ── 装配 ───────────────────────────────────────────────────────────────
+
+async function onAnalyze(event) {
+  event.preventDefault();
+  const topics = selectedTopics();
+  if (!topics.length) return showError("至少选一个主题。");
+  try {
+    const payload = await post("/api/analyze/multi", { ...birth(), topics });
+    showError("");
+    if (payload.results.some((r) => r.ok)) {
+      renderChart(payload.chart);
+      $("out-chart").hidden = false;
+    }
+    const ok = payload.results.filter((r) => r.ok);
+    const bad = payload.results.filter((r) => !r.ok);
+    if (ok.length || bad.length) {
+      $("out-analysis").hidden = false;
+      clear($("analysis"));
+      if (bad.length) {
+        $("analysis").appendChild(el("p",
+          `以下主题分析失败：${bad.map((r) => `${r.topic}（${r.error}）`).join("；")}`, "error"));
+      }
+      const first = ok[0];
+      if (first) {
+        renderChain(first.analysis.analysis.evidence);
+        renderCritique(first.analysis.critique);
+        if (ok.length > 1) {
+          $("analysis").appendChild(el("p",
+            `另有 ${ok.length - 1} 个主题也分析成功，见接口 /api/analyze/multi 的完整返回。`, "signal"));
+        }
+      }
+    }
+  } catch (error) {
+    showError(String(error.message || error));
+  }
+}
+
+async function onChartOnly() {
+  try {
+    const chart = await post("/api/chart", birth());
+    showError("");
+    renderChart(chart);
+    $("out-chart").hidden = false;
+  } catch (error) {
+    showError(String(error.message || error));
+  }
+}
+
+async function onTimeline() {
+  const from = Number($("from").value);
+  const to = Number($("to").value);
+  if (!(from > 0) || !(to > 0)) return showError("时间轴起止年要是正数。");
+  if (from > to) return showError("起始年不能晚于结束年。");
+  try {
+    const payload = await post("/api/timeline",
+      { ...birth(), topic: "财运", start_year: from, end_year: to });
+    showError("");
+    renderTimeline(payload);
+    $("out-timeline").hidden = false;
+  } catch (error) {
+    showError(String(error.message || error));
+  }
+}
+
+buildTopicPicker();
+$("form").addEventListener("submit", onAnalyze);
+$("chart-only").addEventListener("click", onChartOnly);
+$("timeline").addEventListener("click", onTimeline);
+</script>
+</body>
+</html>

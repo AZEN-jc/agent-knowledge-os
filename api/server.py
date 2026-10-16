@@ -10,9 +10,12 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from agents.prompt import contract as llm_contract
@@ -617,9 +620,10 @@ def list_schools() -> SchoolListResponse:
     "/api/classics/backlog",
     summary="查询典籍层待录入清单",
     description=(
-        "返回尚未录入的典籍规则来源，以及每一条被阻塞的具体原因。"
-        "当前典籍层一条规则都没有：在拿到可核验的底本之前，"
-        "系统拒绝把任何断语写成经典原文。"
+        "返回尚未录入的典籍规则来源，以及每一条被阻塞的具体原因。\n\n"
+        "《三命通會》卷八「六甲日甲子時斷」已录入 13 条（含甲辰日七条），"
+        "其余典籍条目仍被阻塞在「拿到可核验底本」这一步 —— "
+        "没有底本，系统拒绝把任何断语写成经典原文。"
     ),
     tags=["规则库"],
     response_model=BacklogResponse,
@@ -632,3 +636,31 @@ def classics_backlog() -> BacklogResponse:
         next_action=next_action().book,
         entries=[BacklogEntryResponse(**entry.to_dict()) for entry in CLASSICAL_BACKLOG],
     )
+
+
+# ── Web UI ─────────────────────────────────────────────────────────────
+#
+# 静态单页，无框架、无构建步骤。挂载放在**所有 API 路由之后**：Starlette
+# 按注册顺序匹配，先注册的先生效；挂在前面会让 StaticFiles 抢在路由之前
+# 应答，而它对 POST 一律 405。
+
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+if STATIC_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+    @app.get("/", summary="Web UI", include_in_schema=False)
+    def index() -> FileResponse:
+        """单页界面：输入生辰，看命盘、证据链、审查与流年时间轴。"""
+        return FileResponse(STATIC_DIR / "index.html")
+
+
+def main() -> None:
+    """本地启动。``python -m api.server`` 即可，默认 8000 端口。"""
+    import uvicorn
+
+    uvicorn.run("api.server:app", host="127.0.0.1", port=8000, reload=False)
+
+
+if __name__ == "__main__":
+    main()
