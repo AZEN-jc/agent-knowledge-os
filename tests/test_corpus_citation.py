@@ -305,6 +305,169 @@ def test_problems_detects_a_wrong_chapter_label(tmp_path) -> None:
     assert any("篇章表" in problem for problem in corpus.problems())
 
 
+# ── 补厚：两类完整性校验各自只有一条测试，改写其中一半逻辑可能仍然全绿 ──
+
+
+def mutate_one_character(text: str, anchor: str) -> str:
+    """把 anchor 里的第二个字换成「一」，长度不变，哈希必变。"""
+    at = text.index(anchor)
+    return text[: at + 1] + "一" + text[at + 2 :]
+
+
+def write_chapters(tmp_path: Path, chapters: dict[str, str]) -> None:
+    (tmp_path / "chapters.json").write_text(
+        json.dumps(
+            {"edition_code": "sanmingtonghui", "chapters": chapters},
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_a_tampered_collation_file_is_also_caught(tmp_path) -> None:
+    """哈希自查对**每一卷**都跑，包括不可供引用的对照本。
+
+    对照本不可供引用，但它同样是固化文本 —— 有人改了它的字，corpus 就不再是
+    「我们固化过的那一份」，而异文核对的结论也跟着不可信。
+    两项校验按 role 区别对待的只有篇章表那一项（对照本用字本就不同）；
+    哈希这一项必须一视同仁。
+
+    哈希取自对照本自己的 manifest 条目，所以**唯一**的病因是下面那次改动 ——
+    否则用底本的哈希去配对照本的文件，什么都没改也会报不符，这条测试就白写了。
+    """
+    original = (REPO / COLLATION.path).read_text(encoding="utf-8")
+    (tmp_path / "juan8_collation.txt").write_text(
+        mutate_one_character(original, "六甲日甲子时断"), encoding="utf-8"
+    )
+    corpus = Corpus(
+        tmp_path,
+        (entry(path="juan8_collation.txt", role="collation", text_sha256=COLLATION.text_sha256),),
+        tmp_path,
+    )
+
+    assert any("内容与 manifest 不符" in p for p in corpus.problems())
+
+
+def test_a_hash_mismatch_does_not_also_report_chapter_noise(tmp_path) -> None:
+    """内容已经判定不可信时，篇章表那一项要跳过。
+
+    哈希对不上，说明这个文件不是我们固化的那一份；此时再拿它去核篇章表标签，
+    报出来的是「篇名找不到」—— 而病根是内容被改过。诊断不能指向错的地方，
+    所以哈希不匹配时要 ``continue``，不往下走。
+
+    这条测试特意把改动落在篇名**自己身上**：去掉 ``continue`` 的话，
+    两个问题会一起报出来，而只有第一个是真的病因。
+    """
+    text = (REPO / BASE.path).read_text(encoding="utf-8")
+    (tmp_path / "juan8.txt").write_text(
+        mutate_one_character(text, "六甲日甲子時斷"), encoding="utf-8"
+    )
+    write_chapters(tmp_path, {"j8.liujia_ri": "六甲日甲子時斷"})
+    corpus = Corpus(tmp_path, (entry(path="juan8.txt"),), tmp_path)
+
+    problems = corpus.problems()
+
+    assert any("内容与 manifest 不符" in p for p in problems)
+    assert not any("篇章表" in p for p in problems), "哈希已经对不上了，不该再报篇章表噪音"
+
+
+def test_problems_reports_every_broken_entry(tmp_path) -> None:
+    """两个条目同时坏掉要报两条 —— 只报第一条会让人以为只有一处问题。"""
+    (tmp_path / "juan8.txt").write_text("改过的底本", encoding="utf-8")
+    (tmp_path / "juan8_collation.txt").write_text("改过的对照本", encoding="utf-8")
+    corpus = Corpus(
+        tmp_path,
+        (entry(path="juan8.txt"), entry(path="juan8_collation.txt")),
+        tmp_path,
+    )
+
+    problems = [p for p in corpus.problems() if "内容与 manifest 不符" in p]
+
+    assert len(problems) == 2
+
+
+def test_problems_does_not_need_a_chapter_table(tmp_path) -> None:
+    """没有 chapters.json 不是错误 —— 只是 URN 的 chapter 段缺个中文对照。
+
+    把它当成问题会逼着每卷都先建篇章表才能固化，而固化本身不依赖那张表。
+    """
+    (tmp_path / "juan8.txt").write_text(
+        (REPO / BASE.path).read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    corpus = Corpus(tmp_path, (entry(path="juan8.txt"),), tmp_path)
+
+    assert corpus.problems() == []
+
+
+def test_problems_reports_one_issue_per_bad_label(tmp_path) -> None:
+    """两个标签都写错就报两条，与文件条目的报错口径一致。"""
+    (tmp_path / "juan8.txt").write_text(
+        (REPO / BASE.path).read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    write_chapters(
+        tmp_path,
+        {
+            "j8.liujia_ri": "六甲日甲丑時斷",
+            "j8.other": "六甲日甲寅時斷錯",
+        },
+    )
+    corpus = Corpus(tmp_path, (entry(path="juan8.txt"),), tmp_path)
+
+    problems = [p for p in corpus.problems() if "篇章表" in p]
+
+    assert len(problems) == 2
+
+
+def test_a_chapter_label_belonging_to_another_juan_is_ignored(tmp_path) -> None:
+    """篇章表按版本共享、装着所有卷的标签；一个条目只管自己那一卷。
+
+    不过滤的话，j8 的条目会对着 j1 的标签逐个报「正文里找不到」——
+    而 j1 的标签本来就不该出现在 j8 的正文里。这是假警报，不是检查。
+    """
+    (tmp_path / "juan8.txt").write_text(
+        (REPO / BASE.path).read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    write_chapters(
+        tmp_path,
+        {
+            "j8.liujia_ri": "六甲日甲子時斷",
+            "j1.qixing": "諸星問答論",
+        },
+    )
+    corpus = Corpus(tmp_path, (entry(path="juan8.txt"),), tmp_path)
+
+    assert corpus.problems() == []
+
+
+def test_a_collation_entry_is_not_chapter_checked(tmp_path) -> None:
+    """篇章表只对底本（role=base）校验。
+
+    chapters.json 里的标签按**底本用字**写：对照本是另一传本，简繁与用字都可能
+    不同。拿对照本正文去核标签只会得到假警报 —— 这一条就是把那个门禁钉住，
+    谁把 ``is_citable`` 的条件去掉，这里立刻红。
+
+    这里刻意只用对照本一条条目：真 corpus 里底本与对照本共用一个
+    chapters.json，底本那一侧的检查会先通过，门禁的效果就看不出来了。
+    """
+    (tmp_path / "juan8_collation.txt").write_text(
+        (REPO / COLLATION.path).read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    write_chapters(tmp_path, {"j8.liujia_ri": "六甲日甲子時斷"})
+    corpus = Corpus(
+        tmp_path,
+        (
+            entry(
+                path="juan8_collation.txt",
+                role="collation",
+                text_sha256=COLLATION.text_sha256,
+            ),
+        ),
+        tmp_path,
+    )
+
+    assert corpus.problems() == []
+
+
 def test_manifest_entry_rejects_an_unregistered_role() -> None:
     with pytest.raises(CorpusError, match="role 未登记"):
         entry(role="whatever")
