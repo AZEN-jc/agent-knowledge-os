@@ -14,6 +14,7 @@ from knowledge.classical_backlog import CLASSICAL_BACKLOG, BacklogStatus, next_a
 from knowledge.default_rules import default_registry, default_schools
 from knowledge.evidence import build_evidence, score_strength
 from knowledge.facts import FACT_SCHEMA, extract_facts
+from knowledge.flow_facts import flow_facts
 from knowledge.provenance import ReviewStatus, SourceTier
 from knowledge.schools import STRUCTURAL_SCHOOL
 from knowledge.structural_rules import ELEMENTS, PATTERN_TEN_GODS, RELATIONS, TEN_GODS
@@ -340,16 +341,39 @@ def test_evidence_serialises_provenance_for_every_matched_rule():
 def test_fact_schema_and_extractor_stay_in_sync():
     """事实词表不能出现「声明了但没人产出」的键。
 
+    **产出方不止一个。** 2026-10-16 加了时间轴层之后，词表里的键由三个函数
+    产出：``extract_facts``（本命盘）、``flow_facts``（流年与大运）。
+    早先这条测试只查 ``extract_facts``，于是流年那十个键全被算成
+    「声明了但没人产出」—— 那是测试的假设过期了，不是词表错了。
+    改的是这里，词表不动。
+
     反向不要求完全相等：``has_relation`` 这类键只有在命盘确实存在对应结构时
-    才会产出，某一张命盘缺它是正常的。
+    才会产出，某一张命盘缺它是正常的。所以下面显式列出**允许缺席**的键，
+    而不是留一个「差 2 个以内」的魔法阈值 —— 阈值会随词表增长悄悄失效。
     """
-    produced = {fact.type for fact in extract_facts(PROVIDER.calculate(BirthInput(1990, 2, 1, 12)))}
+    chart = PROVIDER.calculate(BirthInput(1990, 2, 1, 12))
+    produced = {fact.type for fact in extract_facts(chart)}
+    # 午支对这张盘（四支 巳丑酉午）有六害丑，未支有六冲丑 —— 两支都选带关系的，
+    # 好让 ``*_relations`` 与 ``*_relation_pairs`` 也进到 produced 里。
+    for axis in ("liunian", "dayun"):
+        for branch in ("午", "未"):
+            produced |= {fact.type for fact in flow_facts(chart, axis, "甲", branch)}
+
     declared = set(FACT_SCHEMA)
 
     assert produced <= declared, f"提取器产出了词表里没有的键：{sorted(produced - declared)}"
-    assert len(produced) >= len(declared) - 2, (
-        f"词表声明了 {len(declared)} 个键，但这张命盘只产出 {len(produced)} 个；"
-        "若某个键从未被任何命盘产出，说明提取器漏了它。"
+
+    # 只允许「结构上可能缺席」的键缺席：地支关系只在命盘真有该关系时产出。
+    structural_absence = {
+        key for key in declared
+        if key.endswith("_relations") or key.endswith("_relation_pairs")
+        or key in ("has_relation", "repeated_branches", "ten_god_with_root",
+                   "ten_god_without_root", "dominant_elements", "missing_elements")
+    }
+    absent = declared - produced
+    assert absent <= structural_absence, (
+        f"词表声明了但没有任何产出方的键：{sorted(absent - structural_absence)}。"
+        "要么提取器漏了它，要么它本该属于另一个产出方。"
     )
 
 

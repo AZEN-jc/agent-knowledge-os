@@ -84,6 +84,22 @@ FACT_SCHEMA: dict[str, str] = {
     "relation_density": "地支关系密度（无 / 少 / 多）",
     # 旺衰结构计数
     "day_master_same_element_level": "日主同类（比劫与印）在命局中的多寡（偏少 / 中等 / 偏多）",
+    # 时间轴：流年与大运。前缀 ``liunian_`` / ``dayun_`` 各六个键，由
+    # :mod:`knowledge.flow_facts` 产出。它们**不是**本命盘事实 —— 同一个人
+    # 在不同年份的流年十神不同，而本命盘事实不变，所以单独一组而不是
+    # 让 ``extract_facts`` 多收一个参数。
+    "liunian_pillar": "流年柱完整干支",
+    "liunian_stem_ten_god": "流年天干对日主的十神",
+    "liunian_branch_ten_god": "流年支本气对日主的十神",
+    "liunian_relations": "流年支与命盘四支的结构关系类型（六合 / 六冲 / 六害 / 相破）",
+    "liunian_relation_pairs": "流年支与命盘四支的结构关系明细（含所冲/所合的是哪一支）",
+    "liunian_stem_ten_god_root": "流年天干十神在四支藏干中是否有同类（有根 / 无根）",
+    "dayun_pillar": "大运柱完整干支",
+    "dayun_stem_ten_god": "大运天干对日主的十神",
+    "dayun_branch_ten_god": "大运支本气对日主的十神",
+    "dayun_relations": "大运支与命盘四支的结构关系类型（六合 / 六冲 / 六害 / 相破）",
+    "dayun_relation_pairs": "大运支与命盘四支的结构关系明细（含所冲/所合的是哪一支）",
+    "dayun_stem_ten_god_root": "大运天干十神在四支藏干中是否有同类（有根 / 无根）",
 }
 
 

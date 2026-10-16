@@ -68,10 +68,13 @@ class StrengthBreakdown:
         }
 
 
-def score_strength(
-    matches: tuple[RuleMatch, ...], conflicts: tuple[tuple[str, str], ...]
-) -> StrengthBreakdown:
-    """按「支持量凹饱和 − 冲突扣减」计算证据强度。
+def score_support(support: tuple[float, ...], conflicts: int) -> StrengthBreakdown:
+    """强度公式的内核：按「支持量凹饱和 − 冲突扣减」打分。
+
+    提出来是为了让时间轴层（:mod:`knowledge.time_windows`）复用**同一个**算式。
+    那一层没有 ``RuleMatch`` 可传，但它有一批同样带置信度的信号；
+    如果在那里另写一遍 ``raw / (raw + K)``，两个层的强度数字就再也不能比较 ——
+    而这正是用户最需要能比较的地方（「本命局 0.62，2028 年 0.48」）。
 
     为什么不用「置信度均值」：均值完全不看命中条数 —— 命中 3 条和命中 20 条
     会得到同一个分数，而这两者的证据厚度显然不同。
@@ -80,17 +83,27 @@ def score_strength(
     且**永远到不了 1.0**。最后一点是刻意的：结构层证据再厚，也只是「命盘里
     有什么」，不该被读成「结论几乎确定」。
     """
-    raw = sum(CONFIDENCE_SCORES[match.rule.confidence] for match in matches)
+    raw = sum(support)
     after = raw / (raw + SATURATION_K) if raw else 0.0
-    penalty = CONFLICT_PENALTY * len(conflicts)
+    penalty = CONFLICT_PENALTY * conflicts
     return StrengthBreakdown(
-        supporting_rules=len(matches),
+        supporting_rules=len(support),
         raw_support=round(raw, 4),
         saturation_k=SATURATION_K,
         after_saturation=round(after, 4),
-        conflicts=len(conflicts),
+        conflicts=conflicts,
         conflict_penalty=round(penalty, 4),
         final=round(max(0.0, min(1.0, after - penalty)), 4),
+    )
+
+
+def score_strength(
+    matches: tuple[RuleMatch, ...], conflicts: tuple[tuple[str, str], ...]
+) -> StrengthBreakdown:
+    """规则命中版的强度计算；内核见 :func:`score_support`。"""
+    return score_support(
+        tuple(CONFIDENCE_SCORES[match.rule.confidence] for match in matches),
+        len(conflicts),
     )
 
 
