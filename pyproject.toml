@@ -40,6 +40,8 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 [tool.ruff.lint.per-file-ignores]
 # scripts 先做 sys.path 引导再 import，属有意为之
 "scripts/*" = ["E402"]
+# evaluation/runner.py 同一模式：它要先把仓库根插进 sys.path 才能按路径直接跑
+"evaluation/runner.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.12"

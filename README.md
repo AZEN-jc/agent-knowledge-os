@@ -236,26 +236,57 @@
 
 ---
 
-## 安装与运行（当前为规划阶段）
+## 安装与运行
 
 ```bash
-# 克隆项目
-git clone <repo-url>
-cd agent-knowledge-os
-
-# 创建虚拟环境
+# 创建虚拟环境并安装依赖
 python3 -m venv .venv
 source .venv/bin/activate
-
-# 安装依赖
 pip install -r requirements.txt
 
-# 运行测试
+# 跑测试
 pytest tests/
 
-# 启动 API 服务（Phase 10 后）
-python -m runtime.api_server
+# 启动服务与 Web 界面（在仓库根目录执行）
+python -m api.server
+# 然后打开 http://127.0.0.1:8000
 ```
+
+界面：输入生辰 → 看命盘、证据链（每条规则的条件与命盘出处、典籍原文与出处地址）、
+审查结果、流年时间轴。接口文档在 `/docs`。
+
+### 评估（回归门禁）
+
+```bash
+python evaluation/runner.py          # 人读报告
+python evaluation/runner.py --json   # 机器可读
+```
+
+跑 10 个金标准案例 × 3 个主题，检查六条**系统行为不变量**：证据链不断环、
+审查通过、结论不越界引用、不下确定性判断、强度在值域内、结果可复现。
+退出码非 0 表示有未过项，可直接当门禁用。
+
+评的不是「排盘准不准」—— 那已由 `tests/test_bazi_golden.py` 用 sxtwl 与
+lunar-python **两套独立实现交叉确认**，比任何自建评估都严格。
+
+### 多主题并发分析
+
+`POST /api/analyze/multi` 一次分析多个主题，服务端并发执行。命盘只算一次，
+扇出点在它之后；单个主题失败不影响其余，失败项以 `ok=false` 如实带回原因。
+
+---
+
+## 已知边界
+
+- **大运需要性别**。顺逆规则不同流派有分歧，缺性别时只算流年、不猜默认方向。
+  启用后结果带 `approximate: true`（三日折一年）。
+- **LLM provider 未接线**。默认走确定性模板出稿，离线可运行；契约见
+  `GET /api/llm/contract`。要接真 provider 就注入一个，接口只有
+  `complete(request) -> str`。
+- **典籍层只覆盖《三命通會》卷八「六甲日甲子時斷」**（13 条）。其余条目
+  被阻塞在「拿到可核验底本」这一步，见 `GET /api/classics/backlog`。
+- **紫微斗数排盘引擎未做**。`engines/` 下只有 `bazi/`；没有引擎，那批规则
+  的条件无处落地。底本已固化挂 `role=reserve`，等引擎到位。
 
 ---
 
