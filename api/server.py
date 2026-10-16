@@ -250,6 +250,49 @@ class AnalysisResponse(BaseModel):
     critique: dict[str, Any]
 
 
+class TimelineRequest(BirthRequest):
+    """生辰 + 年份区间 + 主题。"""
+
+    start_year: int = Field(ge=1, description="起始公历年", examples=[2024])
+    end_year: int = Field(ge=1, description="结束公历年", examples=[2030])
+    topic: str = Field(default="财运", description="分析主题，可为中文别名", examples=["财运"])
+
+
+class SignalResponse(BaseModel):
+    """一条结构信号：描述「出现了什么」，不描述「会发生什么」。"""
+
+    name: str = Field(description="信号名，如「财星坐流年」「六合巳」")
+    label: str = Field(description="含轴名的信号名，如「流年财星坐流年」")
+    axis: str = Field(description="liunian（流年）/ dayun（大运）")
+    kind: str = Field(description="来源事实键，决定主题过滤怎么处理它")
+    detail: str = Field(description="可读说明，含干支与十神")
+    source: str = Field(description="回溯到时间轴要素的最后一跳，形如 time.liunian.heavenly_stem")
+
+
+class TimeWindowResponse(BaseModel):
+    """一年的结构信号汇总。"""
+
+    year: int
+    topic: str
+    topic_name: str
+    liunian: dict[str, Any] = Field(description="该年流年干支与 provider")
+    dayun: dict[str, Any] | None = Field(
+        description="该年所处大运；未提供性别时为 null —— 顺逆规则需流派选择，不猜默认方向"
+    )
+    signals: list[SignalResponse]
+    strength: float = Field(description="证据强度，值域 [0, 1)；是证据等级，不是事件概率")
+    strength_breakdown: StrengthBreakdownResponse
+    report: str = Field(description="单行摘要；不含任何必然性措辞")
+
+
+class TimelineResponse(BaseModel):
+    total: int
+    topic: str
+    topic_name: str
+    windows: list[TimeWindowResponse]
+    note: str
+
+
 class LLMContractResponse(BaseModel):
     """LLM 提示契约本身。
 
@@ -326,6 +369,49 @@ def analyze(request: AnalyzeRequest) -> dict[str, Any]:
     except (TypeError, ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return response.to_dict()
+
+
+@app.post(
+    "/api/timeline",
+    summary="流年时间轴",
+    description=(
+        "分析 ``[start_year, end_year]`` 内每一年的结构信号：流年干支对日主的十神、"
+        "该十神在四支有没有根、流年支与命盘四支的结构关系（冲太岁等）。\n\n"
+        "**信号是结构描述，不是预测** —— 输出形如「2028年，信号：财星坐流年、"
+        "六合巳、相破巳，证据强度0.38」。没有任何一处会给出必然性判断。\n\n"
+        "``strength`` 是证据等级，不是事件概率；它与 ``/api/analyze`` 的强度"
+        "共用同一个算式，两个数字可以互相比较。\n\n"
+        "``dayun`` 为 ``null`` 表示未提供 ``gender``：大运顺逆规则不同流派有分歧，"
+        "缺性别时不猜默认方向，此时只报流年。提供 ``gender`` 即启用大运，"
+        "结果带 ``approximate: true`` 标注（三日折一年的近似口径）。\n\n"
+        "地支关系信号（冲太岁等）在**所有主题下都会保留** —— 它的存在不取决于"
+        "用户问的是财运还是事业；按主题过滤只作用在十神类信号上。"
+    ),
+    tags=["时间轴"],
+    response_model=TimelineResponse,
+    responses=UNPROCESSABLE,
+)
+def timeline(request: TimelineRequest) -> dict[str, Any]:
+    try:
+        windows = service.analyze_timeline(
+            request.model_dump(exclude={"start_year", "end_year", "topic"}),
+            request.start_year,
+            request.end_year,
+            request.topic,
+        )
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return TimelineResponse(
+        total=len(windows),
+        topic=windows[0].topic,
+        topic_name=windows[0].topic_name,
+        windows=[TimeWindowResponse(**window.to_dict()) for window in windows],
+        note=(
+            "信号是结构描述（命盘里出现了什么），不是预测；证据强度是证据等级，"
+            "不是事件概率。dayun 为 null 表示未提供 gender，此时不算大运。"
+        ),
+    ).model_dump()
 
 
 @app.get(

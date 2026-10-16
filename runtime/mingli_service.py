@@ -17,9 +17,11 @@ from typing import Any
 from agents.llm import LLMProvider
 from agents.mingli import MAX_REVISIONS, AnalystAgent, CriticAgent
 from engines.bazi import BaziCalculator, BirthInput, SxtwlBaziProvider
+from engines.bazi.time_engine import ClassicalApproxDayunPolicy
 from knowledge.default_rules import build_registry, default_schools
 from knowledge.rules import RuleRegistry
 from knowledge.schools import SchoolRegistry
+from knowledge.time_windows import analyze_period
 
 
 @dataclass(frozen=True)
@@ -74,3 +76,20 @@ class MingLiService:
             },
             critique={"passed": critique.passed, "issues": list(critique.issues)},
         )
+
+    def analyze_timeline(
+        self,
+        birth_data: dict[str, Any],
+        start_year: int,
+        end_year: int,
+        topic: str,
+    ) -> tuple[Any, ...]:
+        """分析某个年份区间内每一年的结构信号。
+
+        **有性别才算大运**，没有就只算流年。顺逆规则不同流派有分歧，
+        缺性别时不猜默认方向 —— 与 ``analyze_period`` 的口径一致。
+        """
+        birth = BirthInput(**birth_data)
+        chart = self.calculator.calculate_chart(birth)
+        policy = ClassicalApproxDayunPolicy() if birth.gender else None
+        return analyze_period(chart, start_year, end_year, topic, dayun_policy=policy)

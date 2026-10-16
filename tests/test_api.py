@@ -288,3 +288,107 @@ def test_openapi_documents_the_llm_contract():
     draft = schema["components"]["schemas"]["DraftResponse"]["properties"]
     assert "cited_rules" in draft
     assert "证据链的子集" in draft["cited_rules"]["description"]
+
+
+# ── 流年时间轴 ─────────────────────────────────────────────────────────
+
+
+def timeline_payload(**overrides):
+    body = {**payload(), "start_year": 2024, "end_year": 2028, "topic": "财运"}
+    body.update(overrides)
+    return body
+
+
+def test_timeline_endpoint_returns_a_window_per_year():
+    response = client.post("/api/timeline", json=timeline_payload())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 5
+    assert [w["year"] for w in body["windows"]] == [2024, 2025, 2026, 2027, 2028]
+
+
+def test_timeline_reports_structure_not_prediction():
+    """报告里不得出现必然性措辞 —— 这是产出物的性质，不是文风。"""
+    body = client.post("/api/timeline", json=timeline_payload()).json()
+
+    for window in body["windows"]:
+        for phrase in ("一定会", "必将", "必定", "肯定会", "必然会"):
+            assert phrase not in window["report"], f"{window['year']} 年：{window['report']}"
+
+
+def test_timeline_without_gender_omits_dayun():
+    """缺性别只算流年 —— 顺逆规则需流派选择，不猜默认方向。"""
+    body = client.post("/api/timeline", json=timeline_payload()).json()
+
+    for window in body["windows"]:
+        assert window["dayun"] is None
+        assert all(s["axis"] == "liunian" for s in window["signals"])
+
+
+def test_timeline_with_gender_includes_dayun():
+    body = client.post(
+        "/api/timeline", json=timeline_payload(gender="男", start_year=2024, end_year=2026)
+    ).json()
+
+    assert all(window["dayun"] is not None for window in body["windows"])
+    assert any(
+        signal["axis"] == "dayun"
+        for window in body["windows"]
+        for signal in window["signals"]
+    ), "带大运的区间里应有至少一条大运信号"
+
+
+def test_timeline_matches_a_direct_call_field_by_field():
+    """API 不得另算一遍 —— 它必须是服务层的直通，否则两层会悄悄漂移。
+
+    这是本条测试存在的唯一理由：接线错误不会报错，只会让 API 与服务层
+    给出不同答案，而没有任何别的测试会发现。
+    """
+    from runtime.mingli_service import MingLiService
+
+    payload_body = timeline_payload(gender="男", start_year=2024, end_year=2027)
+    service = MingLiService()
+    direct = [
+        window.to_dict()
+        for window in service.analyze_timeline(
+            {key: value for key, value in payload_body.items()
+             if key not in ("start_year", "end_year", "topic")},
+            2024, 2027, "财运",
+        )
+    ]
+
+    body = client.post("/api/timeline", json=payload_body).json()
+    assert body["windows"] == direct
+
+
+def test_timeline_keeps_relation_signals_under_every_topic():
+    """冲太岁与问什么无关 —— 按主题筛掉会让同一结构事实在某些主题下消失。"""
+    for topic in ("财运", "事业", "婚姻", "健康"):
+        body = client.post("/api/timeline", json=timeline_payload(topic=topic)).json()
+        relation = [
+            signal
+            for window in body["windows"]
+            for signal in window["signals"]
+            if signal["kind"].endswith("relation_pairs")
+        ]
+        assert relation, f"{topic} 主题丢了地支关系信号"
+
+
+def test_timeline_rejects_a_reverse_range():
+    response = client.post(
+        "/api/timeline", json=timeline_payload(start_year=2030, end_year=2020)
+    )
+
+    assert response.status_code == 422
+    assert "start_year" in response.json()["detail"]
+
+
+def test_openapi_documents_the_timeline_endpoint():
+    schema = client.get("/openapi.json").json()
+
+    assert "/api/timeline" in schema["paths"]
+    assert "TimelineResponse" in schema["components"]["schemas"]
+    signals = schema["components"]["schemas"]["SignalResponse"]["properties"]
+    assert "source" in signals
+    assert "最后一跳" in signals["source"]["description"]
