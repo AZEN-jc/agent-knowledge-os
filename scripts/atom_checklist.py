@@ -172,16 +172,19 @@ def suggest_witness(rule_id: str, years: int, want: int) -> int:
     start = dt.date(1940, 1, 1)
     end = start + dt.timedelta(days=365 * years)
     found: list[tuple[int, tuple[int, int, int, int], tuple, tuple]] = []
-    day = start
-    while day < end and len(found) < want * 8:
-        chart = PROVIDER.calculate(BirthInput(day.year, day.month, day.day, 0))
+    # 扫描游标叫 ``cursor`` 而不是 ``day``：下面解包候选时 ``day`` 是**日号整数**，
+    # 同名复用会让 mypy 报「int 赋给 date」——那是真会看错的地方，改名字而不是
+    # 加 type: ignore。
+    cursor = start
+    while cursor < end and len(found) < want * 8:
+        chart = PROVIDER.calculate(BirthInput(cursor.year, cursor.month, cursor.day, 0))
         got = {match.rule.id for match in registry.match(extract_facts(chart))}
         if rule_id in got:
             facts = group_facts(extract_facts(chart))
             extra = tuple(sorted(same_group & got - {rule_id}))
-            found.append((len(extra), (day.year, day.month, day.day, 0), extra,
+            found.append((len(extra), (cursor.year, cursor.month, cursor.day, 0), extra,
                           (facts.get("month_pillar"), facts.get("day_pillar"))))
-        day += dt.timedelta(days=1)
+        cursor += dt.timedelta(days=1)
 
     if not found:
         print(f"{years} 年里没有命盘能命中这条规则 —— 条件可能写错了，"

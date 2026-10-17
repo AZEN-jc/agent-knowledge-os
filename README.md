@@ -28,7 +28,7 @@
 | API 接口 | **12** 个 |
 | 评估门禁 | **30/30 passed** |
 | `ruff` | 干净 |
-| `mypy` | 3 errors，全在未改动的 `engines/bazi/sxtwl_provider.py`（sxtwl 的 C 扩展无类型存根） |
+| `mypy .` | **4 errors**，全在 `engines/bazi/`（`golden.py:44`、`sxtwl_provider.py:65/66/122`），处置方案见 [审计报告](./docs/reports/phase1-baseline-audit.md) §7 |
 
 已可运行：`python -m api.server` 起服务与界面，输入生辰即得命盘、证据链、
 审查结果与流年时间轴。
@@ -219,6 +219,9 @@ urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiachen_jiazi
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+
+# 开发/CI 另需 ruff 与 mypy（见 requirements-dev.txt）
+pip install -r requirements-dev.txt
 
 # 跑测试
 pytest tests/
