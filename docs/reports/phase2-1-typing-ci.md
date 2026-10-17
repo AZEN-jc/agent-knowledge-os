@@ -276,11 +276,58 @@ CI 触发条件：`push` 到 `master` 或 `hardening/**`、`pull_request` 到 `m
 
 ### 7.2 推送结果
 
-**（推送后回填此处）**
+**推送成功。** 退出码 0，远端输出：
+
+```
+remote: Create a pull request for 'hardening/mingli-v1' on GitHub by visiting:
+remote:      https://github.com/AZEN-jc/agent-knowledge-os/pull/new/hardening/mingli-v1
+To https://github.com/AZEN-jc/agent-knowledge-os.git
+ * [new branch]      hardening/mingli-v1 -> hardening/mingli-v1
+分支 'hardening/mingli-v1' 设置为跟踪 'origin/hardening/mingli-v1'。
+```
+
+本地分支已设为跟踪 `origin/hardening/mingli-v1`，之后 `git push` 无需再带参数。
+
+**四个提交全部推送**（含本报告自身那次提交）：
+
+| SHA | 内容 |
+|---|---|
+| `9ea84603d99129eedfdd7656098a4431ac7e72ef` | Phase 1 仓库治理与基线审计 |
+| `0749fb7` | Phase 2.1 类型错误清零 + mypy CI 阻塞 |
+| `dbf3077` | （上一轮会话的）`agents/__init__.py` 惰性化 |
+| `d2c62a7` | 本报告 |
+
+### 7.3 GitHub Actions 运行结果
+
+推送触发了一次 CI 运行，**结论 `success`**：
+
+```
+run 39040724444 | completed | success | d2c62a7
+JOB: 测试 · 评估 · 静态检查 | success
+   1. Set up job                       → success
+   2. Run actions/checkout@v4          → success
+   3. 安装 Python 3.12                → success
+   4. 安装依赖                        → success
+   5. ruff check .                    → success
+   6. pytest                          → success
+   7. 评估门禁（行为不变量）          → success
+   8. mypy .                          → success
+   9. 汇总                            → success
+```
+
+**第 8 步 `mypy .` 是本轮升级的关键证据**：它已是**阻塞步骤**（无
+`continue-on-error`）且通过了。若退回旧行为，这一步失败会直接让整个 run 变红。
+
+**第 4 步「安装依赖」也证明了 `requirements-dev.txt` 可用** —— 它
+`-r requirements.txt` 引用运行时依赖并额外钉住 ruff 与 mypy，
+修掉了 Phase 1 审计发现的 R4（两个工具配了却没在任何地方声明为依赖）。
 
 ---
 
 ## 8. 回滚方法
+
+> 分支**已推送**，所以下面所有方法都以「不复写已推送历史」为前提。
+> 需要改写历史的方法（`git reset` + 强推）只在 §8.3 出现，且明确标注未获授权。
 
 ### 8.1 只回滚本批次的类型修复（保留 Phase 1）
 
@@ -313,7 +360,8 @@ git push --force-with-lease origin hardening/mingli-v1
 ```
 
 `--force-with-lease` 而非 `--force`：远端若有他人新推的提交会拒绝，避免覆盖别人的工作。
-**这一步会重写已推送的历史，执行前必须确认远端没有其他人在用这个分支。**
+**这一步会重写已推送的历史**，且会同时撤掉 `9ea8460` 之后的两个提交，执行前必须确认
+这是你想要的结果，并确认远端没有其他人在用这个分支。
 
 ### 8.4 验证回滚是否干净
 
