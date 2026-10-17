@@ -31,6 +31,10 @@ def compare_chart(chart: Chart, expected: dict[str, Any]) -> list[str]:
     """比较已计算命盘的明确字段，返回可读差异列表。"""
     differences: list[str] = []
     for field, expected_value in expected.items():
+        # 显式声明为 Any 而不是让 mypy 从第一个赋值推断：if 支产出
+        # list[dict[str, str]]，else 支是 getattr 的动态结果，两者的并集
+        # 就是 Any。写成那个具体类型才是假的 —— 它在撒谎说 else 支也返回列表。
+        actual_value: Any
         if field == "pillars":
             actual_value = [
                 {

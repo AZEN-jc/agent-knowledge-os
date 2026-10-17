@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import math
 from datetime import date, datetime, timedelta
+from typing import Protocol
 from zoneinfo import ZoneInfo
 
 import sxtwl
@@ -61,7 +62,20 @@ LATE_ZI_POLICIES = ("no_roll", "roll")
 DEFAULT_LATE_ZI_POLICY = "no_roll"
 
 
-def _gz_text(gz: object) -> tuple[str, str]:
+class _SxtwlGanZhi(Protocol):
+    """sxtwl 的干支对象。
+
+    sxtwl 是 C 扩展，没有类型存根，mypy 只能看到 ``object``。这里用 Protocol
+    把本文件对它的**全部依赖**写在明处：两个整数下标。不用 ``cast`` ——
+    cast 同样能消错，但它把「我们假定它有这两个属性」这件事藏进一行调用，
+    下一个人改这里的推导时就看不见这个约定了。
+    """
+
+    tg: int
+    dz: int
+
+
+def _gz_text(gz: _SxtwlGanZhi) -> tuple[str, str]:
     stem_index = int(gz.tg)
     branch_index = int(gz.dz)
     return STEMS[stem_index], BRANCHES[branch_index]
@@ -119,7 +133,14 @@ def _solar_time_datetime(birth: BirthInput) -> datetime:
         birth.year, birth.month, birth.day, birth.hour, birth.minute,
         tzinfo=ZoneInfo(birth.timezone),
     )
-    standard_meridian = local.utcoffset().total_seconds() / 3600 * 15
+    # utcoffset() 的签名是 timedelta | None：理论上 tzinfo 存在也可能给不出偏移。
+    # 上面 ZoneInfo(...) 已构造成功，正常路径到不了 None，但不能因此
+    # assert 了事 —— 真到了 None，这里必须给出一个能读懂的错误，而不是
+    # AttributeError: 'NoneType' object has no attribute 'total_seconds'。
+    offset = local.utcoffset()
+    if offset is None:
+        raise ValueError(f"时区 {birth.timezone!r} 无法给出 UTC 偏移。")
+    standard_meridian = offset.total_seconds() / 3600 * 15
     longitude_minutes = (birth.longitude - standard_meridian) * 4
     equation_minutes = _equation_of_time_minutes(local.timetuple().tm_yday)
     return local + timedelta(minutes=longitude_minutes + equation_minutes)

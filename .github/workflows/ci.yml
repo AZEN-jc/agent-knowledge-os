@@ -44,21 +44,11 @@ jobs:
       - name: 评估门禁（行为不变量）
         run: python evaluation/runner.py --json
 
-      # ── 非阻塞项：已知存量错误，修完后改为阻塞 ──────────────────────
-      #
-      # `mypy .` 当前报 4 个错误，全部是存量、全部在 engines/bazi/ 下，
-      # 本阶段不允许改动排盘代码，因此不在此处修：
-      #
-      #   engines/bazi/golden.py:44        Incompatible types in assignment
-      #   engines/bazi/sxtwl_provider.py:65  "object" has no attribute "tg"
-      #   engines/bazi/sxtwl_provider.py:66  "object" has no attribute "dz"
-      #   engines/bazi/sxtwl_provider.py:122 Item "None" ... total_seconds
-      #
-      # 前三条源于 sxtwl 的 C 扩展无类型存根；第四条是可选值未收窄。
-      # 处置方案见审计报告 §7。**不要用 `# type: ignore` 抹掉它们** ——
-      # 那会把「类型系统在这里帮不上忙」和「这里真的有问题」混为一谈。
-      - name: mypy .（非阻塞，存量 4 错）
-        continue-on-error: true
+      # mypy 已于 Phase 2 清零（原存量 4 错：engines/bazi/golden.py 的 Any 并集、
+      # sxtwl_provider.py 的 C 扩展对象 tg/dz、utcoffset() 可空）。修法见
+      # 审计报告 §6.2 与提交 9ea8460 之后的类型收窄提交。
+      # 从 continue-on-error 翻成阻塞：基线干净之后，门禁就该真的拦人。
+      - name: mypy .
         run: mypy .
 
       - name: 汇总
@@ -66,5 +56,4 @@ jobs:
         run: |
           echo "### CI 结果" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- ruff / pytest / 评估门禁为阻塞项" >> "$GITHUB_STEP_SUMMARY"
-          echo "- mypy 为非阻塞项（存量 4 错，见 workflow 注释与审计报告 §7）" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ruff / pytest / 评估门禁 / mypy 均为阻塞项" >> "$GITHUB_STEP_SUMMARY"
