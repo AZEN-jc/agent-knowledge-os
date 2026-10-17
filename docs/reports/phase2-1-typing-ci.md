@@ -288,16 +288,47 @@ To https://github.com/AZEN-jc/agent-knowledge-os.git
 
 本地分支已设为跟踪 `origin/hardening/mingli-v1`，之后 `git push` 无需再带参数。
 
-**四个提交全部推送**（含本报告自身那次提交）：
+**五个提交全部推送**（含报告自身与回填那两次提交）：
 
 | SHA | 内容 |
 |---|---|
 | `9ea84603d99129eedfdd7656098a4431ac7e72ef` | Phase 1 仓库治理与基线审计 |
 | `0749fb7` | Phase 2.1 类型错误清零 + mypy CI 阻塞 |
 | `dbf3077` | （上一轮会话的）`agents/__init__.py` 惰性化 |
-| `d2c62a7` | 本报告 |
+| `d2c62a7` | Phase 2.1 验收报告 |
+| `089db3d` | 回填推送结果与 CI 明细 |
 
-### 7.3 GitHub Actions 运行结果
+**同步状态用 `git ls-remote` 核验**（原因见 §7.4）：
+
+```
+089db3dee98c932e12f85122198d0c2a02b332d4  refs/heads/hardening/mingli-v1
+f10804064cbf1bb479a4d656751318ba9f103c2b  refs/heads/master
+```
+
+本地 HEAD 与远端 `hardening/mingli-v1` **完全一致**（同一 SHA），
+`master` 未被触碰。
+
+### 7.4 一个操作层面的坑：R5 现在真的咬人了
+
+Phase 1 审计把 `remote.origin.fetch` 只跟踪 master 记为 R5（「其他分支拿不到
+跟踪引用」），当时判断为「需老板确认后再改」。本轮推送后它立刻造成一次误判：
+
+```
+$ git fetch origin && git rev-parse origin/hardening/mingli-v1
+致命错误：需要一个单独的版本
+```
+
+分支明明推上去了，本地却查不到 `origin/hardening/mingli-v1` —— 因为
+`fetch` 只按 `+refs/heads/master:refs/remotes/origin/master` 更新，
+新分支的 remote-tracking 引用**从来不会**被 `git fetch` 创建。
+`git push -u` 只写了 upstream 配置，不建跟踪引用。
+
+**教训：推送后验证同步状态，不要用 `git rev-parse origin/<branch>`，
+要用 `git ls-remote origin refs/heads/<branch>`。** 前者读的是本地缓存，
+后者直接问远端。我第一遍就是被前者骗了一下，差点报成「推送失败」。
+
+修法（`remote.origin.fetch` 改成 `+refs/heads/*:refs/remotes/origin/*`）
+仍是待老板确认项，见 §9.3。
 
 推送触发了一次 CI 运行，**结论 `success`**：
 
