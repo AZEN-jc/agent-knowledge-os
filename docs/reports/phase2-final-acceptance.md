@@ -427,3 +427,104 @@ mypy . 和 ruff check .                    # 应仍 exit 0
 
 **唯一未完成项是 §12 最后第二行的「推送与 CI 核验」** ——
 报告写于推送之前，推送结果与 CI 运行号见 §13。
+
+---
+
+## 13. 推送与远端 CI
+
+### 13.1 推送结果
+
+**推送成功。** 四个提交全部上去：
+
+```
+f11be10..a1d7280  hardening/mingli-v1 -> hardening/mingli-v1
+```
+
+远端 `refs/heads/hardening/mingli-v1` = `a1d7280`，与本地 HEAD 一致。
+`master` 与 `origin/master` 仍为 `f108040`，**全程未动**；
+PR #1 / PR #2 仍 OPEN；`mingli-split` 分支仍在。
+
+### 13.2 推送过程中踩的坑（值得记）
+
+**前五次推送全部失败**，报的是同一个错：
+
+```
+致命错误：无法访问 'https://github.com/AZEN-jc/agent-knowledge-os.git/'：
+LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to github.com:443
+```
+
+排查过程与结论：
+
+| 检查 | 结果 |
+|---|---|
+| Clash 是否在跑 | 在跑，GLOBAL → 节点选择 → Singapore 02 |
+| `curl https://github.com` | **200**（通） |
+| `curl -x 127.0.0.1:7890 https://github.com` | **000**（不通） |
+| 沙箱注入的代理 | `HTTP_PROXY=http://127.0.0.1:51196`（会覆盖手动 export 的 7890） |
+| 三种代理配置各试一次 | 全部失败，错误都指向 `github.com:443` |
+| `GIT_CURL_VERBOSE=1` | **代理隧道建成功了**（`CONNECT github.com:443` → 200），但隧道内的 TLS 握手失败 |
+
+**根因不是代理配置，是 Clash 当时的节点（Singapore 02）到 github.com 的 TLS 挂了。**
+curl 能通是因为它走沙箱的透明代理（另一条路），不代表 git 那条路通。
+
+**修法**：把主分组钉到 Korea 02（memory 里记过这个节点能推）。
+
+```bash
+curl -s --noproxy '*' -X PUT http://127.0.0.1:9090/proxies/节点选择 \
+  -d '{"name":"🇰🇷Korea 02"}'
+```
+
+钉完立刻推送成功。
+
+**这条印证了 memory 里那条教训**：节点「体检通过」不等于「能翻墙」。
+这次更进一层：**`curl` 能通也不等于 `git` 能推** —— 两条路走的不是同一个出口。
+判断 git 能不能推，只能看 `GIT_CURL_VERBOSE=1` 的隧道日志，或者直接试。
+
+### 13.3 远端 CI 运行结果
+
+推送触发 run `39137008379`，**结论 success**：
+
+```
+JOB: 测试 · 评估 · 静态检查 | success
+   4. 安装依赖              → success   ← requirements-dev.txt 可用
+   5. ruff check .          → success
+   6. pytest                → success
+   7. 评估门禁（行为不变量）→ success
+   8. mypy .                → success   ← 阻塞门禁，无 continue-on-error
+```
+
+运行链接：https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39137008379
+
+分支上四次 CI 运行全部 success：
+
+| Run ID | SHA | 结论 |
+|---|---|---|
+| [39040724444](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39040724444) | `d2c62a7` | success |
+| [39041357867](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39041357867) | `089db3d` | success |
+| [39041653405](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39041653405) | `f11be10` | success |
+| [39137008379](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39137008379) | `a1d7280` | success |
+
+---
+
+## 14. Phase 2 验收结论
+
+**Phase 2 通过验收。**
+
+- 四条质量门禁全部 exit 0（pytest 1066 passed / eval 30/30 / ruff 干净 / mypy 0 errors）
+- 两条 strict xfail 已转正，`2 xfailed` 清零
+- 2.2 惰性导入五项验收全过
+- 2.4 三项工程一致性全部落地（依赖登记、模块边界文档、本地 git 配置）
+- 推送成功，该 SHA 的远端 CI success
+- `master` / PR / `mingli-split` 均未触碰
+- 未进入 Phase 3
+
+**留给老板的三件事**（都不归我决定）：
+
+1. **三个零 import 依赖的去留**（`everos` / `python-dotenv` / `rich`）——
+   已登记在 `requirements.txt` 与 `DECLARED_BUT_UNUSED`，等确认后可删。
+2. **`pyproject.toml` 的 `description` 归属** —— 还写着 CreatorOS 的话。
+3. **PR #1 / PR #2 的处置** —— 我倾向 PR #2 关闭（修复的代码 master 里不存在）、
+   PR #1 拆两步；但关 PR 是对外动作，等授权。
+
+**Phase 3 若获准进入，第一件事应该是修引擎那 6 个失败年**（见 §8.1 / §10），
+再谈独立基准 —— 基准会把这 6 年标成失败，而根因不在基准侧。
