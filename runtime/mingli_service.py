@@ -26,6 +26,11 @@ from knowledge.schools import SchoolRegistry
 from knowledge.time_windows import analyze_period
 from knowledge.topics import resolve
 
+#: 多主题并发时线程池的硬顶。与 ``api.server.MAX_TOPICS`` 同一个量级，
+#: 但**不 import 它**：服务层不依赖 API 层（方向反了），两边各自定常量、
+#: 用测试钉住一致性。
+MAX_ANALYSIS_WORKERS = 8
+
 
 @dataclass(frozen=True)
 class AnalysisResponse:
@@ -156,6 +161,12 @@ class MingLiService:
         任务，而建表要读语料，开销远超收益。provider 必须线程安全：
         ``FakeLLMProvider`` 会 pop/append，并发下会丢脚本；生产 provider
         若要并发，在 provider 内部加锁。
+
+        **线程数封顶。** ``max_workers`` 取 ``min(len(topics),
+        MAX_ANALYSIS_WORKERS)`` 而不是裸的 ``len(topics)``：服务层是公开入口，
+        API 层虽有 ``MAX_TOPICS`` 拦着，但直接调 ``analyze_multi`` 的调用方
+        不受那道约束。没有封顶时，一次调用就能开出任意多个线程 ——
+        那不是「支持并发」，那是把调度权交给调用方。
         """
         if not topics:
             raise ValueError("topics 不能为空。")
@@ -164,7 +175,8 @@ class MingLiService:
         chart = self.calculator.calculate_chart(birth)
         names = {topic: resolve(topic).name for topic in topics}
 
-        with ThreadPoolExecutor(max_workers=len(topics)) as pool:
+        workers = min(len(topics), MAX_ANALYSIS_WORKERS)
+        with ThreadPoolExecutor(max_workers=workers) as pool:
             futures = [(topic, pool.submit(self._analyze_chart, chart, topic))
                        for topic in topics]
             results: list[TopicResult] = []

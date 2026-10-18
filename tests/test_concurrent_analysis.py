@@ -271,3 +271,93 @@ def test_openapi_documents_the_multi_endpoint():
     results = schema["components"]["schemas"]["TopicResultResponse"]["properties"]
     assert "ok" in results
     assert "error" in results
+
+
+# ── Phase 2.3：线程池硬顶 ─────────────────────────────────────────────
+
+
+def test_the_thread_pool_has_a_hard_cap(monkeypatch):
+    """``max_workers`` 有封顶，不随主题数无限增长。
+
+    服务层是公开入口：API 层有 ``MAX_TOPICS`` 拦着，直接调
+    ``analyze_multi`` 的调用方不受那道约束。没有封顶时，一次调用就能开出
+    任意多个线程 —— 那不是支持并发，是把调度权交给调用方。
+
+    这条测试**真的观测** ``max_workers``：把模块里的 ``ThreadPoolExecutor``
+    换成一个记录构造参数的壳，跑一次 40 主题的调用，再看壳收到了什么。
+    只断言「两个常量相等」是不够的 —— 那证明不了 ``min()`` 真的生效了。
+    """
+    import runtime.mingli_service as service_module
+
+    seen: dict[str, int] = {}
+
+    class _RecordingPool:
+        def __init__(self, max_workers: int) -> None:
+            seen["max_workers"] = max_workers
+
+        def __enter__(self):
+            from concurrent.futures import ThreadPoolExecutor
+            self._real = ThreadPoolExecutor(max_workers=seen["max_workers"])
+            return self._real
+
+        def __exit__(self, *exc):
+            return self._real.__exit__(*exc)
+
+    monkeypatch.setattr(service_module, "ThreadPoolExecutor", _RecordingPool)
+
+    service = MingLiService()
+    topics = [f"主题{i}" for i in range(40)]  # 远超封顶值
+    multi = service.analyze_multi(BIRTH, topics)
+
+    assert len(multi.results) == 40, "每个主题都应有结果"
+    assert seen["max_workers"] == service_module.MAX_ANALYSIS_WORKERS, (
+        f"40 个主题时 max_workers 应为封顶值 "
+        f"{service_module.MAX_ANALYSIS_WORKERS}，实得 {seen['max_workers']}"
+    )
+
+
+def test_small_topic_lists_do_not_open_extra_threads():
+    """主题数少于封顶值时，不开多余的线程。
+
+    这条守的是另一半：``min()`` 写反成恒取封顶值的话，上面那条照样绿，
+    但每次两个主题的分析都会开出 8 个线程。
+    """
+    import runtime.mingli_service as service_module
+
+    seen: dict[str, int] = {}
+
+    class _RecordingPool:
+        def __init__(self, max_workers: int) -> None:
+            seen["max_workers"] = max_workers
+
+        def __enter__(self):
+            from concurrent.futures import ThreadPoolExecutor
+            self._real = ThreadPoolExecutor(max_workers=seen["max_workers"])
+            return self._real
+
+        def __exit__(self, *exc):
+            return self._real.__exit__(*exc)
+
+    service = MingLiService()
+    original = service_module.ThreadPoolExecutor
+    service_module.ThreadPoolExecutor = _RecordingPool
+    try:
+        service.analyze_multi(BIRTH, TOPICS)
+    finally:
+        service_module.ThreadPoolExecutor = original
+
+    assert seen["max_workers"] == len(TOPICS), (
+        f"{len(TOPICS)} 个主题应只开 {len(TOPICS)} 个线程，实得 {seen['max_workers']}"
+    )
+
+
+def test_service_and_api_caps_agree():
+    """服务层封顶与 API 上限必须一致。
+
+    服务层**不 import** API 层 —— 依赖方向是 API → 服务，反了会让服务层
+    依赖 HTTP 框架。所以两边各定一个常量，用这条测试保证它们不越漂越远。
+    """
+    from api.server import MAX_TOPICS
+    from runtime.mingli_service import MAX_ANALYSIS_WORKERS
+
+    assert MAX_ANALYSIS_WORKERS == MAX_TOPICS

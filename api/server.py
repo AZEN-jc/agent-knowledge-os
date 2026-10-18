@@ -6,23 +6,60 @@
 错误约定：输入不合法、超出历法库支持范围、或 provider 不可用时一律返回
 ``422``，``detail`` 为可直接展示给用户的中文说明；不存在的资源返回 ``404``。
 不返回 500 堆栈。
+
+**这条约定曾经只成立了一半。** 状态码那一半一直成立，``detail`` 那一半不成立：
+pydantic 在请求模型层拦下的错误，``detail`` 原样是英文技术消息的 dict 列表。
+本文件末尾的 :func:`on_validation_error` 把它转成中文说明 ——
+修的不是状态码，是让行为符合本文件自己写下的承诺。
 """
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from agents.prompt import contract as llm_contract
 from knowledge.classical_backlog import CLASSICAL_BACKLOG, BacklogStatus, next_action
 from knowledge.provenance import ReviewStatus, SourceTier
 from knowledge.topics import TOPICS
 from runtime.mingli_service import MingLiService
+
+#: 引擎（sxtwl）实测失败的年份。全量扫 1–9999 得出，与月日无关。
+#:
+#: 两类：边界上的 1 / 9998 / 9999（引擎内部 +1 后越界，消息 "year 10000 is
+#: out of range"），以及夹在区间中部的 899–901 与 999–1001（消息是误导性的
+#: "day is out of range for month"，而 2 月 1 日这类日期明明合法）。
+#:
+#: 边界上那三个已由 ``ge=2, le=9997`` 在请求模型层拦掉；中间这六个拦不住，
+#: 只能由 :func:`_to_user_message` 包中文框架。**根因属 Phase 3.1 排盘边界
+#: 验证**，这里只保证对外不出现裸英文。
+ENGINE_FAILURE_YEARS: tuple[int, ...] = (899, 900, 901, 999, 1000, 1001)
+
+#: 「消息里有没有中文」的判据。见 :func:`_to_user_message`。
+CJK_SEARCH = re.compile(r"[\u4e00-\u9fff]")
+
+#: 单次请求可分析的最大主题数。六个已登记主题之外留了余量；
+#: 上限的意义是给线程池一个硬顶（服务层同时用它做 max_workers 的封顶）。
+MAX_TOPICS = 8
+
+#: 时间轴单次请求的最大跨度。再长的区间应分段请求，而不是让一次调用
+#: 循环几十年 —— 那既是超时风险，也是把客户端的分页责任推给服务端。
+MAX_TIMELINE_SPAN = 50
+
+#: 问题文本的最大长度。问句不需要一篇作文；没有上限时一个超大字符串
+#: 会一路走到证据层才被拒。
+MAX_QUESTION_LENGTH = 200
+
+#: 单个主题名的最大长度。主题名是「事业」「财运」这类短词，二十字足够；
+#: 没有上限时一个字符串会被当成未知主题原样带到解析层。
+MAX_TOPIC_LENGTH = 20
 
 UNPROCESSABLE: dict[int | str, dict[str, Any]] = {
     422: {
@@ -40,7 +77,19 @@ class BirthRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    year: int = Field(description="公历年", examples=[1990])
+    # ge/le 与引擎**实测**支持范围对齐：2–9997 年。
+    #
+    # 这个范围不是从历法常识推的，是全量扫 1–9999 扫出来的：
+    #   year=1     → "year 0 is out of range"
+    #   year=9998/9999 → "year 10000 is out of range"（引擎内部 +1 后越界）
+    # 另外有 6 个夹在区间中部的失败年 {899,900,901,999,1000,1001}，报的是
+    # 误导性的 "day is out of range for month"（2 月 1 日明明合法）。
+    # 那 6 年放不进 ge/le，由 _to_user_message 包中文框架，属 Phase 3.1 待修。
+    #
+    # 教训：第一版这里写的是 ge=1, le=9999，两头都错 —— 1 和 9999 本身就是
+    # 失败年。是 tests/test_api_boundaries.py 里「边界内年份应可用」那条
+    # 测出来的。**收边界的默认值必须扫出来，不能按常识填。**
+    year: int = Field(ge=2, le=9997, description="公历年", examples=[1990])
     month: int = Field(ge=1, le=12, description="公历月", examples=[6])
     day: int = Field(ge=1, le=31, description="公历日", examples=[15])
     hour: int = Field(ge=0, le=23, description="当地民用时的时", examples=[14])
@@ -49,16 +98,22 @@ class BirthRequest(BaseModel):
         default=None, ge=-180, le=180, description="经度；仅在开启真太阳时校正时需要"
     )
     latitude: float | None = Field(default=None, ge=-90, le=90, description="纬度")
-    timezone: str = Field(default="Asia/Shanghai", description="IANA 时区名", examples=["Asia/Shanghai"])
+    timezone: str = Field(
+        default="Asia/Shanghai", max_length=64,
+        description="IANA 时区名", examples=["Asia/Shanghai"],
+    )
     gender: str | None = Field(
-        default=None, description="性别；计算大运顺逆时需要", examples=["男"]
+        default=None, max_length=16, description="性别；计算大运顺逆时需要", examples=["男"]
     )
 
 
 class AnalyzeRequest(BirthRequest):
     """命盘 + 问题。结论必须能追溯到命盘事实与规则，不做确定性预测。"""
 
-    question: str = Field(min_length=1, description="要分析的问题", examples=["事业如何？"])
+    question: str = Field(
+        min_length=1, max_length=MAX_QUESTION_LENGTH,
+        description="要分析的问题", examples=["事业如何？"],
+    )
 
 
 class CitationResponse(BaseModel):
@@ -267,9 +322,33 @@ class AnalysisResponse(BaseModel):
 class TimelineRequest(BirthRequest):
     """生辰 + 年份区间 + 主题。"""
 
-    start_year: int = Field(ge=1, description="起始公历年", examples=[2024])
-    end_year: int = Field(ge=1, description="结束公历年", examples=[2030])
-    topic: str = Field(default="财运", description="分析主题，可为中文别名", examples=["财运"])
+    start_year: int = Field(ge=2, le=9997, description="起始公历年", examples=[2024])
+    end_year: int = Field(ge=2, le=9997, description="结束公历年", examples=[2030])
+    topic: str = Field(
+        default="财运", max_length=MAX_TOPIC_LENGTH,
+        description="分析主题，可为中文别名", examples=["财运"],
+    )
+
+    @model_validator(mode="after")
+    def _span_must_be_bounded(self) -> TimelineRequest:
+        """起止年份相差超限时明确拒绝，而不是让服务端循环几十年。
+
+        判据用**年份差**（``end - start``）而不是年份个数：前者是
+        ``start_year > end_year`` 被拒之后剩下的唯一上界，语义也更好说清 ——
+        相差 50 年即 51 个年份。用 inclusive 计数会多一次 off-by-one 的
+        机会，而这里的文案必须让用户能自己算准。
+
+        ``start_year > end_year`` 不在这里管 —— 那一类由 ``analyze_period``
+        用中文报出，且已有测试钉住。这里只管上界。
+        """
+        span = self.end_year - self.start_year
+        if span > MAX_TIMELINE_SPAN:
+            raise ValueError(
+                f"起始年与结束年最多相差 {MAX_TIMELINE_SPAN} 年"
+                f"（即至多 {MAX_TIMELINE_SPAN + 1} 个年份）；"
+                f"当前请求 {self.start_year}–{self.end_year} 相差 {span} 年，请分段查询。"
+            )
+        return self
 
 
 class SignalResponse(BaseModel):
@@ -353,7 +432,7 @@ def chart(request: BirthRequest) -> dict[str, Any]:
     try:
         response = service.analyze(request.model_dump(), "命盘结构")
     except (TypeError, ValueError, RuntimeError) as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise HTTPException(status_code=422, detail=_to_user_message(exc)) from exc
     return response.chart
 
 
@@ -381,7 +460,7 @@ def analyze(request: AnalyzeRequest) -> dict[str, Any]:
     try:
         response = service.analyze(request.model_dump(exclude={"question"}), request.question)
     except (TypeError, ValueError, RuntimeError) as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise HTTPException(status_code=422, detail=_to_user_message(exc)) from exc
     return response.to_dict()
 
 
@@ -414,7 +493,7 @@ def timeline(request: TimelineRequest) -> dict[str, Any]:
             request.topic,
         )
     except (TypeError, ValueError, RuntimeError) as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise HTTPException(status_code=422, detail=_to_user_message(exc)) from exc
 
     return TimelineResponse(
         total=len(windows),
@@ -432,10 +511,38 @@ class MultiAnalyzeRequest(BirthRequest):
     """生辰 + 一组主题。主题之间彼此独立，服务端并发执行。"""
 
     topics: list[str] = Field(
-        min_length=1,
-        description="要分析的主题，可为中文别名；彼此独立，服务端并发执行",
+        min_length=1, max_length=MAX_TOPICS,
+        description=(
+            "要分析的主题，可为中文别名；彼此独立，服务端并发执行。"
+            f"至多 {MAX_TOPICS} 个且不得重复 —— 重复主题没有语义作用"
+            "（同一主题分析两遍结果相同），只会白占一次并发槽位。"
+        ),
         examples=[["事业", "财运", "婚姻"]],
     )
+
+    @field_validator("topics")
+    @classmethod
+    def _topics_must_be_distinct(cls, value: list[str]) -> list[str]:
+        """拒绝重复主题与超长主题名，且每项都受长度上限约束。
+
+        为什么拒绝而不是静默去重：去重之后调用方不会知道自己少问了一个，
+        那份「问了两遍」的意图就无声消失了。明确拒绝至少让他知道。
+
+        长度检查放在这里而不是 ``list[str]`` 的项约束上：后者要引入
+        ``Annotated`` 与 ``StringConstraints``，为一个二十字的主题名
+        付那份可读性代价不值得。列表条数上限已由 ``Field(max_length=...)``
+        在 pydantic 层拦住，走不到这里。
+        """
+        duplicates = sorted({item for item in value if value.count(item) > 1})
+        if duplicates:
+            raise ValueError(f"主题重复：{'、'.join(duplicates)}")
+        overlong = sorted({item for item in value if len(item) > MAX_TOPIC_LENGTH})
+        if overlong:
+            raise ValueError(
+                f"主题名过长（至多{MAX_TOPIC_LENGTH}个字符）："
+                + "、".join(item[:MAX_TOPIC_LENGTH] + "…" for item in overlong)
+            )
+        return value
 
 
 class TopicAnalysisResponse(BaseModel):
@@ -488,7 +595,7 @@ def analyze_multi(request: MultiAnalyzeRequest) -> dict[str, Any]:
             request.model_dump(exclude={"topics"}), request.topics
         )
     except (TypeError, ValueError, RuntimeError) as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise HTTPException(status_code=422, detail=_to_user_message(exc)) from exc
 
     return response.to_dict()
 
@@ -549,10 +656,10 @@ def get_llm_contract() -> LLMContractResponse:
     response_model=RuleListResponse,
 )
 def list_rules(
-    school: str = Query(default="", description="流派 ID，例如 structural_common"),
-    category: str = Query(default="", description="类别，例如 ten_god / pattern / relation"),
-    topic: str = Query(default="", description="主题标签"),
-    confidence: str = Query(default="", description="LOW / MEDIUM / HIGH"),
+    school: str = Query(default="", max_length=64, description="流派 ID，例如 structural_common"),
+    category: str = Query(default="", max_length=64, description="类别，例如 ten_god / pattern / relation"),
+    topic: str = Query(default="", max_length=64, description="主题标签"),
+    confidence: str = Query(default="", max_length=16, description="LOW / MEDIUM / HIGH"),
     source_tier: SourceTier | None = Query(default=None, description="structural 或 classical"),
     review_status: ReviewStatus | None = Query(default=None, description="校核状态"),
 ) -> RuleListResponse:
@@ -653,6 +760,148 @@ if STATIC_DIR.is_dir():
     def index() -> FileResponse:
         """单页界面：输入生辰，看命盘、证据链、审查与流年时间轴。"""
         return FileResponse(STATIC_DIR / "index.html")
+
+
+# ── 错误消息中文化 ─────────────────────────────────────────────────────
+#
+# 模块 docstring 承诺「detail 为可直接展示给用户的中文说明」。在此之前，
+# pydantic 在请求模型层拦下的错误原样返回英文技术消息的 dict 列表，
+# 而引擎（sxtwl）在少数年份上抛出的也是英文。两条路都让承诺落空。
+#
+# 这里补两件事：把 RequestValidationError 翻成中文，以及给引擎异常包一层
+# 中文框架。翻不好的部分不藏 —— 引擎的原始消息保留在中文框架后面，
+# 便于排查，也便于 Phase 3.1 修排盘边界时定位。
+
+FIELD_LABELS: dict[str, str] = {
+    "year": "公历年",
+    "month": "公历月",
+    "day": "公历日",
+    "hour": "时",
+    "minute": "分",
+    "longitude": "经度",
+    "latitude": "纬度",
+    "timezone": "时区",
+    "gender": "性别",
+    "question": "问题",
+    "topic": "主题",
+    "topics": "主题列表",
+    "start_year": "起始年",
+    "end_year": "结束年",
+    "school": "流派",
+    "category": "类别",
+    "confidence": "置信等级",
+}
+
+#: pydantic 错误类型 → 中文模板。``{label}`` 与 ctx 里的约束值会被填进去。
+ERROR_TEMPLATES: dict[str, str] = {
+    "missing": "{label}不能为空",
+    "none_required": "{label}不能为 null",
+    "int_type": "{label}必须是整数",
+    "int_parsing": "{label}必须是整数",
+    "int_from_float": "{label}必须是整数",
+    "bool_type": "{label}必须是true/false",
+    "float_type": "{label}必须是数字",
+    "float_parsing": "{label}必须是数字",
+    "string_type": "{label}必须是字符串",
+    "string_too_short": "{label}长度不足（至少{min_length}个字符）",
+    "string_too_long": "{label}过长（至多{max_length}个字符）",
+    "list_type": "{label}必须是列表",
+    "too_short": "{label}项数不足（至少{min_length}项）",
+    "too_long": "{label}项数过多（至多{max_length}项）",
+    "greater_than_equal": "{label}不能小于{ge}",
+    "greater_than": "{label}必须大于{gt}",
+    "less_than_equal": "{label}不能大于{le}",
+    "less_than": "{label}必须小于{lt}",
+    "extra_forbidden": "{label}不是可填的字段",
+    "literal_error": "{label}的取值不在允许范围内",
+    "value_error": "{label}不合法",
+}
+
+
+def _translate_validation_errors(exc: RequestValidationError) -> str:
+    """把 pydantic 的错误列表翻成一句中文说明。
+
+    三类来源：字段约束（``ge``/``le``/``max_length``）、自定义 validator
+    （消息本就是中文，直接采用）、以及没见过的类型 —— 最后一类也不能
+    漏成英文，所以兜底模板同样带 ``{label}``。
+    """
+    messages: list[str] = []
+    for error in exc.errors():
+        # 显式转成不定长元组：``ErrorDetails`` 的 ``loc`` 在类型存根里是定长
+        # 元组，直接 ``location[-1]`` 会被 mypy 判成越界（它在替我们假设
+        # loc 的长度）。转一次就清楚了 —— loc 的长度由 pydantic 决定，
+        # 不由类型存根决定。
+        location: tuple[object, ...] = tuple(error.get("loc") or ())
+        # loc 形如 ("body", "year") 或 ("query", "school")；没有字段名时
+        # 说明是整层的问题，用「请求」兜底。
+        field = str(location[-1]) if len(location) > 1 else "请求"
+        label = FIELD_LABELS.get(field, field)
+        kind = str(error.get("type") or "")
+        context = dict(error.get("ctx") or {})
+
+        if kind == "value_error":
+            # 自定义 validator 写的消息本来就是中文，原样采用。
+            # pydantic v2 会给它加 "Value error, " 前缀 —— 那是给开发者看的
+            # 错误类型标注，不该出现在给用户的文本里。
+            message = str(error.get("msg") or "")
+            if message.startswith("Value error, "):
+                message = message[len("Value error, "):]
+            messages.append(message or f"{label}不合法")
+            continue
+
+        template = ERROR_TEMPLATES.get(kind)
+        if template is None:
+            messages.append(f"{label}不合法（{kind}）")
+            continue
+        try:
+            messages.append(template.format(label=label, **context))
+        except (KeyError, IndexError, ValueError):
+            # 模板引用了 ctx 里没有的键：宁可少一个数字，也不要抛异常
+            # 把 422 变成 500 —— 那是用更糟的方式违反同一条契约。
+            messages.append(f"{label}不合法")
+
+    return "；".join(dict.fromkeys(messages)) or "请求不合法"
+
+
+@app.exception_handler(RequestValidationError)
+async def on_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """请求模型层校验失败 → 422 + 中文说明。
+
+    没有这个处理器时，FastAPI 返回 ``{"detail": [{loc, msg, type}, ...]}``，
+    ``msg`` 是 ``"Input should be greater than or equal to 1"`` 这类英文。
+    与模块 docstring 的承诺直接冲突，也让 Web 界面只能显示一串英文。
+    """
+    return JSONResponse(
+        status_code=422, content={"detail": _translate_validation_errors(exc)}
+    )
+
+
+def _to_user_message(exc: Exception) -> str:
+    """把内部异常转成可展示给用户的说明。
+
+    为什么要挑中文：本文件的异常有两个来源，处理方式不同。
+
+    - **我们自己抛的**（``BirthInput`` 的「出生日期时间无效」、``AnalystAgent``
+      的「问题不能为空」）—— 本就是中文，原样透传。把它包成「排盘失败：
+      问题不能为空」会把问题归错到排盘上。
+    - **引擎漏出来的**（sxtwl 在 7 个散落年份上的英文内部错误）—— 最误导的
+      一例是 1000 年 6 月 15 日（合法日期）报 ``"day is out of range for
+      month"``，用户只会以为自己的日期填错了。这一类必须包一层中文。
+
+    判据是「消息里有没有中文」而不是错误类型：类型在这里区分不了来源
+    （两边都是 ``ValueError``）。这个判据是保守的 —— 万一把我们自己的
+    中文消息误判成英文，后果只是多一层框架，不会把错误藏起来。
+
+    引擎的原始消息**保留**在中文框架后面：排查时需要它（Phase 3.1 修排盘
+    边界要靠它定位），而且隐瞒内部错误比显示它更难查。等 3.1 修好引擎，
+    这个函数可以退化成直接透传。
+    """
+    text = str(exc).strip()
+    if not text:
+        return f"排盘失败（{type(exc).__name__}）"
+    if CJK_SEARCH.search(text):
+        return text
+    return f"排盘失败：{text}"
 
 
 def main() -> None:

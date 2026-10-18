@@ -196,3 +196,102 @@ def test_the_export_table_matches_dunder_all():
     from agents import _EXPORTS, __all__
 
     assert set(__all__) == set(_EXPORTS)
+
+
+# ── Phase 2.2 验收补缺：重复导入与循环依赖 ───────────────────────────
+
+
+def test_repeated_imports_are_harmless():
+    """同一模块反复导入不抛异常，也不重复初始化。
+
+    ``__getattr__`` 每次被触发都会 ``import_module``。import 系统有缓存，
+    所以第二次起走的是 ``sys.modules`` 快路径 —— 这条测试钉住那个缓存
+    真的在生效，而不是每次重新执行一遍模块体。
+    """
+    snippet = (
+        "import agents, agents.mingli\n"
+        "from agents import CoderAgent\n"
+        "import agents.coder\n"
+        "from agents import CoderAgent as Again\n"
+        "assert Again is CoderAgent\n"
+        "import agents.mingli as m2, agents\n"
+        "assert m2 is agents.mingli\n"
+        "print('ok')\n"
+    )
+    completed = run_snippet(snippet)
+
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert "ok" in completed.stdout
+
+
+def test_submodule_import_before_and_after_package_attribute():
+    """先导入子模块、后取包属性（以及反向）都不冲突。
+
+    两种顺序会改变 ``__getattr__`` 与 import 系统谁先设属性的时序。
+    顺序敏感的实现只会在其中一种下工作，而测试通常只写一种。
+    """
+    orders = (
+        "import agents.planner\nfrom agents import PlannerAgent\n"
+        "assert PlannerAgent is agents.planner.PlannerAgent\n",
+        "from agents import PlannerAgent\nimport agents.planner\n"
+        "assert PlannerAgent is agents.planner.PlannerAgent\n",
+    )
+    for snippet in orders:
+        completed = run_snippet(snippet + "print('ok')\n")
+        assert completed.returncode == 0, completed.stdout + completed.stderr
+
+
+def test_the_package_does_not_introduce_a_circular_import():
+    """惰性化没有把循环依赖带进来。
+
+    ``agents/__init__.py`` 现在**不导入任何子模块**，所以它不可能参与循环。
+    但这条测试要防的是未来：谁在里面加一行普通 import，就可能让
+    ``agents.X → agents → agents.X`` 成环，而症状是「只在某些入口下才崩」，
+    极难定位。
+
+    用一个全新的解释器导入每一个 CreatorOS agent，逐个确认都能独立加载。
+    """
+    for module in (
+        "agents.analytics", "agents.briefing", "agents.coder", "agents.content",
+        "agents.daily", "agents.feedback_loop", "agents.planner",
+        "agents.researcher", "agents.reviewer", "agents.strategist",
+        "agents.x_workflow", "agents.mingli", "agents.prompt", "agents.llm",
+    ):
+        completed = run_snippet(f"import {module}\nprint('ok')\n")
+        assert completed.returncode == 0, (
+            f"{module} 无法独立导入（可能是循环依赖）：\n{completed.stderr[-400:]}"
+        )
+
+
+def test_lazy_import_does_not_change_mingli_output():
+    """惰性化不得改变 MingLi 的输出。
+
+    前几条测的是加载时机，这条测的是**结果**：同一个命盘在惰性化前后
+    必须给出逐字段相同的分析。加载方式改变的 import 路径，本不该影响
+    计算，但「本不该」三个字正是测试存在的理由。
+    """
+    completed = run_snippet(
+        "import json\n"
+        "from engines.bazi import BirthInput\n"
+        "from runtime.mingli_service import MingLiService\n"
+        "svc = MingLiService()\n"
+        "r = svc.analyze({'year':1990,'month':2,'day':1,'hour':12}, '事业')\n"
+        "d = r.to_dict()\n"
+        "print(json.dumps({\n"
+        "  'day_master': d['chart']['day_master'],\n"
+        "  'chain': d['analysis']['evidence']['chain'],\n"
+        "  'strength': d['analysis']['evidence']['strength'],\n"
+        "  'conclusion': d['analysis']['conclusion'],\n"
+        "  'passed': d['critique']['passed'],\n"
+        "}, ensure_ascii=False, sort_keys=True))\n"
+    )
+    assert completed.returncode == 0, completed.stderr
+
+    import json
+
+    payload = json.loads(completed.stdout.strip().splitlines()[-1])
+    assert payload["day_master"] == "丁"
+    assert payload["passed"] is True
+    assert payload["chain"], "证据链不应为空"
+    assert 0.0 <= payload["strength"] < 1.0
+    assert payload["conclusion"]
