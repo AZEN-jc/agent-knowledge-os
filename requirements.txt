@@ -1,3 +1,11 @@
+# MingLi Agent 运行时依赖。
+#
+# 这份清单与 pyproject.toml 的 [project.dependencies] 逐项一致，
+# 一致性由 tests/test_dependency_declaration.py 钉住。
+#
+# 开发/CI 另需 ruff 与 mypy，见 requirements-dev.txt（它用 -r 引用本文件，
+# 不重抄一份）。
+
 everos
 arbiter-lite
 requests
@@ -10,3 +18,15 @@ sxtwl==2.0.7
 lunar_python==1.4.8
 fastapi
 uvicorn
+
+# ── 已声明但全仓零 import 的依赖（Phase 2.4 实测）─────────────────────
+#
+# 下面三条在仓库里**没有任何文件 import**（AST 扫全仓含 tests/ 得出）。
+# 没有删，因为删依赖是破坏性变更、且它们可能服务于尚未接线的 CreatorOS
+# 功能；但必须写明，否则「装了但没人用」这件事没有任何测试会发现。
+# 登记表由 test_dependency_declaration.py 的 DECLARED_BUT_UNUSED 维护 ——
+# 谁接上了对应功能，那条测试会提醒把登记删掉。
+#
+#   everos        → EverOS 侧可能尚未接线的功能
+#   python-dotenv → 服务层刻意不读环境变量（runtime/mingli_service.py 有说明）
+#   rich          → 无 TODO 引用，疑似早期 CLI 方案残留

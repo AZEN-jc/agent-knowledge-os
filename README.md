@@ -296,6 +296,10 @@ python scripts/atom_checklist.py --suggest-witness ID  # 为规则找见证命�
 
 ## 已知边界
 
+- **年份支持范围是 2–9997**，且区间中部有 6 个失败年（899–901、999–1001）。
+  这些年份上排盘会失败，返回 422 + 中文说明（`排盘失败：day is out of range
+  for month`）。根因在 `engines/bazi` 的节气换算，属待修缺陷 —— 已在
+  `tests/test_api_boundaries.py` 里钉住，修好引擎后那些测试会变绿。
 - **大运需要性别**。顺逆规则不同流派有分歧，缺性别时只算流年、不猜默认方向。
   启用后结果带 `approximate: true`（三日折一年）。
 - **LLM provider 未接线**。默认走确定性模板出稿，离线可运行；契约见
@@ -309,6 +313,22 @@ python scripts/atom_checklist.py --suggest-witness ID  # 为规则找见证命�
   不是命理知识题准确率，因此**不给出准确率数字**。
 - **主题层的断语覆盖不均**。事业/婚姻/健康/财运四个主题目前只有公共结构层证据
   （`status=base_only`），结论不构成对该主题的判断，`coverage_note` 里写了原因。
+
+### 输入上限（公开契约）
+
+接口对输入的约束是公开契约的一部分，OpenAPI 的 `description` 里都写了：
+
+| 参数 | 上限 | 超限行为 |
+|---|---|---|
+| `year` / `start_year` / `end_year` | 2–9997 | 422 + 中文说明 |
+| `question` | 200 字 | 422 |
+| 主题名 | 20 字 | 422 |
+| `topics` 条数 | 8，且不得重复 | 422 |
+| 时间轴跨度 | 起止最多相差 50 年 | 422，提示分段查询 |
+
+**错误消息一律是可直接展示给用户的中文。** 这是 `api/server.py` 模块 docstring
+写下的契约，由 `on_validation_error` 保证；`tests/test_api_boundaries.py`
+把「每个越界输入的 `detail` 都是中文」钉成了一条测试 —— 删掉那个处理器它会立刻红。
 
 ---
 

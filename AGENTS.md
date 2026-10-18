@@ -11,12 +11,22 @@
 | **MingLi Agent**（命理推理） | `engines/` `knowledge/` `corpus/` `api/` `static/` `evaluation/` `agents/mingli.py` `agents/prompt.py` `agents/llm.py` `runtime/mingli_service.py` | **当前唯一在推进的系统** |
 | **Personal Media OS**（内容流水线） | `runtime/` 其余文件、`workflows/`、`agents/` 其余文件、`scripts/` 中的 aihot/briefing 类脚本 | 冻结，不删不改 |
 
-**改动前先确认你动的是哪一套。** 两套在导入层面已经隔离（MingLi → CreatorOS 0 条依赖），
-唯一的耦合是 `agents/__init__.py` 与 `runtime/orchestrator.py`。
+**改动前先确认你动的是哪一套。**
 
-> ⚠️ `agents/__init__.py` 是**急切导入**：`import agents.mingli` 会连带加载 37 个
-> CreatorOS 模块。这是已知问题，拆分方案见 `docs/reports/phase1-baseline-audit.md`。
-> **不要在没确认的情况下把它改成惰性导入** —— 那会改变所有 `from agents import X` 的行为。
+**边界是实测的，不是猜的**（Phase 1 用 AST 扫全仓）：
+
+- 导入层面：MingLi → CreatorOS **0 条**，反向也 **0 条**。
+- 包层面：`agents/__init__.py` 曾急切导入全部 11 个 CreatorOS agent，
+  导致 `import agents.mingli` 连带加载 **37 个**非 MingLi 模块。
+  该文件已于 `dbf3077` 改为**惰性导入**，实测降到 **0**。
+- 依赖层面：MingLi 只用 `sxtwl` / `fastapi` / `uvicorn` / `pydantic`；
+  `everos` / `python-dotenv` / `rich` / `arbiter-lite` / `requests` 属 CreatorOS 侧
+  或全仓零 import（详见 `requirements.txt` 末尾的登记表与
+  `tests/test_dependency_declaration.py`）。
+
+> **`agents/__init__.py` 是惰性导入，不要再改回急切。** 若你要加一个
+> CreatorOS 导出名，加进 `_EXPORTS` 表即可，不要在文件顶部写普通 import ——
+> `tests/test_agents_package_isolation.py` 会红。
 
 ---
 
@@ -58,8 +68,32 @@ python -m api.server        # → http://127.0.0.1:8000
 `mypy knowledge agents runtime api` 报 3 个错误，而 `mypy .` 报 4 个，漏掉的是
 `engines/bazi/golden.py`（它不被任何被检查模块 import）。
 
-**当前 `mypy .` 有 4 个存量错误**（全在 `engines/bazi/`），因此 CI 里它是不阻塞项。
-处置方案见 `docs/reports/phase1-baseline-audit.md` §7。**不要用 `# type: ignore` 抹掉。**
+Phase 2.1 已清零这 4 个存量错误，**当前 `mypy .` exit 0**，CI 里它是阻塞门禁。
+新引入的类型错误会直接让 CI 失败 —— 修它，不要用 `# type: ignore` 抹掉。
+
+### API 边界治理（Phase 2.3）
+
+`api/server.py` 有一条文档契约：错误一律 422，`detail` 为**可直接展示给用户的
+中文说明**。这条曾经只成立一半（pydantic 层返回英文 dict 列表），现已由
+`on_validation_error` 补齐。
+
+**改公开请求模型前先读这段**，这些上限都是实测后定的，不是随手填的：
+
+| 约束 | 值 | 为什么是这个值 |
+|---|---|---|
+| `year` `ge=2, le=9997` | — | 全量扫 1–9999 得出。引擎在 1、9998、9999 上失败 |
+| 另有 6 个失败年 | 899–901、999–1001 | 夹在区间中部，放不进 ge/le；由 `_to_user_message` 包中文，**根因待 Phase 3.1** |
+| `question` | max 200 字 | 问句不需要一篇作文 |
+| 主题名 | max 20 字 | 主题是「事业」「财运」这类短词 |
+| `topics` 条数 | max 8，且不得重复 | 线程池硬顶同值；重复没有语义作用 |
+| 时间轴跨度 | 起止最多相差 50 年 | 更长的区间应分段请求 |
+
+**收边界的默认值必须扫出来，不能按常识填。** 第一版 `year` 写的是
+`ge=1, le=9999`，两条都错 —— 1 和 9999 本身就是失败年。是
+`test_year_bounds_match_the_engine` 逮到的。
+
+**服务层 `ThreadPoolExecutor` 有硬顶 `MAX_ANALYSIS_WORKERS`**，不要改回
+`max_workers=len(topics)`：服务层是公开入口，API 层拦不住直接调用方。
 
 ---
 
@@ -123,6 +157,26 @@ python scripts/atom_checklist.py --suggest-witness ID  # 为规则找见证命�
 - **不要把「未运行」写成「通过」。**
 - 不强制推送、不直接推 `master`；改动走分支 + PR。
 - `requirements.txt` 与 `pyproject.toml` 的依赖必须一致（两份清单各写一遍会漂）。
+  一致性由 `tests/test_dependency_declaration.py` 钉住。
+- `requirements-dev.txt` 通过 `-r requirements.txt` 引用运行时依赖，**不重抄一份**。
+
+---
+
+## 8. 本地 Git 配置（不是仓库代码）
+
+本机 `remote.origin.fetch` 只跟踪 `master`，导致 `git fetch` 拉不到其他分支的
+跟踪引用 —— 推送新分支后 `git rev-parse origin/<branch>` 会报「需要一个单独的版本」，
+而分支其实已在远端。
+
+**这是本机配置问题，不是仓库缺陷，不要提交进仓库。** 已在本机改为全分支跟踪：
+
+```bash
+git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+```
+
+**验证同步状态一律用 `git ls-remote origin refs/heads/<branch>`**（直接问远端），
+不要用 `git rev-parse origin/<branch>`（读的是本地缓存）。这个坑在 Phase 2.1
+骗过一次人：分支推上去了，本地查不到跟踪引用，差点误判成推送失败。
 
 ---
 
