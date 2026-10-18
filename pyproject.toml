@@ -1,19 +1,25 @@
 [project]
 name = "agent-knowledge-os"
 version = "0.1.0"
-description = "本地 AI Agent 知识库系统，把 EverOS、Arbiter、Obsidian 和 Codex 工作流连接起来。"
+# 归属说明：这个仓库里有两套系统共处 —— MingLi Agent（命理推理，当前唯一在推进的）
+# 与 Personal Media OS（内容流水线，冻结）。本 description 描述 MingLi。
+# 模块边界见 AGENTS.md §1。
+description = "MingLi Agent：可验证的命理推理服务。确定性排盘 → 事实提取 → 规则匹配 → 证据链，每个结论都能追到命盘要素与典籍出处。"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
   { name = "admin" }
 ]
+# 这份清单与 requirements.txt 逐项一致（含版本约束），一致性由
+# tests/test_dependency_declaration.py 钉住。改一处必须改另一处。
+#
+# 2026-10-18 删除 everos / python-dotenv / rich：AST 扫全仓（含 tests/）确认
+# 零 import、零引用，老板确认删除。删除前它们登记在
+# tests/test_dependency_declaration.py 的 DECLARED_BUT_UNUSED 里。
 dependencies = [
-  "everos",
   "arbiter-lite",
   "requests",
-  "python-dotenv",
   "pydantic",
-  "rich",
   "pytest",
   "sxtwl==2.0.7",
   # 第二实现：独立命理库，仅用于 differential testing 交叉校验，不参与生产排盘

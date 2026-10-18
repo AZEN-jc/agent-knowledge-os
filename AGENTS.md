@@ -20,9 +20,10 @@
   导致 `import agents.mingli` 连带加载 **37 个**非 MingLi 模块。
   该文件已于 `dbf3077` 改为**惰性导入**，实测降到 **0**。
 - 依赖层面：MingLi 只用 `sxtwl` / `fastapi` / `uvicorn` / `pydantic`；
-  `everos` / `python-dotenv` / `rich` / `arbiter-lite` / `requests` 属 CreatorOS 侧
-  或全仓零 import（详见 `requirements.txt` 末尾的登记表与
-  `tests/test_dependency_declaration.py`）。
+  `arbiter-lite` / `requests` 属 CreatorOS 侧。
+  2026-10-18 删除了 `everos` / `python-dotenv` / `rich`（AST 扫全仓零 import、零引用）。
+  「声明了却没人 import」的依赖由 `tests/test_dependency_declaration.py` 的
+  `DECLARED_BUT_UNUSED` 机制看守 —— 现在表是空的，但机制在。
 
 > **`agents/__init__.py` 是惰性导入，不要再改回急切。** 若你要加一个
 > CreatorOS 导出名，加进 `_EXPORTS` 表即可，不要在文件顶部写普通 import ——

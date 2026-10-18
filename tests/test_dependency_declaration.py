@@ -15,6 +15,10 @@
 **为什么不顺手删掉那三个。** 任务书的硬性约束含「不删除 CreatorOS」。
 这三个包可能服务于尚未接线的 CreatorOS 功能（``everos`` 从名字看就是），
 删之前需要确认。登记 + 等确认，比猜着删安全。
+
+**2026-10-18 更新**：老板确认删除，三个包已从两份清单移除，本表现在为空。
+机制保留 —— 以后再有「声明了却没人 import」的依赖，仍会被
+:func:`test_every_declared_dependency_is_either_used_or_registered` 抓住。
 """
 
 from __future__ import annotations
@@ -28,11 +32,10 @@ REPO = Path(__file__).resolve().parent.parent
 
 #: 声明了但全仓零 import 的依赖。每一条都要写理由 —— 没有理由的条目
 #: 应当被删掉，而不是躺在这里。
-DECLARED_BUT_UNUSED: dict[str, str] = {
-    "everos": "CreatorOS 侧可能尚未接线的功能（名字即 EverOS）；全仓零 import，待确认后决定去留",
-    "python-dotenv": "全仓零 import。服务层刻意不读环境变量（见 runtime/mingli_service.py 的说明）",
-    "rich": "全仓零 import。无 TODO 引用，疑似早期 CLI 方案的残留",
-}
+#:
+#: 2026-10-18：曾有三个（everos / python-dotenv / rich），老板确认后删除。
+#: 现在是空表，但**机制保留**：空表意味着「当前没有未登记的多余依赖」。
+DECLARED_BUT_UNUSED: dict[str, str] = {}
 
 
 def _parse_requirement_lines(text: str) -> dict[str, str]:
