@@ -31,16 +31,20 @@ from knowledge.provenance import ReviewStatus, SourceTier
 from knowledge.topics import TOPICS
 from runtime.mingli_service import MingLiService
 
-#: 引擎（sxtwl）实测失败的年份。全量扫 1–9999 得出，与月日无关。
+#: 引擎支持范围的两个窄窗口（Phase 3.1 修好历法换算后的剩余边界）。
 #:
-#: 两类：边界上的 1 / 9998 / 9999（引擎内部 +1 后越界，消息 "year 10000 is
-#: out of range"），以及夹在区间中部的 899–901 与 999–1001（消息是误导性的
-#: "day is out of range for month"，而 2 月 1 日这类日期明明合法）。
+#: 修好之后引擎已支持 1–9999 年，但区间两端各有一小段走不通，且**日期相关**，
+#: 没法用 ``ge``/``le`` 表达：
 #:
-#: 边界上那三个已由 ``ge=2, le=9997`` 在请求模型层拦掉；中间这六个拦不住，
-#: 只能由 :func:`_to_user_message` 包中文框架。**根因属 Phase 3.1 排盘边界
-#: 验证**，这里只保证对外不出现裸英文。
-ENGINE_FAILURE_YEARS: tuple[int, ...] = (899, 900, 901, 999, 1000, 1001)
+#: - 第 1 年小寒之前：前一个「节」落在第 0 年，``datetime`` 表示不了。
+#: - 第 9999 年小寒（12-31 21:14）之后：后一个「节」落在第 10000 年，同上。
+#:   只影响需要「之后」的路径（大运起运年龄），排盘本身不受影响。
+#:
+#: 所以 ``year`` / ``start_year`` / ``end_year`` 取 ``ge=2, le=9997`` ——
+#: 这是「每一条路径都能走通」的区间，不是引擎的理论上限。
+#: 两个窗口的报错是人能读懂的中文，见
+#: ``tests/test_api_boundaries.py::test_boundary_windows_fail_with_a_readable_reason``。
+POLICY_YEAR_RANGE: tuple[int, int] = (2, 9997)
 
 #: 「消息里有没有中文」的判据。见 :func:`_to_user_message`。
 CJK_SEARCH = re.compile(r"[\u4e00-\u9fff]")
@@ -77,19 +81,15 @@ class BirthRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    # ge/le 与引擎**实测**支持范围对齐：2–9997 年。
+    # ge/le 是**策略边界**（全路径可用区间），不是引擎上限：Phase 3.1 修好节气
+    # 历法换算后引擎已支持 1–9999 年，两端各有一个窄窗口走不通，
+    # 见 POLICY_YEAR_RANGE 的说明。
     #
-    # 这个范围不是从历法常识推的，是全量扫 1–9999 扫出来的：
-    #   year=1     → "year 0 is out of range"
-    #   year=9998/9999 → "year 10000 is out of range"（引擎内部 +1 后越界）
-    # 另外有 6 个夹在区间中部的失败年 {899,900,901,999,1000,1001}，报的是
-    # 误导性的 "day is out of range for month"（2 月 1 日明明合法）。
-    # 那 6 年放不进 ge/le，由 _to_user_message 包中文框架，属 Phase 3.1 待修。
-    #
-    # 教训：第一版这里写的是 ge=1, le=9999，两头都错 —— 1 和 9999 本身就是
-    # 失败年。是 tests/test_api_boundaries.py 里「边界内年份应可用」那条
-    # 测出来的。**收边界的默认值必须扫出来，不能按常识填。**
-    year: int = Field(ge=2, le=9997, description="公历年", examples=[1990])
+    # 教训留在代码里：第一版这里写的是 ge=1, le=9999，两条都错 —— year=1 与
+    # year=9999/9998 本身就是失败年（引擎内部 +1 后越界）。是
+    # tests/test_api_boundaries.py 里「边界内年份应可用」那条测出来的。
+    year: int = Field(ge=POLICY_YEAR_RANGE[0], le=POLICY_YEAR_RANGE[1],
+                      description="公历年", examples=[1990])
     month: int = Field(ge=1, le=12, description="公历月", examples=[6])
     day: int = Field(ge=1, le=31, description="公历日", examples=[15])
     hour: int = Field(ge=0, le=23, description="当地民用时的时", examples=[14])
@@ -322,8 +322,14 @@ class AnalysisResponse(BaseModel):
 class TimelineRequest(BirthRequest):
     """生辰 + 年份区间 + 主题。"""
 
-    start_year: int = Field(ge=2, le=9997, description="起始公历年", examples=[2024])
-    end_year: int = Field(ge=2, le=9997, description="结束公历年", examples=[2030])
+    start_year: int = Field(
+        ge=POLICY_YEAR_RANGE[0], le=POLICY_YEAR_RANGE[1],
+        description="起始公历年", examples=[2024],
+    )
+    end_year: int = Field(
+        ge=POLICY_YEAR_RANGE[0], le=POLICY_YEAR_RANGE[1],
+        description="结束公历年", examples=[2030],
+    )
     topic: str = Field(
         default="财运", max_length=MAX_TOPIC_LENGTH,
         description="分析主题，可为中文别名", examples=["财运"],

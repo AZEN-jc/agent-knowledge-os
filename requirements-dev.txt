@@ -15,3 +15,13 @@
 
 ruff==0.16.10
 mypy==2.4.0
+
+# `fastapi.testclient` 需要 httpx（starlette 1.9 起会提示改用 httpx2，但
+# 回退到 httpx 仍受支持）。**这不是可选项**：tests/ 里有 4 个文件 import
+# TestClient，缺它会在 collection 阶段直接报 4 个错误，整个测试套件跑不起来。
+#
+# 为什么之前没被发现：早期环境里 httpx 是被别的包顺带装进来的，于是
+# 「新克隆能不能跑测试」这件事一直没人真正验过。Phase 3.1 重建隔离环境时
+# 才暴露 —— 与审计报告 §5 的 R4（ruff/mypy 配了却没声明）是同一类缺陷：
+# **依赖声明只写了「代码 import 的」，漏了「测试脚手架 import 的」。**
+httpx==0.28.1

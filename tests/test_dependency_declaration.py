@@ -134,6 +134,40 @@ def test_dev_dependencies_are_declared_somewhere():
         assert dev[tool], f"{tool} 未钉版本 —— 不钉则 CI 与本地可能不同版"
 
 
+def test_test_scaffolding_dependencies_are_declared():
+    """测试脚手架 import 的包也必须在 dev 清单里。
+
+    **这条是 Phase 3.1 补的，起因是一次真实的翻车**：重建隔离环境后
+    ``pytest`` 在 collection 阶段直接报 4 个错误 —— ``fastapi.testclient``
+    要 httpx，而它没被任何清单声明。早期环境里 httpx 是被别的包顺带装进来
+    的，于是「新克隆能不能跑测试」这件事一直没人真正验过。
+
+    与 R4（ruff/mypy 配了却没声明）是同一类缺陷，只是更隐蔽：
+    ``test_every_declared_dependency_is_either_used_or_registered`` 查的是
+    **多声明**，这条查的是**漏声明**，方向相反。
+
+    这里的清单不是从 AST 自动推的 —— 测试脚手架用的是间接 import
+    （``from fastapi.testclient import TestClient`` 里看不出 httpx），
+    自动推会漏。所以显式列出「测试实际需要、但不是被直接 import 的包」。
+    """
+    dev = _parse_requirement_lines(
+        (REPO / "requirements-dev.txt").read_text(encoding="utf-8")
+    )
+    #: 间接依赖，但缺了整个测试套件跑不起来。
+    required_scaffolding = {
+        "httpx": "fastapi.testclient / starlette.testclient 需要它",
+    }
+    missing = [
+        f"{name}（{why}）"
+        for name, why in required_scaffolding.items()
+        if name not in dev
+    ]
+    assert not missing, (
+        "以下测试脚手架依赖未在 requirements-dev.txt 中声明：\n  "
+        + "\n  ".join(missing)
+    )
+
+
 def test_dev_file_includes_the_runtime_list():
     """dev 清单必须 ``-r requirements.txt``，而不是重抄一份。
 

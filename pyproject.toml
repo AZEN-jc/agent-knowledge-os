@@ -31,6 +31,15 @@ dependencies = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+filterwarnings = [
+  # starlette 1.9 起提示「改用 httpx2」。这里显式选 httpx：它是 Encode 维护的
+  # 成熟包，而 httpx2 来源未核实 —— 测试脚手架的依赖不该拿供应链去赌。
+  # 保留这条过滤而不是装 httpx2，是为了让「我们知情且选了旧路」写在明处：
+  # 哪天 starlette 真的移除 httpx 支持，报的是 RuntimeError 而不是这条警告。
+  # 注意类别是 UserWarning 不是 DeprecationWarning —— starlette 的
+  # StarletteDeprecationWarning 继承 UserWarning，写错类别这条过滤不会生效。
+  "ignore:Using `httpx` with `starlette.testclient` is deprecated:UserWarning",
+]
 
 [tool.ruff]
 line-length = 100

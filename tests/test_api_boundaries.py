@@ -141,8 +141,13 @@ def test_year_is_constrained_at_the_request_model():
     「公历年不能大于9997」而不是「出生日期时间无效：year 10000 is out of
     range」那种中文前缀接英文内部信息的混合体。
 
-    边界值 2 与 9997 是**扫出来的**，不是按常识填的：引擎在 year=1 与
-    year=9998/9999 上都会失败。第一版这里写的是 1 与 9999，两头都错。
+    边界值 2 与 9997 是**策略选择**（全路径可用区间），不是引擎上限 ——
+    Phase 3.1 修好历法换算后引擎已支持 1–9999，两端各有一个窄窗口走不通，
+    详见 :func:`test_year_bounds_match_the_engine` 的说明。
+
+    第一版这里写的是 1 与 9999，两头都错：year=1 与 year=9999 本身就是
+    失败年（引擎内部 +1 后越界，9998 也挂）。是「边界内年份应可用」
+    那条测试逮到的。
     """
     from api.server import BirthRequest
 
@@ -250,29 +255,61 @@ def test_question_length_is_bounded():
     assert "过长" in response.json()["detail"]
 
 
-def test_engine_failure_years_get_a_chinese_framed_error():
-    """引擎在 6 个夹在区间中部的年份上抛英文，API 必须包一层中文。
+def test_formerly_broken_engine_years_now_work():
+    """引擎修好的 6 个年份，对外必须返回 200 而不是中文框架包着的错误。
 
-    这 6 年（899–901 与 999–1001）是 **Phase 3.1 的待修缺陷**，本测试不假装
-    它不存在，只钉住「对外不出现裸英文」这一条。最误导的一例：1000 年
-    2 月 1 日（合法日期）报 ``"day is out of range for month"``，
-    用户只会以为自已的日期填错了。
+    这 6 年（899–901、999–1001）此前是 **Phase 2 记录在案的缺陷**：
+    sxtwl 对 1582 年前返回儒略历，900 与 1000 在儒略历是闰年，
+    于是给出 2 月 29 日；公历里这两年都不是闰年，``datetime(900, 2, 29)``
+    直接抛 ``ValueError: day is out of range for month``，而 API 只能用
+    「排盘失败：…」包一层中文。
 
-    边界上的 1 / 9998 / 9999 不在这里测 —— 它们已被 ``ge=2, le=9997``
-    在请求模型层拦掉，见 :func:`test_year_bounds_match_the_engine`。
+    Phase 3.1 修了根因（改走 :func:`engines.bazi.jieqi._jd_to_gregorian`），
+    所以这条测试从「钉住缺陷」翻成「验收修复」。
+
+    **这条测试以前叫** ``test_engine_failure_years_get_a_chinese_framed_error``，
+    断言的是这 6 年返回 422 + 中文框架。修好之后它如预期变红 —— 那正是
+    「已知缺陷的闹钟」该有的行为。现在改为断言 200。
     """
-    from api.server import ENGINE_FAILURE_YEARS
-
-    assert ENGINE_FAILURE_YEARS == (899, 900, 901, 999, 1000, 1001)
-    for year in ENGINE_FAILURE_YEARS:
+    for year in (899, 900, 901, 999, 1000, 1001):
         response = client.post("/api/chart", json={**BIRTH, "year": year})
+        assert response.status_code == 200, (
+            f"year={year} 应已修复，实得 {response.status_code}："
+            f"{response.text[:120]}"
+        )
+        assert response.json()["pillars"], f"year={year} 应排出四柱"
 
-        assert response.status_code == 422, f"year={year} 应被拒"
-        detail = response.json()["detail"]
-        assert CJK.search(detail), f"year={year} 的 detail 不是中文：{detail!r}"
-        assert "排盘失败" in detail, f"year={year} 的 detail 缺中文框架：{detail!r}"
-        # 引擎原文保留在框架后面 —— 排查需要它，隐瞒比显示更难查。
-        assert "排盘失败：" in detail
+
+def test_the_fix_is_verified_against_an_independent_calendar_baseline():
+    """修复的可信度来自独立基准，不是「跑通了」。
+
+    真正的验证在 ``tests/test_jieqi_calendar.py``：把我们的公历换算与
+    sxtwl 的儒略标签之差，逐项对上**史料上的儒略→公历修正量表**
+    （1582 年 +10 天、1500 年 +9 天、…、1583 年起 0 天）。
+    那条基准不依赖本项目的任何一行代码。
+
+    这里只做接口层的最小确认：修好之后，同一个儒略日经两条路换算
+    必须落在同一个绝对时刻上。
+    """
+    import datetime as dt
+
+    import sxtwl
+
+    from engines.bazi.jieqi import _jd_to_gregorian
+
+    entry = sxtwl.getJieQiByYear(1500)[0]  # 立春，修正量 +9 天
+    julian = sxtwl.JD2DD(entry.jd)
+    gregorian = _jd_to_gregorian(entry.jd)
+
+    julian_instant = dt.datetime(
+        int(julian.Y), int(julian.M), int(julian.D),
+        int(julian.h), int(julian.m), int(julian.s),
+    )
+    gregorian_instant = dt.datetime(
+        gregorian[0], gregorian[1], gregorian[2], gregorian[3], gregorian[4], gregorian[5]
+    )
+    # 同一个儒略日：两个标签必须相差正好 9 天（1500 年的修正量）。
+    assert (gregorian_instant - julian_instant).days == 9
 
 
 def test_valid_years_inside_the_supported_range_still_work():
@@ -288,11 +325,21 @@ def test_valid_years_inside_the_supported_range_still_work():
 
 
 def test_year_bounds_match_the_engine():
-    """``year`` 的 ge/le 必须等于引擎实测的可用边界。
+    """``year`` 的 ``ge=2, le=9997`` 是**策略边界**，等于引擎全路径可用区间。
 
-    这条钉的是**上一轮犯过的错**：第一版写的是 ``ge=1, le=9999``，两头都错 ——
-    year=1 与 year=9999 本身就是失败年（引擎内部 +1 后越界，9998 也挂）。
-    是「边界内年份应可用」那条测出来的：9999 返回 422。
+    Phase 3.1 修好节气历法换算之后，引擎实际已支持 1–9999 年（此前 899–901
+    与 999–1001 共 6 年会崩）。但区间两端各有一个**窄窗口**走不通：
+
+    - **第 1 年小寒之前**（约 1 月 5 日前）：前一个「节」落在第 0 年，
+      ``datetime`` 表示不了，报 `找不到 … 之前的节气`。
+    - **第 9999 年小寒之后**（9999-12-31 21:14 后）：后一个「节」落在第 10000
+      年，同上。只影响需要「之后」的路径（大运起运年龄），排盘本身不受影响。
+
+    这两个窗口是**日期相关**的，没法用 ``ge``/``le`` 表达。所以这里取
+    「每一条路径都能走通」的区间作为公开契约，而不是引擎的理论上限。
+
+    若哪天要放宽，先看清楚这两个窗口的报错是否可接受 —— 目前它们是清晰的中文
+    说明，见 :func:`test_boundary_windows_fail_with_a_readable_reason`。
     """
     for year, expected in ((2, 200), (9997, 200), (1, 422), (9998, 422), (9999, 422)):
         response = client.post("/api/chart", json={**BIRTH, "year": year})
@@ -300,6 +347,29 @@ def test_year_bounds_match_the_engine():
             f"year={year} 应为 {expected}，实得 {response.status_code}："
             f"{response.text[:100]}"
         )
+
+
+def test_boundary_windows_fail_with_a_readable_reason():
+    """策略边界外的窄窗口，报错必须说清原因而不是英文内部错误。
+
+    这两个窗口放不进 ``ge``/``le``（日期相关），所以一旦有人放宽边界，
+    这两条就是安全网：它们确认失败时给出的是人能读懂的中文。
+    """
+    # 第 1 年小寒之前：前一个节在第 0 年。
+    response = client.post("/api/chart", json={**BIRTH, "year": 1, "month": 1, "day": 1})
+    assert response.status_code == 422  # 被 ge=2 拦在模型层
+    assert "公历年不能小于2" in response.json()["detail"]
+
+    # 放开边界后的真实表现（绕过模型层，直接打服务层）。
+    from runtime.mingli_service import MingLiService
+
+    service = MingLiService()
+    try:
+        service.analyze({"year": 1, "month": 1, "day": 1, "hour": 12}, "事业")
+    except RuntimeError as exc:
+        assert "之前的节气" in str(exc), f"报错不可读：{exc}"
+    else:
+        raise AssertionError("第 1 年小寒之前应当报错")
 
 
 def test_blank_topic_fails_as_a_topic_not_as_a_request():
