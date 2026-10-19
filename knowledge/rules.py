@@ -14,6 +14,9 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+import re
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -22,6 +25,15 @@ from knowledge.provenance import Citation, ReviewStatus, SourceTier
 from knowledge.schools import SchoolRegistry
 
 VALID_CONFIDENCE = {"LOW", "MEDIUM", "HIGH"}
+
+VERSION_PATTERN = re.compile(r"^\d+(?:\.\d+)*$")
+"""规则版本号的形态：``1`` / ``2`` / ``1.3``。
+
+**为什么版本号要收口。** ``version`` 之前是裸的 ``str = "1"``，什么都不校验：
+空串、``"v2 final"``、``"第二版"`` 都能过。而版本号会被写进证据链与报告 ——
+「这份报告用的是哪一版规则」是事后复核的唯一抓手。格式不收口，就没法按版本
+比对两次分析的差异，也没法在升级时判断「这条规则改没改」。
+"""
 
 VALID_POLARITY = {"positive", "negative", "neutral"}
 """断语的倾向。
@@ -46,10 +58,21 @@ def condition_holds(actual: Any, expected: Any) -> bool:
     没有这个写法，「寅午戌月俱吉」就得拆成三条规则。三条规则会各自命中、
     各自出一段结论，读者看到的是同一句话重复三遍，而不是一个集合；
     更要紧的是第三条一旦漏录，集合就少一块而不报错。
+
+    **两边都是容器时按「有交集」判断**（Phase 3.3 修正）。此前第一分支先命中，
+    于是 ``condition_holds(("六合", "六冲"), ["六合", "六冲"])`` 变成
+    「这个列表是不是元组里的一个元素」→ ``False``。而这条规则的语义明明是
+    「命盘有这两类关系中的任意一种」，命盘恰好两类都有时反而不命中 ——
+    静默失效，不报错、不告警，只是少了一条结论。
     """
-    if isinstance(actual, (list, tuple, set, frozenset)):
+    actual_is_many = isinstance(actual, (list, tuple, set, frozenset))
+    expected_is_many = isinstance(expected, (list, tuple, set, frozenset))
+    if actual_is_many and expected_is_many:
+        # 两侧都是集合语义：只要有一项对得上即成立。
+        return bool(set(actual) & set(expected))
+    if actual_is_many:
         return expected in actual
-    if isinstance(expected, (list, tuple, set, frozenset)):
+    if expected_is_many:
         return actual in expected
     return actual == expected
 
@@ -97,6 +120,12 @@ class Rule:
             raise ValueError(f"规则 {self.id} 的 polarity 非法：{self.polarity}")
         if any(not str(word).strip() for word in self.keywords):
             raise ValueError(f"规则 {self.id} 的 keywords 含空串。")
+        if not VERSION_PATTERN.match(self.version):
+            raise ValueError(
+                f"规则 {self.id} 的 version 非法：{self.version!r}。"
+                "只接受非空的数字或点分数字（如 1 / 2 / 1.3）—— 版本号会被写进"
+                "证据链与报告，格式不收口就无法按版本比对两次分析的差异。"
+            )
         if not self.condition:
             raise ValueError(f"规则 {self.id} 必须有 condition。")
         if any(not str(key).strip() for key in self.condition):
@@ -412,6 +441,25 @@ class RuleRegistry:
         unknown = sorted({rule.topic for rule in self._rules.values()} - set(known))
         if unknown:
             raise ValueError(f"规则库引用了未登记的主题：{'、'.join(unknown)}")
+
+    def fingerprint(self) -> str:
+        """规则库内容的指纹：任何一条规则改动都会让它变。
+
+        **为什么需要它。** 每条规则自带 ``version``，但那是**单条**的版本号，
+        说明不了「这次分析用的是哪一批规则」。两次分析结论不同时，第一个要排除
+        的可能就是「规则库变了」—— 没有指纹，只能靠人去 diff 八十多条规则。
+
+        口径：按规则 id 排序后，对 ``to_dict()`` 的规范化 JSON 取 sha256 前 16 位。
+        排序是必须的 —— 字典插入顺序随注册顺序变，不排序会得到「内容一样、
+        指纹不同」的假差异。``to_dict()`` 而不是手写字段清单：后者每加一个字段
+        就要同步改一次，漏改的后果是指纹对某些改动不敏感（看起来没变，其实变了）。
+        """
+        payload = [
+            json.dumps(rule.to_dict(), sort_keys=True, ensure_ascii=False, default=str)
+            for rule in sorted(self._rules.values(), key=lambda item: item.id)
+        ]
+        digest = hashlib.sha256("\n".join(payload).encode("utf-8")).hexdigest()
+        return digest[:16]
 
     def stats(self) -> dict[str, Any]:
         rules = tuple(self._rules.values())
