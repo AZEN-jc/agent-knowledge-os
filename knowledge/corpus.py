@@ -238,6 +238,14 @@ class Corpus:
                 continue
             text = path.read_text(encoding="utf-8")
             actual = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            # 字数先于哈希检查：两者都不对时，报「字数不符」比报「哈希不符」更
+            # 接近真相（哈希不符只说明变了，字数说明变了多少）。但哈希才是
+            # 硬判据 —— 字数对、哈希错仍然要拦。
+            if len(text) != entry.text_chars:
+                issues.append(
+                    f"{entry.path}：字数与 manifest 不符"
+                    f"（声明 {entry.text_chars}，实际 {len(text)}）"
+                )
             if actual != entry.text_sha256:
                 issues.append(
                     f"{entry.path}：内容与 manifest 不符"
@@ -379,4 +387,25 @@ def load_corpus(root: Path | None = None, repo_root: Path | None = None) -> Corp
         )
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     entries = tuple(CorpusEntry.from_dict(item) for item in payload.get("entries", []))
+    _reject_ambiguous_urns(entries)
     return Corpus(base, entries, repo)
+
+
+def _reject_ambiguous_urns(entries: tuple[CorpusEntry, ...]) -> None:
+    """拒绝四段键重复的 manifest。
+
+    ``entry_for_urn`` 按 system + edition + version + juan 四段匹配，**返回第一条**。
+    两条目共用同一个四段键时，第二条永远取不到 —— 引文可能被核对到另一份文本上，
+    而调用方拿到的 URN、书名、版本看起来全都正常。这种错不报、不崩，
+    只会让「逐字核对」悄悄核错了对象，所以在装载时就拒绝。
+    """
+    seen: dict[tuple[str, str, str, str], str] = {}
+    for entry in entries:
+        key = (entry.system, entry.edition_code, entry.version_code, entry.juan)
+        if key in seen:
+            raise CorpusError(
+                f"manifest 里有两卷共用同一个 URN 四段键 {key}："
+                f"{seen[key]} 与 {entry.corpus_id}。"
+                "URN 反查只会命中第一条，第二条的引文会被核到另一份文本上。"
+            )
+        seen[key] = entry.corpus_id

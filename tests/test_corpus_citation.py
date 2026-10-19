@@ -460,6 +460,10 @@ def test_a_collation_entry_is_not_chapter_checked(tmp_path) -> None:
                 path="juan8_collation.txt",
                 role="collation",
                 text_sha256=COLLATION.text_sha256,
+                # 字数也要跟着换：条目其余字段是从**底本**抄来的，只改 path 与
+                # 哈希的话，Phase 3.4 新加的「字数与 manifest 不符」会先报一条 ——
+                # 那是这份测试夹具自己不自洽，不是被测门禁的问题。
+                text_chars=COLLATION.text_chars,
             ),
         ),
         tmp_path,
