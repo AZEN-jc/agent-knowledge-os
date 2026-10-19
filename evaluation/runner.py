@@ -53,6 +53,14 @@ from runtime.mingli_service import MingLiService
 #: 规则，应如实披露 base_only）、命局（有典籍层规则）。
 TOPICS = ("结构", "事业", "命局")
 
+#: ``--extended`` 时额外扫的年份。**为什么要跨到 1 与 9997**：
+#: 金标准案例全在 1990 年之后，群体行为（证据链、强度、可复现）在极端年份上
+#: 从未被评过。Phase 3.1 修历法之前，1、899–901、999–1001、9998–9999 这些
+#: 年份会直接崩 —— 而评估器当时只跑现代年份，完全看不见。
+#:
+#: 取样点刻意包含改历前后（1582/1583）与几个曾被判定为失败年的年份。
+RANGE_SAMPLE_YEARS = (2, 500, 900, 1000, 1200, 1500, 1582, 1583, 1700, 1900, 2100, 2500, 5000, 9997)
+
 
 @dataclass(frozen=True)
 class Invariant:
@@ -129,36 +137,54 @@ def _birth_of(case) -> dict[str, Any]:
     return data
 
 
-def evaluate(service: MingLiService | None = None) -> EvaluationSummary:
-    """跑全部案例，逐个检查不变量。"""
+def evaluate(service: MingLiService | None = None, *, extended: bool = False) -> EvaluationSummary:
+    """跑全部案例，逐个检查不变量。
+
+    ``extended=True`` 时追加 :data:`RANGE_SAMPLE_YEARS` 的跨年代样本。
+    默认关闭，因为 CI 门禁的语义是「金标准案例全部通过」，把取样点混进去会让
+    「30/30」这个数字的含义变得含糊 —— 扩样是**额外的**检查，不是替换。
+    """
     active = service if service is not None else MingLiService()
     results: list[EvaluationResult] = []
 
-    for case in GOLDEN_CASES:
-        birth = _birth_of(case)
-        for topic in TOPICS:
-            label = f"{case.case_id}·{topic}"
-            try:
-                payload = active.analyze(birth, topic).to_dict()
-            except Exception as exc:  # 异常也是评估结果，如实带回
-                results.append(EvaluationResult(label, False, "全部不变量成立", None, str(exc)))
-                continue
+    cases: list[tuple[str, dict[str, Any], str]] = [
+        (case.case_id, _birth_of(case), topic)
+        for case in GOLDEN_CASES
+        for topic in TOPICS
+    ]
+    if extended:
+        cases.extend(
+            (
+                f"range{year}",
+                {"year": year, "month": 6, "day": 15, "hour": 12},
+                "结构",
+            )
+            for year in RANGE_SAMPLE_YEARS
+        )
 
-            failures = [f"{item.name}（{reason}）"
-                        for item in INVARIANTS
-                        if (reason := item.check(payload))]
+    for label_id, birth, topic in cases:
+        label = f"{label_id}·{topic}"
+        try:
+            payload = active.analyze(birth, topic).to_dict()
+        except Exception as exc:  # 异常也是评估结果，如实带回
+            results.append(EvaluationResult(label, False, "全部不变量成立", None, str(exc)))
+            continue
 
-            # 可复现性单独跑一次：它需要第二次调用，其余不变量只看第一次结果。
-            again = active.analyze(birth, topic).to_dict()
-            if again != payload:
-                failures.append(f"{REPRODUCIBILITY.name}（同一输入两次结果不同）")
+        failures = [f"{item.name}（{reason}）"
+                    for item in INVARIANTS
+                    if (reason := item.check(payload))]
 
-            results.append(EvaluationResult(
-                case_id=label,
-                passed=not failures,
-                expected="全部不变量成立",
-                actual="全部成立" if not failures else "；".join(failures),
-            ))
+        # 可复现性单独跑一次：它需要第二次调用，其余不变量只看第一次结果。
+        again = active.analyze(birth, topic).to_dict()
+        if again != payload:
+            failures.append(f"{REPRODUCIBILITY.name}（同一输入两次结果不同）")
+
+        results.append(EvaluationResult(
+            case_id=label,
+            passed=not failures,
+            expected="全部不变量成立",
+            actual="全部成立" if not failures else "；".join(failures),
+        ))
 
     return summarize(results)
 
@@ -187,15 +213,21 @@ def render(summary: EvaluationSummary) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--json", action="store_true", help="输出机器可读结果")
+    parser.add_argument(
+        "--extended",
+        action="store_true",
+        help=f"追加跨年代样本（{len(RANGE_SAMPLE_YEARS)} 个年份），默认只跑金标准案例",
+    )
     args = parser.parse_args()
 
-    summary = evaluate()
+    summary = evaluate(extended=args.extended)
     if args.json:
         print(json.dumps({
             "total": summary.total,
             "passed": summary.passed,
             "failed": summary.failed,
             "accuracy": summary.accuracy,
+            "extended": args.extended,
             "failures": [
                 {"case_id": result.case_id, "detail": result.actual}
                 for result in summary.results if not result.passed

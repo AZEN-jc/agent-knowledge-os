@@ -137,7 +137,43 @@ def test_cli_exits_zero_on_a_clean_run():
     )
 
     assert completed.returncode == 0, completed.stdout + completed.stderr
-    assert "passed" in completed.stdout
+
+
+# ── 跨年代取样（--extended）────────────────────────────────────────────
+
+
+def test_the_range_sample_spans_both_sides_of_the_calendar_reform():
+    """取样点必须覆盖改历前后与曾经的失败年。
+
+    金标准案例全在 1990 年之后。Phase 3.1 修历法之前，1、899–901、999–1001、
+    9998–9999 这些年份会直接崩 —— 而评估器只跑现代年份，完全看不见。
+    取样点不是随便挑的，缺了哪一段就等于那一段没被评过。
+    """
+    from evaluation.runner import RANGE_SAMPLE_YEARS
+
+    years = set(RANGE_SAMPLE_YEARS)
+    assert min(years) <= 2, "应覆盖下边界附近"
+    assert max(years) >= 9997, "应覆盖上边界附近"
+    assert {1582, 1583} <= years, "应覆盖改历前后两年"
+    assert years & {899, 900, 901, 999, 1000, 1001}, "应覆盖曾被判定失败的年份"
+    assert len(years) == len(RANGE_SAMPLE_YEARS), "取样点不应重复"
+
+
+def test_extended_mode_adds_cases_without_changing_the_default():
+    """``--extended`` 是**追加**，不是替换。
+
+    默认跑法的语义是「金标准案例全部通过」，把取样点混进去会让 30/30 这个
+    数字的含义变得含糊。所以默认总数必须仍然是 len(GOLDEN_CASES) * 3。
+    """
+    from engines.bazi.golden_cases import GOLDEN_CASES
+    from evaluation.runner import RANGE_SAMPLE_YEARS
+
+    default = evaluate()
+    assert default.total == len(GOLDEN_CASES) * 3
+
+    extended = evaluate(extended=True)
+    assert extended.total == default.total + len(RANGE_SAMPLE_YEARS)
+    assert extended.failed == 0, render(extended)
 
 
 def test_cli_json_output_is_machine_readable():

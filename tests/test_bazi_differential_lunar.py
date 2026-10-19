@@ -21,6 +21,7 @@ import pytest
 from lunar_python import Solar
 
 from engines.bazi import BirthInput, SxtwlBaziProvider
+from engines.bazi.jieqi import jie_terms_in
 
 PROVIDER = SxtwlBaziProvider()
 ROLLING_PROVIDER = SxtwlBaziProvider(late_zi_policy="roll")
@@ -30,6 +31,19 @@ ROLLING_PROVIDER = SxtwlBaziProvider(late_zi_policy="roll")
 DST_YEARS = frozenset(range(1986, 1992))
 
 DIFFERENTIAL_YEARS = [1975, 1985, 1995, 2005, 2024]
+
+#: 1582 年格里高利改历之前的年份。**只比日柱**，见下面两条测试。
+PRE_GREGORIAN_YEARS = [900, 1000, 1500]
+
+
+def julian_gregorian_offset(year: int) -> int:
+    """该年儒略历日期比前推格里高利历日期**早**多少天。
+
+    公式 ``year//100 - year//400 - 2``：每百年少一个闰日，每四百年补回一个。
+    公元 900 年为 5 天，1500 年为 10 天 —— 与史实修正表一致。
+    """
+    return year // 100 - year // 400 - 2
+
 
 
 def ours(year: int, month: int, day: int, hour: int, minute: int = 0, *, roll: bool = False):
@@ -120,3 +134,53 @@ def test_dst_era_divergence_is_known_and_explained():
     assert theirs(1990, 6, 6, 7)[1] == "壬午"
     # 钟面再往后一小时，两套实现重新一致
     assert ours(1990, 6, 6, 8)[1] == theirs(1990, 6, 6, 8)[1] == "壬午"
+
+
+# ── 1582 年改历之前：日柱可比，月柱不可比 ────────────────────────────
+
+
+@pytest.mark.parametrize("year", PRE_GREGORIAN_YEARS)
+def test_day_pillar_agrees_before_the_gregorian_reform(year):
+    """改历之前日柱仍然逐日一致。
+
+    日柱是连续干支计数，与「这一天被标成哪个日期」无关 —— 所以哪怕两套实现
+    用不同历法标注同一天，日柱也必须相同。这一条是改历前唯一的强交叉验证。
+    """
+    mismatches = []
+    current = date(year, 1, 1)
+    while current.year == year:
+        mine = ours(current.year, current.month, current.day, 12)[2]
+        reference = theirs(current.year, current.month, current.day, 12)[2]
+        if mine != reference:
+            mismatches.append((current.isoformat(), mine, reference))
+        current += timedelta(days=1)
+
+    assert mismatches == [], f"{year} 年日柱有 {len(mismatches)} 天不一致：{mismatches[:3]}"
+
+
+@pytest.mark.parametrize("year", PRE_GREGORIAN_YEARS)
+def test_month_pillar_diverges_by_exactly_the_calendar_offset(year):
+    """改历之前月柱**会**不一致，而且差值必须正好是历法偏移。
+
+    **这不是 bug，是两套实现把同一个时刻标在了不同日历上。** 实测：
+    公元 900 年的小寒，两边给出的时刻都是 06:21（同一瞬间），
+    但 lunar-python 标成 ``0900-01-01``（儒略历日期），我们标成
+    ``0900-01-06``（前推格里高利历日期）—— 差 5 天，正好等于 900 年的
+    儒略/格里高利偏移。
+
+    所以这条测试验两件事：① 同一事件的**时刻**一致（差值只有日期，没有时分）；
+    ② 日期差恰好等于 :func:`julian_gregorian_offset`。差值若变成别的数字，
+    说明其中一套实现的节气算法真的算错了，而不只是标注口径不同。
+    """
+    terms = {term.name: term for term in jie_terms_in((year - 1,))}
+    xiaohan = terms["小寒"]
+
+    lunar = Solar.fromYmdHms(year, 6, 15, 12, 0, 0).getLunar()
+    reference = lunar.getJieQiTable()["小寒"]
+    ref_date = date(reference.getYear(), reference.getMonth(), reference.getDay())
+
+    assert xiaohan.moment.date() > ref_date, "我们的日期应更晚（格里高利在前推时超前）"
+    assert (xiaohan.moment.date() - ref_date).days == julian_gregorian_offset(year)
+    # 时刻一致：同一瞬间，只是日期标注不同。
+    assert xiaohan.moment.hour == reference.getHour()
+    assert abs(xiaohan.moment.minute - reference.getMinute()) <= 1
