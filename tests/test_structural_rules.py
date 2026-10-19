@@ -24,6 +24,26 @@ PROVIDER = SxtwlBaziProvider()
 PHASE_TWO_MINIMUM_RULES = 50
 """MINGLI_PLAN.md Phase 2 验收标准 1：至少 50 条规则录入。"""
 
+#: 结构上可能缺席的事实键：只有命盘确实存在该结构时才产出。
+#:
+#: 为什么提到模块级：``tests/test_fact_consistency.py`` 也要用同一份清单
+#: （它那边断言「其余键必须每张盘都产出」）。两份清单各写一遍就会漂 ——
+#: 一处加了新键、另一处没加，同一条事实在一份测试里算「必须产出」、
+#: 在另一份里算「允许缺席」，两边都不报错。所以那边会断言两份完全相等。
+STRUCTURAL_ABSENCE: frozenset[str] = frozenset({
+    "has_relation",
+    "repeated_branches",
+    "ten_god_with_root",
+    "ten_god_without_root",
+    "dominant_elements",
+    "missing_elements",
+    # 时间轴的关系类键同理：流年/大运支与该盘四支没有关系时不产出。
+    "liunian_relations",
+    "liunian_relation_pairs",
+    "dayun_relations",
+    "dayun_relation_pairs",
+})
+
 
 def matched_rule_ids(year: int, month: int, day: int, hour: int) -> set[str]:
     chart = PROVIDER.calculate(BirthInput(year, month, day, hour))
@@ -364,12 +384,7 @@ def test_fact_schema_and_extractor_stay_in_sync():
     assert produced <= declared, f"提取器产出了词表里没有的键：{sorted(produced - declared)}"
 
     # 只允许「结构上可能缺席」的键缺席：地支关系只在命盘真有该关系时产出。
-    structural_absence = {
-        key for key in declared
-        if key.endswith("_relations") or key.endswith("_relation_pairs")
-        or key in ("has_relation", "repeated_branches", "ten_god_with_root",
-                   "ten_god_without_root", "dominant_elements", "missing_elements")
-    }
+    structural_absence = STRUCTURAL_ABSENCE
     absent = declared - produced
     assert absent <= structural_absence, (
         f"词表声明了但没有任何产出方的键：{sorted(absent - structural_absence)}。"

@@ -107,14 +107,95 @@ FACT_SCHEMA: dict[str, str] = {
 class Fact:
     """一条命盘事实。
 
-    ``source`` 必须形如 ``chart.xxx`` —— 它是证据链回溯到命盘要素的最后一跳。
-    没有它，用户只能看到「规则要求正官」，看不到「正官来自月支藏干」。
+    ``source`` 是证据链回溯到命盘要素的最后一跳。没有它，用户只能看到
+    「规则要求正官」，看不到「正官来自月支藏干」。
+
+    **``source`` 的完整文法**（此前只写了「必须形如 chart.xxx」，而实际用到
+    的路径比这句话复杂，导致没人能机器验证它）：
+
+    ==============================  ====================================
+    形态                             含义
+    ==============================  ====================================
+    ``chart.day_master``            命盘的日主天干
+    ``chart.pillars``               四柱元组（整体）
+    ``chart.relations``             地支关系元组
+    ``chart.pillars.<name>``        **按柱名**取那一柱（year/month/day/hour），
+                                    不是属性访问 —— ``pillars`` 是元组
+    ``chart.pillars.<name>.<attr>`` 那一柱的某个字段
+    ``chart.pillars[*].<attr>``     对四柱逐一取该字段
+    ``time.<axis>``                 时间轴事实（流年/大运）整体
+    ``time.<axis>.<field>``         时间轴那一柱的某个字段（如 ``.heavenly_stem``）
+    ==============================  ====================================
+
+    ``time.*`` 与 ``chart.*`` 是两个命名空间：流年干支不是命盘的一部分，
+    同一个人不同年份不同，所以不能挂在 Chart 上。:func:`resolve_source`
+    只解析 ``chart.*``。
     """
 
     type: str
     value: Any
     source: str
     confidence: float = 1.0
+
+
+#: ``Fact.source`` 里表示「对四柱逐一」的记号。
+WILDCARD = "[*]"
+
+
+def resolve_source(chart: Chart, source: str) -> Any:
+    """按 :class:`Fact` 文法的 ``chart.*`` 形态取值。
+
+    **为什么要有这个函数，而不是让调用方自己 ``getattr``。**
+    ``chart.pillars.year`` 看着像属性路径，但 ``pillars`` 是元组，
+    ``year`` 是柱名 —— 直接按点号拆开遍历会 ``AttributeError``。
+    文法写在 docstring 里没人能验证，写成函数才能被测试盯住，
+    也才能让证据链真的回溯到命盘要素而不是停在字符串上。
+
+    ``time.*`` 不在本函数职责内：它需要流年/大运的上下文，
+    只有产出方自己知道。传进来会抛 ``ValueError``，不静默返回 None。
+    """
+    if not source.startswith("chart."):
+        raise ValueError(f"只能解析 chart.* 来源，收到 {source!r}")
+
+    return _walk(chart, source.split(".")[1:], source)
+
+
+def _walk(node: Any, parts: list[str], source: str) -> Any:
+    """按剩余路径段逐级下钻；遇到 ``[*]`` 时对元组逐项应用后续路径。
+
+    ``[*]`` 是**挂在段尾**的（``pillars[*]``），不是独立一段 —— 真实数据里
+    写成 ``chart.pillars[*].ten_god``，按点号切出来是 ``pillars[*]``。
+    第一版实现只处理了独立成段的 ``[*]``，于是这条路径解析不了。
+    """
+    for index, part in enumerate(parts):
+        if part.endswith(WILDCARD):
+            base = part[: -len(WILDCARD)]
+            node = _walk(node, [base], source) if base else node
+            if not isinstance(node, tuple):
+                raise ValueError(f"{source!r} 里的 [*] 只能用在元组上")
+            rest = parts[index + 1:]
+            if not rest:
+                return node
+            return tuple(_walk(item, rest, source) for item in node)
+
+        if part == WILDCARD:  # 独立成段的写法，保留兼容
+            if not isinstance(node, tuple):
+                raise ValueError(f"{source!r} 里的 [*] 只能用在元组上")
+            rest = parts[index + 1:]
+            return node if not rest else tuple(_walk(item, rest, source) for item in node)
+
+        if isinstance(node, tuple):
+            # 元组上只有一种走法：按柱名取那一柱。
+            names = {item.name for item in node if hasattr(item, "name")}
+            if part not in names:
+                raise ValueError(f"{source!r} 在元组上无法解析 {part!r}")
+            node = next(item for item in node if getattr(item, "name", None) == part)
+            continue
+
+        if not hasattr(node, part):
+            raise ValueError(f"{source!r} 在 {type(node).__name__} 上取不到 {part!r}")
+        node = getattr(node, part)
+    return node
 
 
 def extract_facts(chart: Chart) -> tuple[Fact, ...]:
