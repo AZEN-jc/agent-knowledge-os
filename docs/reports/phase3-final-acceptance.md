@@ -6,7 +6,8 @@
 | 项 | 值 |
 |---|---|
 | 起始 SHA（Phase 2 结束） | `012de3f` |
-| 结束 SHA | `a5b5fc5` |
+| 结束 SHA（Phase 3 工作） | `a5b5fc5` |
+| 分支最终 HEAD（含回填） | `84ddb43` |
 | `master` / `origin/master` | `f108040`，**全程未动** |
 
 本轮八个提交，一个子阶段一个：
@@ -291,7 +292,9 @@ ruff check . && mypy .                      # 均应 exit 0
 012de3f..a5b5fc5  hardening/mingli-v1 -> hardening/mingli-v1
 ```
 
-远端 `refs/heads/hardening/mingli-v1` = `a5b5fc5`，与本地 HEAD 一致。
+本节的回填本身也是一次提交（`84ddb43`），已推送并同样通过 CI。
+所以：**Phase 3 工作的结束 SHA 是 `a5b5fc5`，分支最终 HEAD 是 `84ddb43`**，
+两个都有 success 记录。master 仍 `f108040`。
 `master` / `origin/master` 仍为 `f108040`，**全程未动**。
 
 ### 8.2 GitHub Actions
@@ -310,10 +313,11 @@ JOB: 测试 · 评估 · 静态检查 | success
 
 运行链接：https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39548733432
 
-分支上最近五次运行（含 Phase 2 尾的三次）全部 success：
+分支上最近六次运行（含 Phase 2 尾的三次）全部 success：
 
 | Run ID | SHA | 结论 |
 |---|---|---|
+| [39549498351](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39549498351) | `84ddb43` | success |
 | [39548733432](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39548733432) | `a5b5fc5` | success |
 | [39137951602](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39137951602) | `012de3f` | success |
 | [39137008379](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39137008379) | `a1d7280` | success |
