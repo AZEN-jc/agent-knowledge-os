@@ -6,7 +6,7 @@
 | 项 | 值 |
 |---|---|
 | 起始 SHA（Phase 2 结束） | `012de3f` |
-| 结束 SHA | 见 §7 |
+| 结束 SHA | `a5b5fc5` |
 | `master` / `origin/master` | `f108040`，**全程未动** |
 
 本轮八个提交，一个子阶段一个：
@@ -27,7 +27,7 @@ fcaac0c  3.2 事实来源文法可执行化、事实值与命盘字段逐项对�
 ## 1. 起始与结束 SHA
 
 起点 `012de3f`（Phase 2 总验收报告回填那次提交）。
-终点为本报告提交前的 HEAD，见 §7；推送结果与 CI 见 §8。
+终点 `a5b5fc5`（本报告自身）；推送结果与 CI 见 §8。
 
 Phase 3 期间 **未合并 master、未动 PR、未删 `mingli-split`**。
 PR #1 / PR #2 是在 Phase 2 尾（提交 `2e2462d`）经老板明确授权后关闭的，
@@ -283,7 +283,47 @@ ruff check . && mypy .                      # 均应 exit 0
 
 ## 8. 远端 CI
 
-**（推送后回填此处）**
+### 8.1 推送结果
+
+本轮**全部 9 个提交**一次推送成功（Phase 2 结束后攒的 8 个加本报告自己）：
+
+```
+012de3f..a5b5fc5  hardening/mingli-v1 -> hardening/mingli-v1
+```
+
+远端 `refs/heads/hardening/mingli-v1` = `a5b5fc5`，与本地 HEAD 一致。
+`master` / `origin/master` 仍为 `f108040`，**全程未动**。
+
+### 8.2 GitHub Actions
+
+推送触发 run `39548733432`（对应 `a5b5fc5`），**结论 success**：
+
+```
+JOB: 测试 · 评估 · 静态检查 | success
+   4. 安装依赖                  → success   ← requirements-dev.txt 可用
+   5. ruff check .              → success
+   6. pytest                    → success   ← 1204 passed
+   7. 评估门禁（行为不变量）     → success   ← 30/30
+   8. mypy .                    → success   ← 阻塞门禁，无 continue-on-error
+   9. 汇总                      → success
+```
+
+运行链接：https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39548733432
+
+分支上最近五次运行（含 Phase 2 尾的三次）全部 success：
+
+| Run ID | SHA | 结论 |
+|---|---|---|
+| [39548733432](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39548733432) | `a5b5fc5` | success |
+| [39137951602](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39137951602) | `012de3f` | success |
+| [39137008379](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39137008379) | `a1d7280` | success |
+| [39041357867](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39041357867) | `089db3d` | success |
+| [39041653405](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39041653405) | `f11be10` | success |
+
+### 8.3 收尾同步
+
+按任务书同步表 §7 首两行：**结束 SHA = `a5b5fc5`**，验收对账最后一行的
+「⏳」已在此节落定。
 
 ---
 
@@ -348,5 +388,5 @@ provider、一条契约、一个白名单都没稳定之前引入多模型，只
 | 未通过 RFC 的多流派或紫微功能不得接入 V1.0 | ✅ | RFC 结论即「都不接入」；零代码变更 |
 | 四条质量门禁 exit 0 | ✅ | §5 |
 | 生成 `phase3-final-acceptance.md` | ✅ | 本文件 |
-| 提交并推送，核验该 SHA 对应远端 CI | ⏳ | 见 §8 |
+| 提交并推送，核验该 SHA 对应远端 CI | ✅ | §8：9 个提交推送成功，run `39548733432` success |
 | 不自动进入 Phase 4 | ✅ | Phase 4 一行代码未动 |
