@@ -57,6 +57,10 @@ python -m pytest tests/ -q
 python evaluation/runner.py
 python evaluation/runner.py --json
 
+# 契约门禁（Phase 4.7）：11 个 provider 对抗场景，退出码非 0 表示有场景失守
+python evaluation/provider_conformance.py
+python evaluation/provider_conformance.py --json
+
 # 静态检查
 ruff check .
 mypy .
@@ -71,6 +75,13 @@ python -m api.server        # → http://127.0.0.1:8000
 
 Phase 2.1 已清零这 4 个存量错误，**当前 `mypy .` exit 0**，CI 里它是阻塞门禁。
 新引入的类型错误会直接让 CI 失败 —— 修它，不要用 `# type: ignore` 抹掉。
+
+**契约门禁与评估门禁是两回事。** `evaluation/runner.py` 评确定性系统在大量命盘上
+的行为不变量；`evaluation/provider_conformance.py` 评**接上模型之后红线还在不在** ——
+11 个对抗场景各演出一种典型失控（越界引用、编造出处、必然性措辞、非 JSON、
+provider 故障、预算耗尽……），断言系统确实拦住了。新增一类模型失控时，
+先加场景再修守卫；`tests/test_provider_conformance.py` 里还有两条「有牙」测试：
+撤掉守卫必须有场景变红，否则 11/11 只是装饰。
 
 ### API 边界治理（Phase 2.3）
 

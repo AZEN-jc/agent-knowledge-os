@@ -16,7 +16,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from agents.llm import LLMProvider
-from agents.mingli import MAX_REVISIONS, AnalystAgent, CriticAgent
+from agents.mingli import DEFAULT_TOKEN_BUDGET, MAX_REVISIONS, AnalystAgent, CriticAgent
 from engines.bazi import BaziCalculator, BirthInput, SxtwlBaziProvider
 from engines.bazi.models import Chart
 from engines.bazi.time_engine import ClassicalApproxDayunPolicy
@@ -103,11 +103,17 @@ class MingLiService:
         schools: SchoolRegistry | None = None,
         provider: LLMProvider | None = None,
         max_revisions: int = MAX_REVISIONS,
+        token_budget: int = DEFAULT_TOKEN_BUDGET,
     ) -> None:
         self.schools = schools if schools is not None else default_schools()
         self.registry = registry if registry is not None else build_registry(schools=self.schools)
         self.calculator = BaziCalculator(SxtwlBaziProvider())
-        self.analyst = AnalystAgent(self.registry, provider=provider, max_revisions=max_revisions)
+        self.analyst = AnalystAgent(
+            self.registry,
+            provider=provider,
+            max_revisions=max_revisions,
+            token_budget=token_budget,
+        )
         self.critic = CriticAgent()
         self.provider = provider
 
