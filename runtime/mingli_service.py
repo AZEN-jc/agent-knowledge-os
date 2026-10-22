@@ -147,6 +147,11 @@ class MingLiService:
                     "rule_fingerprint": analysis.rule_fingerprint,
                     # 空串 = 没降级；非空 = 这次没走模型，且说明了为什么。
                     "degraded_reason": analysis.degraded_reason,
+                    # 治理记账（Phase 4.6）。缓存命中不计数 —— 没调用就没花钱。
+                    "prompt_tokens": analysis.prompt_tokens,
+                    "completion_tokens": analysis.completion_tokens,
+                    "provider_calls": analysis.provider_calls,
+                    "served_from_cache": analysis.served_from_cache,
                 },
             },
             critique={"passed": critique.passed, "issues": list(critique.issues)},

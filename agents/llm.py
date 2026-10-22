@@ -48,6 +48,23 @@ class LLMRequest:
         return {"system": self.system, "user": self.user}
 
 
+def estimate_tokens(text: str) -> int:
+    """粗估一段文本的 token 数。
+
+    口径：CJK 字符每字约 1 个 token，其余每 4 字符约 1 个。
+
+    **这是估算，只用于预算决策**，不用于计费、也不用于对账。真实 token 数
+    只有 provider 知道，而我们的 provider 契约只取 ``text``（见
+    :class:`LLMProvider`），响应里没有用量字段。所以这里能承诺的只有
+    「同一段文本每次算出同一个数」以及「量级大致正确」—— 拿它做成本上限的
+    触发条件够了，拿它结账不行。
+    """
+    if not text:
+        return 0
+    cjk = sum(1 for char in text if "\u4e00" <= char <= "\u9fff")
+    return cjk + (len(text) - cjk + 3) // 4
+
+
 @runtime_checkable
 class LLMProvider(Protocol):
     """把请求变成一段文本。

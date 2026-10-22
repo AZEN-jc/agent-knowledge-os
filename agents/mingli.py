@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from agents.llm import LLMProvider, ProviderError
+from agents.llm import LLMProvider, LLMRequest, ProviderError, estimate_tokens
 from agents.prompt import (
     CERTAINTY_WORDS,
     FOOTNOTE_CLOSE,
@@ -61,6 +61,27 @@ MAX_REVISIONS = 2
 
 DRAFT_TEMPLATE = "template"
 DRAFT_LLM = "llm"
+
+DEFAULT_TOKEN_BUDGET = 30000
+"""单次分析的 token 预算上限（估算口径，见 ``agents.llm.estimate_tokens``）。
+
+实测一次首请求约 6000 token（系统提示约 470 + 证据链约 5600，证据链随
+命中规则数增长）。留出约 5 次调用的余量：``MAX_REVISIONS`` 默认 2，
+加上重写提示词本身会变长（要带上一次的输出与审查意见），最坏情况约
+3 次调用、2 万多 token。预算的意义不是省这一次，是**给失控一个硬停**：
+调用次数可以配、提示词会随证据增长，两者相乘没有上限。
+
+超预算时的处置与 provider 故障相同：降级到模板并如实记录原因。
+"""
+
+RESPONSE_CACHE_LIMIT = 256
+"""provider 响应缓存的最大条数。
+
+按 ``(system, user)`` 全量命中缓存 —— 提示词是证据链的确定性函数，
+同样的输入本该得到同样的输出，没有理由再付一次钱、再等一次网络。
+超过上限时淘汰最早插入的一条（FIFO）：缓存的目的是省重复请求，
+不是当数据库用。
+"""
 
 CONFLICT_MARKERS = ("分歧", "冲突")
 """结论里出现任一即视为已披露规则冲突。
@@ -103,6 +124,19 @@ class Analysis:
     确定性模板出稿，并把原因写在这里。**不伪装成分析成功** —— 用户看得见
     这次没走模型，也看得见为什么。
     """
+    prompt_tokens: int = 0
+    """本次分析实际消耗的提示 token（估算值）。缓存命中不计 —— 没调用就没花钱。"""
+    completion_tokens: int = 0
+    """本次分析实际消耗的输出 token（估算值）。"""
+    provider_calls: int = 0
+    """真正打到 provider 的调用次数。缓存命中不计数。"""
+    served_from_cache: bool = False
+    """结论是否来自响应缓存。
+
+    模型可能不是确定性的，同一个提示词两次调用可能得到不同输出。
+    所以缓存命中必须**看得见**：看到这个标记为 True，就知道这句话是
+    此前某一次调用的结果，不是刚刚生成的。
+    """
 
 
 @dataclass(frozen=True)
@@ -119,12 +153,21 @@ class AnalystAgent:
         registry: RuleRegistry,
         provider: LLMProvider | None = None,
         max_revisions: int = MAX_REVISIONS,
+        token_budget: int = DEFAULT_TOKEN_BUDGET,
     ) -> None:
         if max_revisions < 0:
             raise ValueError("max_revisions 不能为负数。")
+        if token_budget <= 0:
+            raise ValueError("token_budget 必须为正数。")
         self.registry = registry
         self.provider = provider
         self.max_revisions = max_revisions
+        self.token_budget = token_budget
+        # 响应缓存与它的锁。锁是必要的：analyze_multi 用线程池扇出，
+        # 多个主题会同时读写这一个 dict。CPython 的 GIL 保证单次 get/set
+        # 原子，但「淘汰最早一条」是读-改-写三步，并发下会竞态。
+        self._response_cache: dict[tuple[str, str], str] = {}
+        self._cache_lock = __import__("threading").Lock()
         # 两个指纹在构造时算一次，不放在 analyze 里 —— 规则库指纹要序列化
         # 全部规则，每次分析都算是白烧。registry 是不可变的（分析途中不增删规则），
         # 缓存它安全。
@@ -150,14 +193,28 @@ class AnalystAgent:
         return self._draft(evidence, question, critic, provider)
 
     def _template_analysis(
-        self, question: str, evidence: Evidence, degraded_reason: str = ""
+        self,
+        question: str,
+        evidence: Evidence,
+        degraded_reason: str = "",
+        *,
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        provider_calls: int = 0,
+        served_from_cache: bool = False,
     ) -> Analysis:
         """用确定性模板出稿。
 
         两条路会走到这里：**没有 provider**（本来就走模板），以及
-        **provider 故障时降级**（Phase 4.5）。抽成方法是因为这两条路必须
-        逐字段一致 —— 各写一遍的话，降级路径会悄悄少个字段，而那种偏差
-        只在故障时出现，测试稍不留神就漏过去。
+        **provider 故障 / 预算耗尽时降级**（Phase 4.5 / 4.6）。抽成方法是
+        因为这两条路必须逐字段一致 —— 各写一遍的话，降级路径会悄悄少个
+        字段，而那种偏差只在故障时出现，测试稍不留神就漏过去。
+
+        **降级必须把已经花掉的账带回去。** 第一版没有这四个参数，于是
+        「第 2 轮超预算降级」时返回的 Analysis 里 ``provider_calls=0``、
+        ``prompt_tokens=0`` —— 可第一次调用真的发生了、真的花了 6000 多
+        token。治理字段在用户最需要看成本的那一刻归零，比不报更糟：
+        它让一次真实的花费变得看不见。
         """
         conclusion = self._summarise(evidence)
         return Analysis(
@@ -169,6 +226,10 @@ class AnalystAgent:
             contract_fingerprint=self.contract_fingerprint,
             rule_fingerprint=self.rule_fingerprint,
             degraded_reason=degraded_reason,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            provider_calls=provider_calls,
+            served_from_cache=served_from_cache,
         )
 
     def _domain_rule_ids(self, evidence: Evidence) -> set[str]:
@@ -250,45 +311,90 @@ class AnalystAgent:
     ) -> Analysis:
         """provider 出稿 + 可选多轮修正。
 
-        循环的终止条件有两个：Critic 通过，或重写轮数到上限。到上限时
-        **带着未解决的问题返回**，不做「最后一次凑合放行」。
+        循环的终止条件有四个：Critic 通过、重写轮数到上限、provider 故障、
+        token 预算耗尽。后两者都**降级到模板并如实记录**，不做「最后一次
+        凑合放行」，也不把故障伪装成一次正常的模型分析。
         """
         allowed = frozenset(match.rule.id for match in evidence.matches)
         draft: Draft | None = None
         issues: tuple[str, ...] = ()
         revisions = 0
+        # 三个累加器分开：预算看**总花费**（提示+输出），报告要能分别说出
+        # 提示用了多少、输出用了多少。第一版只用一个 spent，结果
+        # prompt_tokens 把输出也算进去了 —— 那是拿一个数冒充两个数。
+        total_spent = 0
+        prompt_spent = 0
+        completion_spent = 0
+        calls = 0
+        from_cache = False
         while True:
             request = (
                 build_prompt(evidence)
                 if draft is None
                 else build_revision_prompt(evidence, draft, issues)
             )
-            try:
-                raw = provider.complete(request)
-            except ProviderError as exc:
-                # Phase 4.5：provider 故障 → 降级到确定性模板，并如实记录。
-                #
-                # 为什么降级而不是把异常抛给调用方：排盘、规则、证据链全是
-                # 确定性的，它们没坏。坏掉的只是「把证据复述成自然语言」这
-                # 一步，而模板本来就能做这件事。让用户什么都拿不到，比让他
-                # 拿到一份标明「本次未走模型」的分析更糟。
-                #
-                # 为什么只捕 ProviderError：代码 bug（比如传了个 None）
-                # 必须响亮地炸。降级会把 bug 藏成一次「故障」，那比崩溃
-                # 难查得多。
-                # draft 为 None → 这是第 1 次请求（首次出稿）。
-                # 否则 revisions 就是「第几轮重写」：revisions=1 表示刚跑完
-                # 第一轮审查、正在发第 1 次重写请求。写成 revisions + 1 会把
-                # 第 1 轮重写报成「第 2 轮」，用户按消息去找日志会对不上。
-                stage = "首次出稿" if draft is None else f"第 {revisions} 轮重写"
+            cost = estimate_tokens(request.system) + estimate_tokens(request.user)
+            if total_spent + cost > self.token_budget:
+                # Phase 4.6：预算耗尽。与 provider 故障同一套降级路径，
+                # 但原因必须说清是「花超了」而不是「连不上」—— 两者的处置
+                # 完全不同（一个是去查账单，一个是去查网络）。
                 return self._template_analysis(
                     question,
                     evidence,
                     degraded_reason=(
-                        f"{stage}时 provider「{provider.name}」不可用"
-                        f"（{provider.model}）：{exc}"
+                        f"token 预算耗尽：本次已用约 {total_spent}，"
+                        f"这一次约 {cost}，上限 {self.token_budget}。"
+                        "停止调用 provider 并降级到模板。"
                     ),
+                    prompt_tokens=prompt_spent,
+                    completion_tokens=completion_spent,
+                    provider_calls=calls,
+                    served_from_cache=from_cache,
                 )
+
+            cached = self._cached(request)
+            if cached is not None:
+                # 缓存命中：不调用、不计费，但必须让读者看得见。
+                raw = cached
+                from_cache = True
+            else:
+                try:
+                    raw = provider.complete(request)
+                except ProviderError as exc:
+                    # Phase 4.5：provider 故障 → 降级到确定性模板，并如实记录。
+                    #
+                    # 为什么降级而不是把异常抛给调用方：排盘、规则、证据链全是
+                    # 确定性的，它们没坏。坏掉的只是「把证据复述成自然语言」这
+                    # 一步，而模板本来就能做这件事。让用户什么都拿不到，比让他
+                    # 拿到一份标明「本次未走模型」的分析更糟。
+                    #
+                    # 为什么只捕 ProviderError：代码 bug（比如传了个 None）
+                    # 必须响亮地炸。降级会把 bug 藏成一次「故障」，那比崩溃
+                    # 难查得多。
+                    # draft 为 None → 这是第 1 次请求（首次出稿）。
+                    # 否则 revisions 就是「第几轮重写」：revisions=1 表示刚跑完
+                    # 第一轮审查、正在发第 1 次重写请求。写成 revisions + 1 会把
+                    # 第 1 轮重写报成「第 2 轮」，用户按消息去找日志会对不上。
+                    stage = "首次出稿" if draft is None else f"第 {revisions} 轮重写"
+                    return self._template_analysis(
+                        question,
+                        evidence,
+                        degraded_reason=(
+                            f"{stage}时 provider「{provider.name}」不可用"
+                            f"（{provider.model}）：{exc}"
+                        ),
+                        prompt_tokens=prompt_spent,
+                        completion_tokens=completion_spent,
+                        provider_calls=calls,
+                        served_from_cache=from_cache,
+                    )
+                self._remember(request, raw)
+                output = estimate_tokens(raw)
+                total_spent += cost + output
+                prompt_spent += cost
+                completion_spent += output
+                calls += 1
+
             draft = parse_draft(raw, allowed)
             analysis = Analysis(
                 question=question,
@@ -303,6 +409,10 @@ class AnalystAgent:
                 contract_violations=draft.violations,
                 contract_fingerprint=self.contract_fingerprint,
                 rule_fingerprint=self.rule_fingerprint,
+                prompt_tokens=prompt_spent,
+                completion_tokens=completion_spent,
+                provider_calls=calls,
+                served_from_cache=from_cache,
             )
             if critic is None or revisions >= self.max_revisions:
                 return analysis
@@ -311,6 +421,20 @@ class AnalystAgent:
                 return analysis
             issues = critique.issues
             revisions += 1
+
+    def _cached(self, request: LLMRequest) -> str | None:
+        """查响应缓存。键是完整的 ``(system, user)`` —— 一个字节都差就算
+        不同的请求，因为提示词的任何变化都意味着模型该重新回答。"""
+        with self._cache_lock:
+            return self._response_cache.get((request.system, request.user))
+
+    def _remember(self, request: LLMRequest, raw: str) -> None:
+        """写响应缓存，超过上限淘汰最早一条（FIFO）。"""
+        with self._cache_lock:
+            self._response_cache[(request.system, request.user)] = raw
+            while len(self._response_cache) > RESPONSE_CACHE_LIMIT:
+                oldest = next(iter(self._response_cache))
+                del self._response_cache[oldest]
 
 
 class CriticAgent:

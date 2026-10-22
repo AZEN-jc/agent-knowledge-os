@@ -326,8 +326,21 @@ class DraftResponse(BaseModel):
         default="",
         description=(
             "降级原因；空串表示未降级。非空表示本次未走模型"
-            "（provider 故障），结论由确定性模板产出"
+            "（provider 故障或 token 预算耗尽），结论由确定性模板产出"
         ),
+    )
+    prompt_tokens: int = Field(
+        default=0, ge=0, description="本次分析消耗的提示 token 数（估算值）"
+    )
+    completion_tokens: int = Field(
+        default=0, ge=0, description="本次分析消耗的输出 token 数（估算值）"
+    )
+    provider_calls: int = Field(
+        default=0, ge=0, description="真正打到 provider 的调用次数；缓存命中不计数"
+    )
+    served_from_cache: bool = Field(
+        default=False,
+        description="结论是否来自响应缓存；模型可能不确定，缓存命中必须看得见",
     )
 
 
