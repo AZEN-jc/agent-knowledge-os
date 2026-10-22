@@ -7,6 +7,7 @@
 |---|---|
 | 起始 SHA（Phase 3 结束） | `6764601` |
 | 结束 SHA（Phase 4 工作） | `3e17b49` |
+| 分支最终 HEAD（含本报告回填） | `3ed2e27` |
 | `master` / `origin/master` | `f108040`，**全程未动** |
 
 本轮八个提交，一个子阶段一个：
@@ -247,7 +248,48 @@ provider 抛 `ProviderError` 时降级到确定性模板出稿，原因写进
 
 ## 6. 远端 CI
 
-**（推送后回填此处）**
+### 6.1 推送结果
+
+本轮**全部 9 个提交**一次推送成功（8 个子阶段 + 本报告自己）：
+
+```
+6764601..3ed2e27  hardening/mingli-v1 -> hardening/mingli-v1
+```
+
+远端 `refs/heads/hardening/mingli-v1` = `3ed2e27`，与本地 HEAD 一致。
+`master` / `origin/master` 仍为 `f108040`，**全程未动**。
+
+### 6.2 GitHub Actions
+
+推送触发 run `39764528306`（对应 `3ed2e27`），**结论 success**：
+
+```
+JOB: 测试 · 评估 · 静态检查 | success
+   4. 安装依赖                        → success
+   5. ruff check .                   → success
+   6. pytest                         → success   ← 1331 passed
+   7. 评估门禁（行为不变量）          → success   ← 30/30
+   8. 契约门禁（provider 对抗场景）   → success   ← 11/11，Phase 4.7 新增
+   9. mypy .                         → success   ← 阻塞门禁
+```
+
+运行链接：https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39764528306
+
+**第 8 步是本轮新增的门禁**，它失败会直接让整个 run 变红 —— 也就是说
+「provider 契约被破坏」从「测试可能没覆盖」变成了 CI 事实上的拦截项。
+
+分支上最近三次运行全部 success：
+
+| Run ID | SHA | 结论 |
+|---|---|---|
+| [39764528306](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39764528306) | `3ed2e27` | success |
+| [39549874384](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39549874384) | `6764601` | success |
+| [39549498351](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39549498351) | `84ddb43` | success |
+
+### 6.3 两个 SHA 的说明
+
+**Phase 4 工作的结束 SHA 是 `3e17b49`**（4.8 提交）；本节的回填本身也是
+一次提交（`3ed2e27`），同样通过 CI。与 Phase 3 报告同一约定。
 
 ---
 
@@ -341,5 +383,5 @@ Phase 5 的主题是产品体验。按当前系统的形状，建议顺序：
 | 不把 Provider 失败伪装成分析成功 | ✅ | 4.5 降级明示 + 4.7 `provider_unreachable` 场景 |
 | 四条质量门禁 exit 0 | ✅ | §4：五道全 0 |
 | 生成 `phase4-final-acceptance.md` | ✅ | 本文件 |
-| 提交并推送，核验该 SHA 对应远端 CI | ⏳ | 见 §6 |
+| 提交并推送，核验该 SHA 对应远端 CI | ✅ | §6：9 个提交推送成功，run `39764528306` success，含新增契约门禁 |
 | 不自动进入 Phase 5 | ✅ | Phase 5 一行代码未动 |
