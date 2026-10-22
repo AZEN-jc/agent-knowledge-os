@@ -7,7 +7,7 @@
 |---|---|
 | 起始 SHA（Phase 3 结束） | `6764601` |
 | 结束 SHA（Phase 4 工作） | `3e17b49` |
-| 分支最终 HEAD（含本报告回填） | `3ed2e27` |
+| 分支 HEAD（本报告写就时） | `e25621a` |
 | `master` / `origin/master` | `f108040`，**全程未动** |
 
 本轮八个提交，一个子阶段一个：
@@ -291,9 +291,22 @@ JOB: 测试 · 评估 · 静态检查 | success
 **Phase 4 工作的结束 SHA 是 `3e17b49`**（4.8 提交）；本节的回填本身也是
 一次提交（`3ed2e27`），同样通过 CI。与 Phase 3 报告同一约定。
 
-分支最终 HEAD 为 `19babd0`（回填提交），对应 run `39764961129`，同样
-success。所以：**Phase 4 工作结束于 `3e17b49`，分支最终 HEAD 是
-`19babd0`**，两个 SHA 都有 success 记录。
+分支最终 HEAD（本报告写完时）为 `e25621a`，对应 run `39765603986`，
+同样 success。
+
+**本报告涉及的全部 SHA 都有 success 记录**：
+
+| SHA | 内容 | Run ID |
+|---|---|---|
+| `3e17b49` | Phase 4 工作结束（4.8 提交） | 由 `3ed2e27` 的运行覆盖（同一批推送） |
+| `3ed2e27` | 总验收报告 | [39764528306](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39764528306) |
+| `19babd0` | 回填推送与 CI 明细 | [39764961129](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39764961129) |
+| `e25621a` | 补记最终运行号 | [39765603986](https://github.com/AZEN-jc/agent-knowledge-os/actions/runs/39765603986) |
+
+> 回填本身也是提交，所以「最终 HEAD」这个说法每次回填都会过期。这里不再
+> 指定一个会过时的值：**以 `git ls-remote origin hardening/mingli-v1`
+> 为准**，而本报告写就时的 HEAD 是 `e25621a`。Phase 4 的工作结束 SHA
+> 仍是 `3e17b49`。
 
 ---
 
