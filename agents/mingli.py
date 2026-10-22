@@ -34,6 +34,7 @@ from agents.prompt import (
     Draft,
     build_prompt,
     build_revision_prompt,
+    contract_fingerprint,
     parse_draft,
 )
 from engines.bazi.models import Chart
@@ -83,6 +84,14 @@ class Analysis:
     model: str = ""
     revisions: int = 0
     contract_violations: tuple[str, ...] = ()
+    contract_fingerprint: str = ""
+    """本次出稿所用的提示契约指纹。
+
+    与 :attr:`rule_fingerprint` 成对出现：两份分析结论不同时，先要能排除
+    「输入变了」这个解释。没有它们，只能靠人逐条比对提示词与规则库。
+    """
+    rule_fingerprint: str = ""
+    """本次匹配所用的规则库指纹（``RuleRegistry.fingerprint()``）。"""
 
 
 @dataclass(frozen=True)
@@ -105,6 +114,11 @@ class AnalystAgent:
         self.registry = registry
         self.provider = provider
         self.max_revisions = max_revisions
+        # 两个指纹在构造时算一次，不放在 analyze 里 —— 规则库指纹要序列化
+        # 全部规则，每次分析都算是白烧。registry 是不可变的（分析途中不增删规则），
+        # 缓存它安全。
+        self.contract_fingerprint = contract_fingerprint()
+        self.rule_fingerprint = registry.fingerprint()
 
     def analyze(
         self, chart: Chart, question: str, *, critic: CriticAgent | None = None
@@ -128,6 +142,8 @@ class AnalystAgent:
                 conclusion=conclusion,
                 certainty_risk=_certainty_risk(conclusion),
                 cited_rule_ids=self._cited(evidence),
+                contract_fingerprint=self.contract_fingerprint,
+                rule_fingerprint=self.rule_fingerprint,
             )
         return self._draft(evidence, question, critic, provider)
 
@@ -235,6 +251,8 @@ class AnalystAgent:
                 model=provider.model,
                 revisions=revisions,
                 contract_violations=draft.violations,
+                contract_fingerprint=self.contract_fingerprint,
+                rule_fingerprint=self.rule_fingerprint,
             )
             if critic is None or revisions >= self.max_revisions:
                 return analysis

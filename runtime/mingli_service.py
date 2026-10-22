@@ -141,6 +141,10 @@ class MingLiService:
                     "cited_rules": list(analysis.cited_rule_ids),
                     "contract_violations": list(analysis.contract_violations),
                     "certainty_risk": analysis.certainty_risk,
+                    # 两个指纹让报告能回答「这次用的哪版提示词、哪版规则库」。
+                    # 模板路径也带 —— 它同样受契约与规则库影响，不能只有 LLM 路径有。
+                    "contract_fingerprint": analysis.contract_fingerprint,
+                    "rule_fingerprint": analysis.rule_fingerprint,
                 },
             },
             critique={"passed": critique.passed, "issues": list(critique.issues)},

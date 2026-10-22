@@ -19,6 +19,7 @@ Phase 4 的核心不是「接上大模型」，而是把「不许自由发挥」
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from dataclasses import dataclass
@@ -28,6 +29,13 @@ from agents.llm import LLMRequest
 from knowledge.evidence import Evidence
 
 CONTRACT_VERSION = "2"
+"""契约的语义版本，**人维护**。
+
+它回答「契约第几版」，不回答「契约内容是什么」。两者都要有：
+语义版本给人看（升级说明、对外沟通），指纹给机器看（两次分析的提示词
+到底是不是同一份）。只写一个手抄的版本号，就会出现「内容改了、版本号没改」
+而没人发现 —— 那这个版本号就是装饰。
+"""
 
 DRAFT_KEYS = ("rule_ids", "text")
 
@@ -301,10 +309,41 @@ def citation_allowlist(evidence: Evidence) -> frozenset[str]:
     )
 
 
+def contract_fingerprint() -> str:
+    """契约内容的指纹：提示词、schema、边界规则、禁用词表任一改动都会变。
+
+    **为什么不能只靠 ``CONTRACT_VERSION``。** 那个是人手抄的字符串。
+    改了 ``SYSTEM_PROMPT`` 却忘了改版本号，``contract()["version"]`` 照样
+    返回 "2"，而两次分析用的提示词已经不同了 —— 用户看到同一版本号，
+    实际拿到的是不同的东西。这类漂移不报错、不告警，只能靠指纹发现。
+
+    口径与 ``RuleRegistry.fingerprint()`` 一致：规范化 JSON + sha256 前 16 位。
+    包含**全部**会影响模型行为的输入，不只是提示词正文 ——
+    ``DRAFT_SCHEMA``、``BOUNDARY_RULES``、``CERTAINTY_WORDS``、
+    ``LOW_STRENGTH_CEILING``、角标配置改一个，模型看到的世界就变了。
+    """
+    payload = json.dumps(
+        {
+            "version": CONTRACT_VERSION,
+            "system_prompt": SYSTEM_PROMPT,
+            "draft_schema": DRAFT_SCHEMA,
+            "boundary": list(BOUNDARY_RULES),
+            "forbidden_certainty_words": list(CERTAINTY_WORDS),
+            "strength_marker": STRENGTH_MARKER,
+            "low_strength_ceiling": LOW_STRENGTH_CEILING,
+            "footnote": {"open": FOOTNOTE_OPEN, "close": FOOTNOTE_CLOSE},
+        },
+        sort_keys=True,
+        ensure_ascii=False,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
 def contract() -> dict[str, Any]:
     """把契约本身作为数据暴露出来，供 ``/api/llm/contract`` 审计。"""
     return {
         "version": CONTRACT_VERSION,
+        "fingerprint": contract_fingerprint(),
         "system_prompt": SYSTEM_PROMPT,
         "draft_schema": DRAFT_SCHEMA,
         "boundary": list(BOUNDARY_RULES),
