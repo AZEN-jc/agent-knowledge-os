@@ -293,6 +293,12 @@ class DraftResponse(BaseModel):
 
     ``cited_rules`` 必定是 ``evidence.chain`` 里规则 ID 的子集 ——
     这一条由契约层保证，Critic 会独立复算一遍。
+
+    两个指纹是**加法式新增**（Phase 4.3）：服务层本来就产出，此前 API 的
+    响应模型没声明，被 ``extra="ignore"`` 静默裁掉 —— 于是「报告能说明用了
+    哪版提示词、哪版规则库」这件事在 API 侧断了。补上之后，消费者可以直接
+    引用它们，也使得 API 响应与服务层响应逐字段一致
+    （``test_api_multi_matches_a_direct_call`` 守这一点）。
     """
 
     source: str = Field(description="template（确定性模板）或 llm（provider 出稿）")
@@ -304,6 +310,13 @@ class DraftResponse(BaseModel):
         description="提示契约的违约记录；空列表表示没有越界引用"
     )
     certainty_risk: bool = Field(description="结论是否含禁用词表里的确定性措辞")
+    contract_fingerprint: str = Field(
+        default="",
+        description="提示契约指纹；契约内容（提示词/schema/边界规则）任一改动都会变",
+    )
+    rule_fingerprint: str = Field(
+        default="", description="规则库指纹；规则内容任一改动都会变"
+    )
 
 
 class AnalysisPayload(BaseModel):

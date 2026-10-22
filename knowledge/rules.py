@@ -253,8 +253,15 @@ class RuleMatch:
 
     @property
     def is_fully_traced(self) -> bool:
-        """每条条件都能指向具体事实来源。缺来源 = 证据链断了一环。"""
-        return all(trace.sources for trace in self.traces)
+        """每条条件都能指向具体事实来源。缺来源 = 证据链断了一环。
+
+        **必须要求 traces 非空。** 只写 ``all(trace.sources for ...)`` 时，
+        空元组会让 ``all()`` 返回 True —— 「一条 trace 都没有」反而算
+        「完全可追溯」。那正是最危险的失败形态：手工拼一个没有追踪的
+        RuleMatch 就能让 ``untraced_rule_ids`` 静默为空，证据链看着完整，
+        实际上一环都没有。Phase 4.4 的测试逮到了它。
+        """
+        return bool(self.traces) and all(trace.sources for trace in self.traces)
 
     def to_dict(self) -> dict[str, Any]:
         """序列化给提示词与 API 用。
