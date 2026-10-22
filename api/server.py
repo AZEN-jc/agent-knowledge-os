@@ -7,6 +7,11 @@
 ``422``，``detail`` 为可直接展示给用户的中文说明；不存在的资源返回 ``404``。
 不返回 500 堆栈。
 
+**provider 故障的处置分两层**（Phase 4.5）：服务层先降级到确定性模板出稿，
+并把原因写进 ``analysis.draft.degraded_reason`` —— 排盘、规则、证据链都是
+确定性的，坏的只是复述那一步。只有当降级本身也失败时才走上面的 422。
+把 provider 网络失败伪装成一次正常的模型分析，是明令禁止的。
+
 **这条约定曾经只成立了一半。** 状态码那一半一直成立，``detail`` 那一半不成立：
 pydantic 在请求模型层拦下的错误，``detail`` 原样是英文技术消息的 dict 列表。
 本文件末尾的 :func:`on_validation_error` 把它转成中文说明 ——
@@ -316,6 +321,13 @@ class DraftResponse(BaseModel):
     )
     rule_fingerprint: str = Field(
         default="", description="规则库指纹；规则内容任一改动都会变"
+    )
+    degraded_reason: str = Field(
+        default="",
+        description=(
+            "降级原因；空串表示未降级。非空表示本次未走模型"
+            "（provider 故障），结论由确定性模板产出"
+        ),
     )
 
 

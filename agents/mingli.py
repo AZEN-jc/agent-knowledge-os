@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from agents.llm import LLMProvider
+from agents.llm import LLMProvider, ProviderError
 from agents.prompt import (
     CERTAINTY_WORDS,
     FOOTNOTE_CLOSE,
@@ -92,6 +92,17 @@ class Analysis:
     """
     rule_fingerprint: str = ""
     """本次匹配所用的规则库指纹（``RuleRegistry.fingerprint()``）。"""
+    degraded_reason: str = ""
+    """降级原因；空串表示没有降级。
+
+    **为什么单独一个字段而不是塞进 ``contract_violations``。** 两者是不同
+    性质的事：违约是「模型越界了」，降级是「模型根本没说话」。混在一起，
+    读者分不清「这段话是模型说的但不合规」与「这句话是模板说的」。
+
+    Phase 4.5：provider 故障（网络、超时、非 200、响应形状不对）时降级到
+    确定性模板出稿，并把原因写在这里。**不伪装成分析成功** —— 用户看得见
+    这次没走模型，也看得见为什么。
+    """
 
 
 @dataclass(frozen=True)
@@ -135,17 +146,30 @@ class AnalystAgent:
         evidence = build_evidence(chart, self.registry, topic=question)
         provider = self.provider
         if provider is None:
-            conclusion = self._summarise(evidence)
-            return Analysis(
-                question=question,
-                evidence=evidence,
-                conclusion=conclusion,
-                certainty_risk=_certainty_risk(conclusion),
-                cited_rule_ids=self._cited(evidence),
-                contract_fingerprint=self.contract_fingerprint,
-                rule_fingerprint=self.rule_fingerprint,
-            )
+            return self._template_analysis(question, evidence)
         return self._draft(evidence, question, critic, provider)
+
+    def _template_analysis(
+        self, question: str, evidence: Evidence, degraded_reason: str = ""
+    ) -> Analysis:
+        """用确定性模板出稿。
+
+        两条路会走到这里：**没有 provider**（本来就走模板），以及
+        **provider 故障时降级**（Phase 4.5）。抽成方法是因为这两条路必须
+        逐字段一致 —— 各写一遍的话，降级路径会悄悄少个字段，而那种偏差
+        只在故障时出现，测试稍不留神就漏过去。
+        """
+        conclusion = self._summarise(evidence)
+        return Analysis(
+            question=question,
+            evidence=evidence,
+            conclusion=conclusion,
+            certainty_risk=_certainty_risk(conclusion),
+            cited_rule_ids=self._cited(evidence),
+            contract_fingerprint=self.contract_fingerprint,
+            rule_fingerprint=self.rule_fingerprint,
+            degraded_reason=degraded_reason,
+        )
 
     def _domain_rule_ids(self, evidence: Evidence) -> set[str]:
         """主题层规则的 ID 集合。
@@ -239,7 +263,33 @@ class AnalystAgent:
                 if draft is None
                 else build_revision_prompt(evidence, draft, issues)
             )
-            draft = parse_draft(provider.complete(request), allowed)
+            try:
+                raw = provider.complete(request)
+            except ProviderError as exc:
+                # Phase 4.5：provider 故障 → 降级到确定性模板，并如实记录。
+                #
+                # 为什么降级而不是把异常抛给调用方：排盘、规则、证据链全是
+                # 确定性的，它们没坏。坏掉的只是「把证据复述成自然语言」这
+                # 一步，而模板本来就能做这件事。让用户什么都拿不到，比让他
+                # 拿到一份标明「本次未走模型」的分析更糟。
+                #
+                # 为什么只捕 ProviderError：代码 bug（比如传了个 None）
+                # 必须响亮地炸。降级会把 bug 藏成一次「故障」，那比崩溃
+                # 难查得多。
+                # draft 为 None → 这是第 1 次请求（首次出稿）。
+                # 否则 revisions 就是「第几轮重写」：revisions=1 表示刚跑完
+                # 第一轮审查、正在发第 1 次重写请求。写成 revisions + 1 会把
+                # 第 1 轮重写报成「第 2 轮」，用户按消息去找日志会对不上。
+                stage = "首次出稿" if draft is None else f"第 {revisions} 轮重写"
+                return self._template_analysis(
+                    question,
+                    evidence,
+                    degraded_reason=(
+                        f"{stage}时 provider「{provider.name}」不可用"
+                        f"（{provider.model}）：{exc}"
+                    ),
+                )
+            draft = parse_draft(raw, allowed)
             analysis = Analysis(
                 question=question,
                 evidence=evidence,

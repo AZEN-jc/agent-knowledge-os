@@ -145,6 +145,8 @@ class MingLiService:
                     # 模板路径也带 —— 它同样受契约与规则库影响，不能只有 LLM 路径有。
                     "contract_fingerprint": analysis.contract_fingerprint,
                     "rule_fingerprint": analysis.rule_fingerprint,
+                    # 空串 = 没降级；非空 = 这次没走模型，且说明了为什么。
+                    "degraded_reason": analysis.degraded_reason,
                 },
             },
             critique={"passed": critique.passed, "issues": list(critique.issues)},
