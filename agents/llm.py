@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
@@ -168,7 +169,9 @@ class HttpLLMProvider:
                 f"LLM 端点返回 {exc.code}：{detail}"
             ) from exc
         except urllib.error.URLError as exc:
-            raise ProviderError(f"无法连接 LLM 端点 {self.endpoint}：{exc.reason}") from exc
+            raise ProviderError(
+                f"无法连接 LLM 端点 {_redact_endpoint(self.endpoint)}：{exc.reason}"
+            ) from exc
         except TimeoutError as exc:
             raise ProviderError(
                 f"LLM 端点在 {self.timeout}s 内未响应"
@@ -178,6 +181,26 @@ class HttpLLMProvider:
             raise ProviderError(f"连接 LLM 端点失败：{exc}") from exc
 
         return _extract_text(payload)
+
+
+def _redact_endpoint(endpoint: str) -> str:
+    """把端点地址削成 ``scheme://host:port``，丢掉路径与查询参数。
+
+    **为什么必须削。** provider 的报错信息会经由 ``degraded_reason`` 显示给
+    **终端用户**（降级要如实告知原因）。而有些 API 把密钥放在 URL 查询参数里
+    （``?key=...`` / ``?api_key=...``）—— 不削的话，一次连接失败就把运营方
+    的密钥摆到了用户眼前。终端用户不需要知道路径，排查只需要知道连的是哪个
+    主机。
+
+    削的是**显示**，不是连接：``complete`` 用的仍是完整 ``self.endpoint``。
+    """
+    parsed = urllib.parse.urlsplit(endpoint)
+    if not parsed.hostname:
+        return endpoint
+    host = parsed.hostname
+    if parsed.port:
+        host = f"{host}:{parsed.port}"
+    return f"{parsed.scheme}://{host}"
 
 
 def _extract_text(payload: bytes) -> str:
