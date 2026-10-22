@@ -97,11 +97,12 @@ DRAFT_SCHEMA: dict[str, Any] = {
     "properties": {
         "rule_ids": {
             "type": "array",
-            "items": {"type": "string"},
+            "items": {"type": "string", "minLength": 1},
             "description": "只能引用证据链里出现过的规则 ID；越界项会被剔除并记违约",
         },
         "text": {
             "type": "string",
+            "minLength": 1,
             "description": (
                 "结论正文，只复述证据，不做预测。"
                 "引用了 classical 规则时，该句断语必须挂 〔urn:...〕 角标"
@@ -109,6 +110,12 @@ DRAFT_SCHEMA: dict[str, Any] = {
         },
     },
 }
+"""输出形状的**唯一**定义。
+
+Phase 4.2 起这张表不再只是文档：:func:`parse_draft` 按它逐项校验，
+:func:`schema_issues` 是唯一的校验实现。此前 schema 与手写检查各写一遍 ——
+改了一个忘另一个，契约就悄悄松了，而两边都看不出问题。
+"""
 
 BOUNDARY_RULES: tuple[str, ...] = (
     "模型输入只有证据链（evidence.to_dict()），不含原始命盘、出生信息与全量规则库。",
@@ -222,17 +229,76 @@ def parse_draft(raw: str, allowed_rule_ids: frozenset[str] | set[str]) -> Draft:
             violations=(f"草稿顶层必须是 JSON 对象，实际是 {type(data).__name__}。",),
         )
 
-    violations: list[str] = []
-    extra = sorted(set(data) - set(DRAFT_KEYS))
-    missing = sorted(set(DRAFT_KEYS) - set(data))
-    if extra:
-        violations.append(f"草稿含契约之外的字段：{'、'.join(extra)}。")
-    if missing:
-        violations.append(f"草稿缺少必需字段：{'、'.join(missing)}。")
+    # 形状校验走 schema，不另写一份 if/else —— 两份检查必然漂移。
+    violations = schema_issues(data)
 
     cited = _parse_rule_ids(data, allowed_rule_ids, violations)
-    text = _parse_text(data, violations)
+    text = _parse_text(data)
     return Draft(text, cited, tuple(violations))
+
+
+def schema_issues(data: dict[str, Any]) -> list[str]:
+    """按 :data:`DRAFT_SCHEMA` 校验形状，返回中文违约说明。
+
+    这是**唯一**的形状校验实现。``DRAFT_SCHEMA`` 与这里必须一致，所以
+    这里直接读 schema 的字段，而不是把规则抄一遍：
+
+    - ``required`` → 缺字段
+    - ``additionalProperties: False`` → 多字段
+    - ``items.type`` / ``items.minLength`` → 数组元素
+    - ``type`` / ``minLength`` → 正文
+
+    消息文案与 Phase 4.1 之前的手写版本保持一致 —— 契约的**行为**没变，
+    变的是「只有一处实现」。
+    """
+    issues: list[str] = []
+    properties = DRAFT_SCHEMA["properties"]
+    required = DRAFT_SCHEMA["required"]
+
+    extra = sorted(set(data) - set(properties))
+    missing = sorted(key for key in required if key not in data)
+    if extra:
+        issues.append(f"草稿含契约之外的字段：{'、'.join(extra)}。")
+    if missing:
+        issues.append(f"草稿缺少必需字段：{'、'.join(missing)}。")
+
+    if "rule_ids" in data:
+        raw_ids = data["rule_ids"]
+        if not isinstance(raw_ids, list) or not all(
+            isinstance(item, str) for item in raw_ids
+        ):
+            issues.append("rule_ids 必须是字符串数组。")
+        elif any(not item.strip() for item in raw_ids):
+            issues.append("rule_ids 含空字符串。")
+
+    if "text" in data:
+        body = data["text"]
+        if not isinstance(body, str):
+            issues.append(f"text 必须是字符串，实际是 {type(body).__name__}。")
+        elif not body.strip():
+            issues.append("text 为空。")
+
+    return issues
+
+
+def citation_allowlist(evidence: Evidence) -> frozenset[str]:
+    """这份证据链允许出现的全部出处角标（URN）。
+
+    **为什么单独一个函数。** 出处白名单此前只是 Critic 内部的一个局部变量，
+    没有任何地方能拿到「合法URN集合」本身。于是「白名单是什么」只能靠读
+    Critic 源码知道，测试也只能间接验。提出来之后：
+
+    - 白名单是显式概念，可以直接断言它的内容；
+    - 它天然是**双向**的：证据链里有 URN 的规则必须在集合里，
+      集合里每一项都必须能在证据链里找到出处；
+    - 结构层规则没有 URN，所以它们的 ID 不在这个集合里 ——
+      模型不能把结构层规则 ID 当成典籍出处挂出去。
+    """
+    return frozenset(
+        match.rule.urn
+        for match in evidence.matches
+        if match.rule.urn
+    )
 
 
 def contract() -> dict[str, Any]:
@@ -263,15 +329,15 @@ def contract() -> dict[str, Any]:
 def _parse_rule_ids(
     data: dict[str, Any], allowed_rule_ids: frozenset[str] | set[str], violations: list[str]
 ) -> tuple[str, ...]:
-    if "rule_ids" not in data:
+    """形状问题已由 :func:`schema_issues` 报过；这里只做**白名单**。
+
+    两件事分开：形状不对时也可能有合法 ID，照样该剔越界项；
+    而形状对也不代表 ID 合法。混在一起就会漏掉其中一半。
+    """
+    if "rule_ids" not in data or not isinstance(data["rule_ids"], list):
         return ()
-    raw_ids = data["rule_ids"]
-    if not isinstance(raw_ids, list) or not all(isinstance(item, str) for item in raw_ids):
-        violations.append("rule_ids 必须是字符串数组。")
-        return ()
+    raw_ids = [item for item in data["rule_ids"] if isinstance(item, str)]
     cleaned = [item.strip() for item in raw_ids]
-    if any(not item for item in cleaned):
-        violations.append("rule_ids 含空字符串。")
     unique = tuple(item for item in dict.fromkeys(cleaned) if item)
     for rule_id in unique:
         if rule_id not in allowed_rule_ids:
@@ -279,17 +345,10 @@ def _parse_rule_ids(
     return tuple(rule_id for rule_id in unique if rule_id in allowed_rule_ids)
 
 
-def _parse_text(data: dict[str, Any], violations: list[str]) -> str:
-    if "text" not in data:
+def _parse_text(data: dict[str, Any]) -> str:
+    if "text" not in data or not isinstance(data["text"], str):
         return ""
-    body = data["text"]
-    if not isinstance(body, str):
-        violations.append(f"text 必须是字符串，实际是 {type(body).__name__}。")
-        return ""
-    if not body.strip():
-        violations.append("text 为空。")
-        return ""
-    return body.strip()
+    return data["text"].strip()
 
 
 def _strip_fence(text: str) -> str:
