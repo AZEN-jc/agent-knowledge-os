@@ -77,6 +77,11 @@
   }
   .tabs button.active { background: var(--ink); color: #fff; border-color: var(--ink); }
   .tabs button.failed { color: var(--accent); border-color: var(--accent); }
+  /* 时间轴的大运分组头（Phase 5.6）：十年一运，跨运的年份不该看起来连续。 */
+  .dayun-head {
+    margin: 14px 0 4px; padding: 4px 10px; font-size: 13px; color: var(--muted);
+    border-left: 3px solid var(--line); background: #f7f3ec;
+  }
   footer { margin: 36px 0 8px; color: var(--muted); font-size: 12px; }
 </style>
 </head>
@@ -123,8 +128,17 @@
     <div class="row" style="margin-top:14px">
       <div class="field"><label for="from">时间轴起</label><input id="from" type="number" value="2024"></div>
       <div class="field"><label for="to">时间轴止</label><input id="to" type="number" value="2030"></div>
+      <div class="field"><label for="timeline-topic">主题</label>
+        <select id="timeline-topic"></select>
+      </div>
       <div class="field"><label>&nbsp;</label>
         <button type="button" class="ghost" id="timeline">流年时间轴</button>
+      </div>
+      <div class="field"><label>&nbsp;</label>
+        <button type="button" class="ghost" id="shift-back">◀ 前一段</button>
+      </div>
+      <div class="field"><label>&nbsp;</label>
+        <button type="button" class="ghost" id="shift-forward">后一段 ▶</button>
       </div>
       <div class="field"><label>&nbsp;</label>
         <button type="button" class="ghost" id="library-btn">典籍库</button>
@@ -306,6 +320,15 @@ function buildTopicPicker() {
     label.appendChild(el("span", null, null));
     label.lastChild.textContent = topic;
     box.appendChild(label);
+  }
+  // 时间轴的主题单选（Phase 5.6）：时间轴一次只看一个主题，与多主题
+  // 分析共享同一份主题表 —— 两处各写一份清单，迟早对不上。
+  const timelineTopic = $("timeline-topic");
+  for (const topic of TOPIC_OPTIONS) {
+    const option = el("option", topic);
+    option.value = topic;
+    if (topic === "财运") option.selected = true;
+    timelineTopic.appendChild(option);
   }
 }
 
@@ -543,16 +566,35 @@ function renderTimeline(payload) {
   const intro = el("p", payload.note, "signal");
   host.appendChild(intro);
 
+  // 大运分组（Phase 5.6）：十年一运，跨运的年份不该看起来连续。dayun
+  // 变化时插一个分组头，把「哪几年走哪步运」摆在明面上。没有 gender
+  // 时 dayun 恒 null —— 分组头照出，说明为什么不分组。
+  //
+  // 哨兵对象而不是 null 初值：无大运时每窗的键就是 null，用 null 做
+  // 「未初始化」会让第一个分组头永远不渲染（null !== null 为假）——
+  // 这个 bug 是 E2E 抓住的，契约测试只看字段路径，看不见它。
+  const UNSET = {};
+  let lastDayun = UNSET;
   for (const window of payload.windows) {
+    const dayunKey = window.dayun ? window.dayun.sequence : null;
+    if (lastDayun === UNSET || dayunKey !== lastDayun) {
+      if (window.dayun) {
+        const direction = window.dayun.direction === "forward" ? "顺行" : "逆行";
+        host.appendChild(el("p",
+          `大运 ${window.dayun.heavenly_stem}${window.dayun.earthly_branch}`
+          + `（第 ${window.dayun.sequence} 步，${window.dayun.start_age_text}起，${direction}）`,
+          "dayun-head"));
+      } else {
+        host.appendChild(el("p", "未提供性别，此时只算流年、不分大运组。", "dayun-head"));
+      }
+      lastDayun = dayunKey;
+    }
+
     const block = el("div", null, "rule");
     const head = el("div", null, "rule-head");
     head.appendChild(el("span",
       `${window.liunian.stem}${window.liunian.branch}年`, "pillar-glyph"));
     head.appendChild(el("span", `证据强度 ${window.strength.toFixed(2)}`, "tag"));
-    if (window.dayun) {
-      head.appendChild(el("span",
-        `大运 ${window.dayun.heavenly_stem}${window.dayun.earthly_branch}`, "tag"));
-    }
     block.appendChild(head);
     block.appendChild(el("p", window.report, "report-line"));
 
@@ -703,7 +745,7 @@ async function onTimeline() {
   if (!body) return;
   try {
     const payload = await post("/api/timeline",
-      { ...body, topic: "财运", start_year: from, end_year: to });
+      { ...body, topic: $("timeline-topic").value, start_year: from, end_year: to });
     showError("");
     clearFieldErrors();
     renderTimeline(payload);
@@ -711,6 +753,25 @@ async function onTimeline() {
   } catch (error) {
     reportError(error);
   }
+}
+
+/** 时间轴平移（Phase 5.6）：按当前跨度整段前后挪。
+ *
+ *  为什么按「当前跨度」而不是固定五年：用户的窗口是可调的，平移量跟着
+ *  窗口走才符合「再看一段」的直觉 —— 7 年的窗口按 5 年挪会漏两年。
+ *  越界保护两条就够：客户端查正整数与顺序，服务端查 50 年上限
+ *  （超出是 service 层的 422，中文可读）。 */
+function shiftTimeline(direction) {
+  const from = Number($("from").value);
+  const to = Number($("to").value);
+  if (!(from > 0) || !(to > 0) || from > to) return showError("先填合法的起止年再平移。");
+  const span = to - from + 1;
+  const step = direction * span;
+  const nextFrom = from + step;
+  if (nextFrom < 1) return showError("不能再往前了。");
+  $("from").value = String(nextFrom);
+  $("to").value = String(to + step);
+  onTimeline();
 }
 
 /** 真太阳时开关：勾选才展开经纬度行。
@@ -726,6 +787,8 @@ buildTopicPicker();
 $("form").addEventListener("submit", onAnalyze);
 $("chart-only").addEventListener("click", onChartOnly);
 $("timeline").addEventListener("click", onTimeline);
+$("shift-back").addEventListener("click", () => shiftTimeline(-1));
+$("shift-forward").addEventListener("click", () => shiftTimeline(1));
 $("library-btn").addEventListener("click", onLibrary);
 $("tst").addEventListener("change", syncGeoRow);
 syncGeoRow();

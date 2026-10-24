@@ -243,6 +243,63 @@ def test_timeline_renders_year_windows(page):
     assert "信号是结构描述" in text  # note 里的立场声明必须出现在界面上
 
 
+def test_timeline_topic_selector_changes_the_signals(page):
+    """时间轴主题从写死的「财运」变成可选（Phase 5.6）。
+
+    可观察差异：同一张盘 2025 年，财运主题报「财星入命」，事业主题报
+    「官星坐流年」—— 换主题后信号文本必须跟着变，否则选择器是个装饰。
+    """
+    _fill_birth(page)
+    page.select_option("#timeline-topic", "事业")
+    page.fill("#from", "2025")
+    page.fill("#to", "2025")
+    page.click("#timeline")
+
+    timeline = page.locator("#out-timeline")
+    timeline.wait_for(state="visible", timeout=15000)
+    assert "官星" in timeline.inner_text()
+    assert "财星" not in timeline.inner_text()
+
+
+def test_timeline_shift_moves_the_window_by_its_own_span(page):
+    """「后一段」按当前跨度平移：2024-2030（7 年）→ 2031-2037。"""
+    _fill_birth(page)
+    page.fill("#from", "2024")
+    page.fill("#to", "2030")
+    page.click("#timeline")
+    page.locator("#out-timeline").wait_for(state="visible", timeout=15000)
+
+    page.click("#shift-forward")
+    assert page.locator("#from").input_value() == "2031"
+    assert page.locator("#to").input_value() == "2037"
+    # 平移后自动重跑：新区间的结果已经在页面上。
+    page.locator("#out-timeline").wait_for(state="visible", timeout=15000)
+    assert "2031" in page.locator("#out-timeline").inner_text()
+
+
+def test_timeline_groups_years_by_dayun(page):
+    """大运分组（Phase 5.6）：十年一运，跨运的年份分组显示。
+
+    分组头带步号与起运年龄；缺 gender 时明说「只算流年、不分大运组」——
+    不猜默认方向，与 /api/timeline 的口径一致。
+    """
+    _fill_birth(page)
+    page.fill("#from", "2024")
+    page.fill("#to", "2033")
+    page.click("#timeline")
+
+    timeline = page.locator("#out-timeline")
+    timeline.wait_for(state="visible", timeout=15000)
+    assert "未提供性别" in timeline.inner_text()
+
+    page.select_option("#gender", "男")
+    page.click("#timeline")
+    timeline.wait_for(state="visible", timeout=15000)
+    text = timeline.inner_text()
+    assert "大运" in text and "起" in text  # 分组头：第 N 步，X起
+    assert "未提供性别" not in text
+
+
 # ── 6. 多主题工作台（Phase 5.5）───────────────────────────────────────
 
 
