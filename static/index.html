@@ -118,6 +118,9 @@
       <div class="field"><label>&nbsp;</label>
         <button type="button" class="ghost" id="timeline">流年时间轴</button>
       </div>
+      <div class="field"><label>&nbsp;</label>
+        <button type="button" class="ghost" id="library-btn">典籍库</button>
+      </div>
     </div>
   </form>
 
@@ -136,6 +139,11 @@
   <section id="out-timeline" hidden>
     <h2>流年时间轴</h2>
     <div class="card" id="timeline-out"></div>
+  </section>
+
+  <section id="out-library" hidden>
+    <h2>典籍与规则库</h2>
+    <div class="card" id="library"></div>
   </section>
 
   <footer>
@@ -207,11 +215,11 @@ function reportError(error) {
   return false;
 }
 
-async function post(path, body) {
+async function request(method, path, body) {
   const res = await fetch(path, {
-    method: "POST",
+    method: method,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -222,6 +230,14 @@ async function post(path, body) {
     throw error;
   }
   return data;
+}
+
+async function post(path, body) {
+  return request("POST", path, body);
+}
+
+async function get(path) {
+  return request("GET", path);
 }
 
 function birth() {
@@ -427,10 +443,13 @@ function renderChain(evidence) {
   }
 
   for (const link of evidence.chain) {
-    const rule = el("div", null, "rule");
+    // 卡片变量叫 card 不叫 rule：典籍库（Phase 5.4）的循环变量叫 rule，
+    // 那是数据根。DOM 变量与数据根共用一个名字，静态契约测试的属性
+    // 路径提取就会把 DOM 属性误登记成响应字段。
+    const card = el("div", null, "rule");
     const head = el("div", null, "rule-head");
     head.appendChild(el("span", link.conclusion, "conclusion"));
-    rule.appendChild(head);
+    card.appendChild(head);
 
     const meta = el("div", null, "rule-head");
     meta.appendChild(el("span", link.rule_id, "rule-id"));
@@ -438,16 +457,16 @@ function renderChain(evidence) {
     meta.appendChild(el("span", link.source_tier, link.source_tier === "classical" ? "tag classical" : "tag"));
     meta.appendChild(el("span", link.review_status, "tag"));
     if (!link.is_production_ready) meta.appendChild(el("span", "未达生产就绪", "tag"));
-    rule.appendChild(meta);
+    card.appendChild(meta);
 
     for (const condition of link.conditions || []) {
-      rule.appendChild(renderCondition(condition));
+      card.appendChild(renderCondition(condition));
     }
 
     const citation = renderCitation(link.citation, link.urn);
-    if (citation) rule.appendChild(citation);
+    if (citation) card.appendChild(citation);
 
-    host.appendChild(rule);
+    host.appendChild(card);
   }
 }
 
@@ -490,6 +509,92 @@ function renderTimeline(payload) {
       block.appendChild(el("p", "本年无显著结构信号", "empty"));
     }
     host.appendChild(block);
+  }
+}
+
+// ── 典籍库（Phase 5.4）────────────────────────────────────────────────
+
+/** 按底本聚合典籍层规则：一本书一张卡，卡内逐条列出断语与出处。
+ *
+ *  为什么按 book+edition 聚合而不是平铺：同一条断语的引用价值在底本 ——
+ *  「哪个版本、哪一卷、逐字原文是什么」。平铺列表把这三样冲散在 81 条
+ *  规则里，等于没有浏览器。 */
+function groupByBook(rules) {
+  const books = new Map();
+  for (const rule of rules) {
+    const citation = rule.citation;
+    if (!citation) continue;  // 典籍层规则必有出处；没有的不该进这个视图
+    const key = `${citation.book}||${citation.edition}`;
+    if (!books.has(key)) {
+      books.set(key, { book: citation.book, edition: citation.edition, rules: [] });
+    }
+    books.get(key).rules.push(rule);
+  }
+  return Array.from(books.values());
+}
+
+function renderLibrary(payload, backlog) {
+  const host = $("library");
+  clear(host);
+
+  host.appendChild(el("p",
+    `典籍层规则 ${payload.total} 条，按底本聚合。每条断语都能逐字回对固化底本，`
+    + `出处带书名、底本、逐字原文与可打开地址。`, "signal"));
+
+  const books = groupByBook(payload.rules);
+  if (!books.length) {
+    host.appendChild(el("p", "典籍层规则为空。", "empty"));
+  }
+  for (const book of books) {
+    const card = el("div", null, "rule");
+    const head = el("div", null, "rule-head");
+    head.appendChild(el("span", `《${book.book}》`, "conclusion"));
+    head.appendChild(el("span", book.edition, "tag"));
+    head.appendChild(el("span", `${book.rules.length} 条`, "tag"));
+    card.appendChild(head);
+
+    for (const rule of book.rules) {
+      const line = el("div", null, "cond");
+      line.appendChild(el("code", rule.urn || rule.id));
+      line.appendChild(document.createTextNode(`　${rule.conclusion}`));
+      card.appendChild(line);
+      const citation = renderCitation(rule.citation, rule.urn);
+      if (citation) card.appendChild(citation);
+    }
+    host.appendChild(card);
+  }
+
+  // 待录入典籍：库里没有什么也要看得见。「诚实留白」是项目约束 ——
+  // 只展示已录入的，会让人以为规则库已经覆盖了这些书。
+  if (backlog && backlog.entries.length) {
+    host.appendChild(el("p", "待录入典籍（有公有领域底本、尚未逐字录入）", "report-line"));
+    for (const entry of backlog.entries) {
+      const block = el("div", null, "rule");
+      const head = el("div", null, "rule-head");
+      head.appendChild(el("span", `《${entry.book}》`, "conclusion"));
+      head.appendChild(el("span", entry.status, "tag"));
+      head.appendChild(el("span", entry.topic, "tag"));
+      block.appendChild(head);
+      block.appendChild(el("p", `卡点：${entry.blocker}`, "signal"));
+      block.appendChild(el("p", `下一步：${entry.needed_action}`, "signal"));
+      host.appendChild(block);
+    }
+    host.appendChild(el("p", `按优先级，下一步处理：${backlog.next_action}`, "signal"));
+  }
+}
+
+async function onLibrary() {
+  try {
+    // 两个 GET 并行：典籍规则与待录入清单互不依赖。
+    const [classical, backlog] = await Promise.all([
+      get("/api/rules?source_tier=classical"),
+      get("/api/classics/backlog"),
+    ]);
+    showError("");
+    renderLibrary(classical, backlog);
+    $("out-library").hidden = false;
+  } catch (error) {
+    reportError(error);
   }
 }
 
@@ -579,6 +684,7 @@ buildTopicPicker();
 $("form").addEventListener("submit", onAnalyze);
 $("chart-only").addEventListener("click", onChartOnly);
 $("timeline").addEventListener("click", onTimeline);
+$("library-btn").addEventListener("click", onLibrary);
 $("tst").addEventListener("change", syncGeoRow);
 syncGeoRow();
 </script>

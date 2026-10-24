@@ -147,6 +147,30 @@ def test_rules_endpoint_filters_by_school_category_and_tier():
     assert empty["rules"] == []
 
 
+def test_classical_rules_carry_urn_and_verifiable_citation():
+    """典籍层规则必须带 URN 与可核验出处（Phase 5.4 典籍库的数据基础）。
+
+    ``Rule.to_dict`` 一直产出 ``urn``，但 ``RuleResponse`` 没声明这个字段，
+    pydantic 默认静默丢弃 —— 「可验证的出处」在服务层成立、在 /api/rules
+    上消失，与 Phase 4.3 补指纹是同一条裂缝。典籍库浏览器直接读这个端点，
+    缺了 URN 就只能显示一句没有规范标识的「来源」。
+    """
+    response = client.get("/api/rules", params={"source_tier": "classical"})
+
+    assert response.status_code == 200
+    rules = response.json()["rules"]
+    assert rules, "典籍层规则不应为空，否则本节空测"
+    for rule in rules:
+        assert rule["urn"], f"{rule['id']} 缺 URN"
+        assert rule["urn"].startswith("urn:divination:")
+        citation = rule["citation"]
+        assert citation, f"{rule['id']} 缺 citation"
+        assert citation["book"] and citation["edition"]
+        # 逐字原文与可打开地址同时具备才算可核验。
+        assert citation["original_text"], f"{rule['id']} 缺逐字原文"
+        assert citation["url"], f"{rule['id']} 缺可打开地址"
+
+
 def test_rules_endpoint_rejects_an_unknown_review_status():
     response = client.get("/api/rules", params={"review_status": "MAYBE"})
 

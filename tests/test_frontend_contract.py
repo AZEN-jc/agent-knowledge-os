@@ -63,15 +63,19 @@ client = TestClient(app)
 CHART_BIRTH = {"year": 1990, "month": 6, "day": 15, "hour": 12}
 CLASSICAL_BIRTH = {"year": 1990, "month": 2, "day": 28, "hour": 0}
 
-SAMPLES: list[tuple[str, dict[str, object]]] = [
-    ("/api/chart", dict(CHART_BIRTH)),
-    ("/api/analyze/multi", {**CLASSICAL_BIRTH, "topics": ["命局"]}),
+SAMPLES: list[tuple[str, str, dict[str, object] | None]] = [
+    ("post", "/api/chart", dict(CHART_BIRTH)),
+    ("post", "/api/analyze/multi", {**CLASSICAL_BIRTH, "topics": ["命局"]}),
     (
+        "post",
         "/api/timeline",
         {**CHART_BIRTH, "gender": "男", "start_year": 2024, "end_year": 2026},
     ),
     # 422 样本：模型层校验失败的响应体（detail + fields）。
-    ("/api/chart", {**CHART_BIRTH, "month": 13}),
+    ("post", "/api/chart", {**CHART_BIRTH, "month": 13}),
+    # 典籍库（Phase 5.4）：浏览器按需加载的两个 GET。
+    ("get", "/api/rules?source_tier=classical", None),
+    ("get", "/api/classics/backlog", None),
 ]
 
 # ── 响应契约：前端被允许读取的每一条路径 ──────────────────────────────
@@ -162,6 +166,30 @@ RESPONSE_CONTRACT: frozenset[str] = frozenset({
     "fields",
     "fields[].field",
     "fields[].message",
+    # 典籍库（Phase 5.4：/api/rules?source_tier=classical 与
+    # /api/classics/backlog 的 GET 响应）
+    "rules",
+    "total",
+    "rules[].id",
+    "rules[].conclusion",
+    "rules[].confidence",
+    "rules[].review_status",
+    "rules[].source_tier",
+    "rules[].category",
+    "rules[].urn",
+    "rules[].citation",
+    "rules[].citation.book",
+    "rules[].citation.edition",
+    "rules[].citation.chapter",
+    "rules[].citation.original_text",
+    "rules[].citation.url",
+    "entries",
+    "entries[].book",
+    "entries[].status",
+    "entries[].topic",
+    "entries[].blocker",
+    "entries[].needed_action",
+    "next_action",
 })
 
 #: JS 里可能承载 API 数据的根变量名。属性提取只锚定这些名字 —— DOM
@@ -169,7 +197,7 @@ RESPONSE_CONTRACT: frozenset[str] = frozenset({
 DATA_ROOTS = (
     "chart", "payload", "data", "evidence", "critique", "window", "signal",
     "link", "condition", "citation", "pillar", "r", "first", "item",
-    "relation", "elements",
+    "relation", "elements", "rule", "entry",
 )
 
 #: 别名 → 真实响应路径前缀。渲染函数的参数与循环变量都是别名：它们指向
@@ -180,6 +208,8 @@ ALIASES: dict[str, str] = {
     "payload": "",    # 响应根
     "chart": "",      # 命盘对象本体（/api/chart 的根；multi 的 chart 子键同形）
     "elements": "elements",  # chart.elements 的局部别名（Phase 5.3 五行普查）
+    "rule": "rules[]",       # 典籍库的规则循环变量（Phase 5.4）
+    "entry": "entries[]",    # 待录入清单的循环变量（Phase 5.4）
     "evidence": "results[].analysis.analysis.evidence",
     "critique": "results[].analysis.critique",
     "citation": "results[].analysis.analysis.evidence.chain[].citation",
@@ -240,8 +270,11 @@ def _flatten(value: object, prefix: str = "") -> set[str]:
 def _sample_paths() -> set[str]:
     """真实响应的路径并集。契约里的每条路径都要能在这里找到。"""
     paths: set[str] = set()
-    for endpoint, body in SAMPLES:
-        response = client.post(endpoint, json=body)
+    for method, endpoint, body in SAMPLES:
+        if method == "get":
+            response = client.get(endpoint)
+        else:
+            response = client.post(endpoint, json=body or {})
         paths |= _flatten(response.json())
     return paths
 
@@ -283,8 +316,11 @@ def _extract_request_fields(js: str) -> set[str]:
     return fields
 
 
-def _extract_endpoints(js: str) -> set[str]:
-    return set(re.findall(r'post\(\s*"([^"]+)"', js))
+def _extract_endpoints(js: str) -> set[tuple[str, str]]:
+    """提取前端请求的 (方法, 端点)：post() 与 get() 两类，查询串剥掉。"""
+    pairs = {("post", path) for path in re.findall(r'post\(\s*"([^"]+)"', js)}
+    pairs |= {("get", path.split("?")[0]) for path in re.findall(r'get\(\s*"([^"]+)"', js)}
+    return pairs
 
 
 # ── 后端方向：声明的每条路径都真实存在 ────────────────────────────────
@@ -302,10 +338,13 @@ def test_declared_response_paths_resolve_in_real_responses():
 def test_contract_is_not_vacuous():
     """契约本身不能是空转的：条目量要够，且样本响应不能是空的。"""
     assert len(RESPONSE_CONTRACT) > 50, "契约条目过少，检查是否被误删"
-    for endpoint, body in SAMPLES:
-        response = client.post(endpoint, json=body)
+    for method, endpoint, body in SAMPLES:
+        if method == "get":
+            response = client.get(endpoint)
+        else:
+            response = client.post(endpoint, json=body or {})
         # 唯一允许的非 200 样本是 422 那条（month=13，验 fields 结构）。
-        expected = 422 if body.get("month") == 13 else 200
+        expected = 422 if body and body.get("month") == 13 else 200
         assert response.status_code == expected, (
             f"样本 {endpoint} 返回了意外状态码 {response.status_code}"
         )
@@ -354,15 +393,21 @@ def test_frontend_covers_the_required_birth_fields():
     assert not missing, f"前端请求体缺少必填字段：{missing}"
 
 
-def test_frontend_posts_only_registered_endpoints():
+def test_frontend_requests_only_registered_endpoints():
+    """前端请求的每个 (方法, 端点) 都必须在 OpenAPI 里注册且方法匹配。
+
+    Phase 5.4 起前端不止 POST —— 典籍库走 GET。只查「路径存在」不够：
+    对一个只有 POST 的端点发 GET 是 405，那种错也该在测试里死。
+    """
     endpoints = _extract_endpoints(_js_source())
-    assert endpoints, "提取不到 post() 目标，检查正则是否失效"
+    assert endpoints, "提取不到请求目标，检查正则是否失效"
     schema = client.get("/openapi.json").json()
-    registered = {
-        path for path, methods in schema["paths"].items() if "post" in methods
-    }
-    unknown = sorted(endpoints - registered)
-    assert not unknown, f"前端 POST 了未注册的端点：{unknown}"
+    bad = [
+        f"{method.upper()} {path}"
+        for method, path in sorted(endpoints)
+        if path not in schema["paths"] or method not in schema["paths"][path]
+    ]
+    assert not bad, f"前端请求了未注册的端点：{bad}"
 
 
 # ── DOM 方向：JS 引用的每个 id 都存在于 HTML ──────────────────────────

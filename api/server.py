@@ -176,6 +176,9 @@ class RuleResponse(BaseModel):
     conflicts_with: list[str]
     evidence_required: list[str]
     citation: CitationResponse | None = None
+    urn: str | None = Field(
+        default=None, description="典籍规则的规范引用标识；结构层为 null"
+    )
     conflict_slot: str = ""
     conflict_value: str = ""
     note: str = ""

@@ -241,3 +241,32 @@ def test_timeline_renders_year_windows(page):
     text = timeline.inner_text()
     assert "2024" in text
     assert "信号是结构描述" in text  # note 里的立场声明必须出现在界面上
+
+
+# ── 5. 典籍库（Phase 5.4）─────────────────────────────────────────────
+
+
+def test_library_browser_shows_books_with_verifiable_citations(page):
+    """典籍库：按底本聚合的规则卡，每条带 URN、逐字原文与可打开链接。"""
+    page.click("#library-btn")
+
+    library = page.locator("#out-library")
+    library.wait_for(state="visible", timeout=15000)
+    text = library.inner_text()
+    assert "三命通會" in text                    # 已录入的底本
+    assert "urn:divination:" in text            # 规范引用标识
+    assert "原文：" in text                       # 逐字原文
+    # 出处必须真的可点开，且带 noopener。
+    link = library.locator("a", has_text="打开出处").first
+    href = link.get_attribute("href")
+    assert href and href.startswith("http")
+    assert link.get_attribute("rel") == "noopener noreferrer"
+
+
+def test_library_browser_discloses_the_backlog(page):
+    """待录入典籍也要看得见 —— 只展示已录入的会让人以为库已覆盖这些书。"""
+    page.click("#library-btn")
+
+    library = page.locator("#out-library")
+    library.wait_for(state="visible", timeout=15000)
+    assert "待录入典籍" in library.inner_text()
