@@ -61,6 +61,13 @@ python evaluation/runner.py --json
 python evaluation/provider_conformance.py
 python evaluation/provider_conformance.py --json
 
+# E2E（Phase 5.2）：真实 Chromium 跑前端主链路。需要先装浏览器：
+python -m playwright install chromium
+python -m pytest tests/test_e2e_frontend.py -q
+# 没装浏览器时这个文件整套 skip（环境事实，不是失败）；CI 里有专门步骤
+# 装好浏览器再跑，它是阻塞门禁。本机已有系统 Chrome 时可跳过 170MB
+# 下载：MINGLI_E2E_CHANNEL=chrome python -m pytest tests/test_e2e_frontend.py -q
+
 # 静态检查
 ruff check .
 mypy .

@@ -310,18 +310,20 @@ function renderChart(chart) {
 
   // relations 的形状是 {type, branches, pillars}，不是 {type, pair} ——
   // 读错字段不会报错，只会让这一行永远空白。
+  // 循环变量叫 relation 不叫 r：r 在 onAnalyze 里是 results 的元素，
+  // 同一个名字指两个东西，静态契约测试的别名表会无所适从。
   const relations = (chart.relations || []).map(
-    (r) => `${r.type}：${(r.branches || []).join("")}（${(r.pillars || []).join("+")}）`
+    (relation) => `${relation.type}：${(relation.branches || []).join("")}（${(relation.pillars || []).join("+")}）`
   );
   box.appendChild(el("p", null, "signal"));
   box.lastChild.textContent =
     relations.length ? `地支关系 ${relations.join("；")}` : "四支之间无结构关系";
 
-  const missing = chart.elements && chart.elements.missing;
-  if (missing && missing.length) {
-    box.appendChild(el("p", null, "signal"));
-    box.lastChild.textContent = `缺五行：${missing.join("、")}`;
-  }
+  // 「缺五行」一行曾在这里读 chart.elements.missing —— 那个键从来不存在
+  // （provider 只放 day_master_element），所以这行从来没显示过。删掉而不是
+  // 留着：五行普查（count/missing/dominant）属于 Phase 5.3 命盘可视化，
+  // 到时候连着 provider 的 element_census 一起做，读真实存在的键。
+  // 教训与 relations 那条注释同族：读错字段不会报错，只会让一行永远空白。
 }
 
 // ── 证据链 ─────────────────────────────────────────────────────────────
@@ -352,11 +354,14 @@ function renderCitation(citation, urn) {
       box.lastChild.textContent = `原文：「${citation.original_text}」`;
     }
     if (citation.url) {
-      const link = el("a", "打开出处");
-      link.href = citation.url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      box.appendChild(link);
+      // 变量名 anchor 而不是 link：证据链的循环变量叫 link，两个不同的
+      // 东西共用一个名字，静态契约测试（tests/test_frontend_contract.py）
+      // 提取属性路径时会把 DOM 属性误登记成响应字段。
+      const anchor = el("a", "打开出处");
+      anchor.href = citation.url;
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+      box.appendChild(anchor);
     }
   }
   return box;

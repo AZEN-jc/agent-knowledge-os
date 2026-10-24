@@ -25,3 +25,14 @@ mypy==2.4.0
 # 才暴露 —— 与审计报告 §5 的 R4（ruff/mypy 配了却没声明）是同一类缺陷：
 # **依赖声明只写了「代码 import 的」，漏了「测试脚手架 import 的」。**
 httpx==0.28.1
+
+# Playwright（Phase 5.2 E2E）：真实 Chromium 跑前端主链路。装包之外还要
+# `python -m playwright install chromium` 下载浏览器二进制 —— CI 里有
+# 专门步骤做这件事。缺浏览器时 tests/test_e2e_frontend.py 整套 skip
+# （环境事实），不缺而不跑才是缺陷。
+#
+# 注意它与 httpx 的同与不同：httpx 是**没有就跑不了测试**，playwright 是
+# **没有就少一类测试**。前者漏声明会让整个套件 collection 失败，后者只会
+# 让 E2E 静默 skip —— 所以这条依赖的缺失更隐蔽，写进清单 + CI 装浏览器
+# 两步都要做，只做一步都会得到「以为 E2E 在跑其实没跑」。
+playwright==1.64.1

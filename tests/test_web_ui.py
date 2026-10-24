@@ -71,9 +71,11 @@ def test_page_declares_the_four_things_the_project_promises():
     for marker in ("renderChart", "renderChain", "renderCritique", "renderTimeline"):
         assert marker in PAGE, f"页面缺 {marker}"
     # 出处必须可点开，且带上 noopener —— 那是「可验证」的最后一跳，
-    # 也是 tabnabbing 的基本防线。
-    assert 'link.target = "_blank"' in PAGE
-    assert 'noopener noreferrer' in PAGE
+    # 也是 tabnabbing 的基本防线。查意图不查变量名：DOM 元素叫什么
+    # 无所谓（Phase 5.2 把锚变量从 link 改成 anchor，正是为了不和
+    # 证据链循环变量撞名），_blank 与 noopener 的组合必须在场。
+    assert re.search(r'target\s*=\s*"_blank"', PAGE)
+    assert "noopener noreferrer" in PAGE
 
 
 def test_static_files_are_mounted_without_shadowing_the_api():
