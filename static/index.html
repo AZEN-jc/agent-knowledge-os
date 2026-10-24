@@ -292,21 +292,53 @@ function renderChart(chart) {
   box.lastChild.textContent =
     `日主 ${chart.day_master}　·　${chart.provider}　·　算法 ${chart.algorithm_version}`;
 
+  // 四列对齐：每个柱一列，天干/地支/藏干/十神/纳音各一行 —— 传统命盘的
+  // 读法。Phase 5.3 之前是「一行一柱」的横表，读起来要左右扫。
   const table = el("table");
   const head = el("tr");
-  for (const title of ["柱", "干支", "藏干", "天干十神", "纳音"]) head.appendChild(el("th", title));
+  head.appendChild(el("th", ""));
+  for (const pillar of chart.pillars) {
+    head.appendChild(el("th", PILLAR_LABELS[pillar.name] || pillar.name));
+  }
   table.appendChild(head);
 
-  for (const pillar of chart.pillars) {
+  const rows = [
+    ["天干", (p) => p.heavenly_stem],
+    ["地支", (p) => p.earthly_branch],
+    ["藏干", (p) => (p.hidden_stems || []).join(" ")],
+    ["十神", (p) => p.ten_god || ""],
+    ["纳音", (p) => p.na_yin || ""],
+  ];
+  for (const row_def of rows) {
+    const label = row_def[0];
+    const pick = row_def[1];
     const row = el("tr");
-    row.appendChild(el("td", PILLAR_LABELS[pillar.name] || pillar.name));
-    row.appendChild(el("td", pillar.heavenly_stem + pillar.earthly_branch, "pillar-glyph"));
-    row.appendChild(el("td", (pillar.hidden_stems || []).join(" ")));
-    row.appendChild(el("td", pillar.ten_god || ""));
-    row.appendChild(el("td", pillar.na_yin || ""));
+    row.appendChild(el("td", label));
+    for (const pillar of chart.pillars) {
+      const glyph = label === "天干" || label === "地支";
+      row.appendChild(el("td", pick(pillar), glyph ? "pillar-glyph" : null));
+    }
     table.appendChild(row);
   }
   box.appendChild(table);
+
+  // 五行普查（Phase 5.3）：计数、缺失、偏旺都来自 provider 随命盘产出的
+  // chart.elements（与事实层同一个 element_census 实现）。缺与偏旺为空时
+  // 不渲染那一行 —— 「缺：无」也是信息，但计数行本身已经说完了。
+  const elements = chart.elements;
+  if (elements && elements.count) {
+    const counts = Object.entries(elements.count)
+      .map((entry) => entry[0] + entry[1])
+      .join("　");
+    let line = `五行计数　${counts}`;
+    if (elements.missing && elements.missing.length) {
+      line += `　·　缺：${elements.missing.join("、")}`;
+    }
+    if (elements.dominant && elements.dominant.length) {
+      line += `　·　偏旺：${elements.dominant.join("、")}`;
+    }
+    box.appendChild(el("p", line, "signal"));
+  }
 
   // relations 的形状是 {type, branches, pillars}，不是 {type, pair} ——
   // 读错字段不会报错，只会让这一行永远空白。

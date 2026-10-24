@@ -25,7 +25,7 @@ import sxtwl
 
 from engines.bazi.jieqi import month_pillar, year_pillar
 from engines.bazi.models import BirthInput, Chart, Pillar
-from engines.bazi.ten_gods import BRANCHES, ELEMENTS, STEMS, ten_god
+from engines.bazi.ten_gods import BRANCHES, ELEMENTS, STEMS, element_census, ten_god
 
 HIDDEN_STEMS: dict[str, tuple[str, ...]] = {
     "子": ("癸",),
@@ -226,7 +226,14 @@ class SxtwlBaziProvider:
             birth=birth,
             pillars=pillars,
             day_master=day_stem,
-            elements={"day_master_element": ELEMENTS[day_stem]},
+            # 五行普查随命盘一起产出（Phase 5.3）。UI 直接读
+            # chart.elements.{count,missing,dominant}，不再有「界面读了
+            # 一个 provider 没产出过的键」那类死代码。facts 层调用同一个
+            # element_census —— 两个消费者，一份口径。
+            elements={
+                "day_master_element": ELEMENTS[day_stem],
+                **element_census(pillars),
+            },
             relations=_relations(branch_values),
             provider=self.name,
             algorithm_version=self.algorithm_version,

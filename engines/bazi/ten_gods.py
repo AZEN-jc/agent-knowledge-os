@@ -11,6 +11,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 STEMS = "甲乙丙丁戊己庚辛壬癸"
 BRANCHES = "子丑寅卯辰巳午未申酉戌亥"
 
@@ -31,6 +33,52 @@ TEN_GODS = (
     "比肩", "劫财", "食神", "伤官", "偏财", "正财", "七杀", "正官", "偏印", "正印",
 )
 """十神全表；不含「日主」，日主是日柱天干本身，不是一个十神。"""
+
+#: 五行名称，按相生顺序（木火土金水）。计数、缺失、偏旺的枚举顺序都用它 ——
+#: 顺序本身是口径的一部分：``missing``/``dominant`` 的元组顺序可被断语与
+#: 测试直接比较。
+#:
+#: 生产侧曾有两份拷贝：``knowledge.facts`` 定义一份，
+#: ``knowledge.structural_rules`` 经 facts 转手再用。Phase 5.3 收编到本模块，
+#: facts 改为转口 import。**``tests/test_evidence_audit`` 里那份不算** ——
+#: 它是刻意独立重写的审计实现（同 lunar_python 差分测试的套路），
+#: 与被测实现同源就失去了复核的意义。
+ELEMENT_NAMES: tuple[str, ...] = ("木", "火", "土", "金", "水")
+
+#: 「偏旺」的计数阈值。三命通会一系的断语里「旺」多以三重为旺（三刑、
+#: 三合皆以三为数），取 3。改这个数会同时改变 facts 层的
+#: ``dominant_elements`` 与 chart.elements 的 ``dominant`` —— 那是
+#: 有意的：一个阈值，两个消费者。
+DOMINANT_THRESHOLD = 3
+
+
+def element_census(pillars: Any) -> dict[str, Any]:
+    """五行普查：四柱天干 + 四支本气，共 8 项的计数与派生。
+
+    口径（Phase 5.3 固定）：**只看天干与四支本气**，不含余气、不含
+    纳音。这是「三命通会」系的计数法 —— 余气杂气各地支分量不同，混进来
+    会让同一个「水数」在不同实现间差出两三个，而断语的范围容不下这种
+    噪声。
+
+    返回 ``{"count": {...}, "missing": (...), "dominant": (...)}``：
+
+    - ``count`` 以 :data:`ELEMENT_NAMES` 为键序；
+    - ``missing`` 是计数为 0 的补集；
+    - ``dominant`` 是计数 ≥ :data:`DOMINANT_THRESHOLD` 的子集。
+
+    ``pillars`` 是任何带 ``heavenly_stem``/``hidden_stems`` 的对象序列
+    （``engines.bazi.models.Pillar`` 或其 dataclass 替换品）—— 不 import
+    具体类型，provider 与 facts 层都能用。
+    """
+    counts = dict.fromkeys(ELEMENT_NAMES, 0)
+    for pillar in pillars:
+        counts[ELEMENTS[pillar.heavenly_stem]] += 1
+        counts[ELEMENTS[pillar.hidden_stems[0]]] += 1
+    return {
+        "count": counts,
+        "missing": tuple(e for e in ELEMENT_NAMES if counts[e] == 0),
+        "dominant": tuple(e for e in ELEMENT_NAMES if counts[e] >= DOMINANT_THRESHOLD),
+    }
 
 
 def ten_god(day_master: str, stem: str, *, is_day_pillar: bool = False) -> str:

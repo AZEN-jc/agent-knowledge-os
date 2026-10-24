@@ -97,6 +97,11 @@ RESPONSE_CONTRACT: frozenset[str] = frozenset({
     "relations[].type",
     "relations[].branches",
     "relations[].pillars",
+    # 五行普查（Phase 5.3：provider 随命盘产出，与事实层同源）
+    "elements",
+    "elements.count",
+    "elements.missing",
+    "elements.dominant",
     # 多主题分析（/api/analyze/multi）
     "chart",
     "results",
@@ -164,7 +169,7 @@ RESPONSE_CONTRACT: frozenset[str] = frozenset({
 DATA_ROOTS = (
     "chart", "payload", "data", "evidence", "critique", "window", "signal",
     "link", "condition", "citation", "pillar", "r", "first", "item",
-    "relation",
+    "relation", "elements",
 )
 
 #: 别名 → 真实响应路径前缀。渲染函数的参数与循环变量都是别名：它们指向
@@ -174,6 +179,7 @@ ALIASES: dict[str, str] = {
     "data": "",       # post() 的解析结果：任一响应的根
     "payload": "",    # 响应根
     "chart": "",      # 命盘对象本体（/api/chart 的根；multi 的 chart 子键同形）
+    "elements": "elements",  # chart.elements 的局部别名（Phase 5.3 五行普查）
     "evidence": "results[].analysis.analysis.evidence",
     "critique": "results[].analysis.critique",
     "citation": "results[].analysis.analysis.evidence.chain[].citation",

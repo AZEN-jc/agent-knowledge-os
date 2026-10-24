@@ -139,6 +139,14 @@ def test_main_flow_shows_chart_and_evidence(page):
     assert "时柱" in chart.inner_text()
     # 算法版本行：provider 与版本号必须出现在界面上。
     assert "sxtwl-2.0.7" in chart.inner_text()
+    # 五行普查（Phase 5.3）：计数行随命盘渲染。这一行曾读一个 provider
+    # 从来没产出过的键，从上线起就是死的 —— 现在先有测试再有产出。
+    assert "五行计数" in chart.inner_text()
+    # 四列传统排布：表头是四个柱名各占一列。
+    headers = chart.locator("table th")
+    assert headers.count() == 5  # 行首空单元格 + 四柱
+    assert headers.nth(1).inner_text() == "年柱"
+    assert headers.nth(4).inner_text() == "时柱"
 
     analysis = page.locator("#out-analysis")
     analysis.wait_for(state="visible", timeout=15000)

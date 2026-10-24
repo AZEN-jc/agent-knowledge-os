@@ -26,10 +26,19 @@ from dataclasses import dataclass
 from typing import Any
 
 from engines.bazi.models import Chart
-from engines.bazi.ten_gods import ELEMENTS, POLARITY, stem_relation, ten_god
+from engines.bazi.ten_gods import (
+    ELEMENTS,
+    POLARITY,
+    element_census,
+    stem_relation,
+    ten_god,
+)
 
 PILLAR_NAMES = ("year", "month", "day", "hour")
-ELEMENT_NAMES = ("木", "火", "土", "金", "水")
+#: ELEMENT_NAMES 自 Phase 5.3 起由 engines.bazi.ten_gods 定义。
+#: 生产侧曾有两份（本模块定义 + structural_rules 经本模块转手），对不上
+#: 只是时间问题；现在两边都直引 ten_gods。tests/test_evidence_audit 的
+#: 独立副本是刻意保留的审计实现，不在此列。
 
 FACT_SCHEMA: dict[str, str] = {
     # 日主
@@ -278,15 +287,15 @@ def extract_facts(chart: Chart) -> tuple[Fact, ...]:
         "chart.pillars.month.hidden_stems",
     ))
 
-    # 五行计数：四柱天干 + 四支本气，共 8 项（口径见模块文档）。
-    counts = dict.fromkeys(ELEMENT_NAMES, 0)
-    for pillar in pillars:
-        counts[ELEMENTS[pillar.heavenly_stem]] += 1
-        counts[ELEMENTS[pillar.hidden_stems[0]]] += 1
-    for element, count in counts.items():
+    # 五行计数：四柱天干 + 四支本气，共 8 项（口径见 element_census 的文档）。
+    # 这里不再自己数一遍 —— Phase 5.3 起 count_X / missing_elements /
+    # dominant_elements 与 chart.elements 的普查同源（element_census），
+    # 两份实现对不上是迟早的事，曾为此死过一行 UI。
+    census = element_census(pillars)
+    for element, count in census["count"].items():
         facts.append(Fact(f"count_{element}", count, "chart.pillars"))
-    facts.append(Fact("missing_elements", tuple(e for e in ELEMENT_NAMES if counts[e] == 0), "chart.pillars"))
-    facts.append(Fact("dominant_elements", tuple(e for e in ELEMENT_NAMES if counts[e] >= 3), "chart.pillars"))
+    facts.append(Fact("missing_elements", census["missing"], "chart.pillars"))
+    facts.append(Fact("dominant_elements", census["dominant"], "chart.pillars"))
 
     branches = tuple(pillar.earthly_branch for pillar in pillars)
     facts.append(Fact("four_branches", tuple(dict.fromkeys(branches)), "chart.pillars[*].earthly_branch"))

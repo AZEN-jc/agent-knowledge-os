@@ -20,8 +20,7 @@
 
 from __future__ import annotations
 
-from engines.bazi.ten_gods import TEN_GODS
-from knowledge.facts import ELEMENT_NAMES
+from engines.bazi.ten_gods import ELEMENT_NAMES, TEN_GODS
 from knowledge.provenance import ReviewStatus, SourceTier
 from knowledge.rules import Rule
 from knowledge.schools import STRUCTURAL_SCHOOL
@@ -34,7 +33,8 @@ PATTERN_TEN_GODS = tuple(god for god in TEN_GODS if god not in ("比肩", "劫�
 """
 
 ELEMENTS = ELEMENT_NAMES
-"""五行名，与事实词表共用同一份定义。"""
+"""五行名，与事实词表共用同一份定义（Phase 5.3 起直引 ten_gods，
+不再经 knowledge.facts 转手 —— 转口链每多一环，就多一处会断的地方）。"""
 
 RELATIONS = ("六冲", "六合", "六害", "相破", "自刑", "三刑")
 """地支关系类型，与 :mod:`engines.bazi.sxtwl_provider` 的关系表一一对应。"""
