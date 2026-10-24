@@ -47,6 +47,50 @@ def test_api_rejects_unknown_timezone_with_a_readable_message():
     assert "未知时区" in response.json()["detail"]
 
 
+# ── 字段级错误（Phase 5.2：前端要能定位到具体输入框）────────────────────
+
+
+def test_validation_error_carries_field_items():
+    """422 除了 detail 串，还要有 fields 数组 —— 五个输入框，
+
+    用户需要知道错的是哪一个。detail 保留是向后兼容（现有消费者依赖它），
+    fields 是加法：``[{"field": "month", "message": "公历月不能大于12"}]``。
+    """
+    response = client.post("/api/chart", json={**payload(), "month": 13})
+
+    assert response.status_code == 422
+    body = response.json()
+    fields = body["fields"]
+    assert isinstance(fields, list) and fields
+    month_items = [item for item in fields if item["field"] == "month"]
+    assert month_items, f"fields 应定位到 month：{fields}"
+    assert "12" in month_items[0]["message"]
+
+
+def test_validation_error_fields_are_consistent_with_the_detail_string():
+    """两个表示必须同源：fields 里每条 message 都出现在 detail 里。"""
+    response = client.post("/api/chart", json={**payload(), "month": 13, "day": 99})
+
+    assert response.status_code == 422
+    body = response.json()
+    detail = body["detail"]
+    assert {"month", "day"} <= {item["field"] for item in body["fields"]}
+    for item in body["fields"]:
+        assert item["message"] in detail
+
+
+def test_service_layer_422_keeps_the_plain_detail_string():
+    """服务层 422（引擎拒绝）没有 fields —— 那一层的问题是整请求的，
+
+    不是哪个输入框填错了。detail 字符串照旧，前端回退到顶部错误框。
+    """
+    response = client.post("/api/chart", json={**payload(), "timezone": "Not/AZone"})
+
+    assert response.status_code == 422
+    assert isinstance(response.json()["detail"], str)
+    assert "fields" not in response.json()
+
+
 # ── OpenAPI 文档（Phase 1 验收：API 文档完整）────────────────────────────
 
 

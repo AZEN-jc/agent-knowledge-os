@@ -5,7 +5,9 @@
 
 错误约定：输入不合法、超出历法库支持范围、或 provider 不可用时一律返回
 ``422``，``detail`` 为可直接展示给用户的中文说明；不存在的资源返回 ``404``。
-不返回 500 堆栈。
+不返回 500 堆栈。请求模型层的校验失败另带 ``fields`` 数组
+（``[{"field": "month", "message": "…"}]``，Phase 5.2），供前端逐字段定位；
+服务层的 422 只有 ``detail`` —— 那一层的问题是整请求的，不是哪个输入框。
 
 **provider 故障的处置分两层**（Phase 4.5）：服务层先降级到确定性模板出稿，
 并把原因写进 ``analysis.draft.degraded_reason`` —— 排盘、规则、证据链都是
@@ -911,14 +913,18 @@ ERROR_TEMPLATES: dict[str, str] = {
 }
 
 
-def _translate_validation_errors(exc: RequestValidationError) -> str:
-    """把 pydantic 的错误列表翻成一句中文说明。
+def _validation_error_items(exc: RequestValidationError) -> list[tuple[str, str]]:
+    """把 pydantic 的错误列表翻成 ``(字段, 中文说明)`` 对。
 
     三类来源：字段约束（``ge``/``le``/``max_length``）、自定义 validator
     （消息本就是中文，直接采用）、以及没见过的类型 —— 最后一类也不能
     漏成英文，所以兜底模板同样带 ``{label}``。
+
+    Phase 5.2 从「拼一句字符串」改成「产出结构化条目」：前端要逐字段
+    渲染错误（五个输入框，用户需要知道错哪个），而 ``detail`` 字符串
+    由这些条目拼接而来 —— 两个表示同源，不存在对不上的可能。
     """
-    messages: list[str] = []
+    items: list[tuple[str, str]] = []
     for error in exc.errors():
         # 显式转成不定长元组：``ErrorDetails`` 的 ``loc`` 在类型存根里是定长
         # 元组，直接 ``location[-1]`` 会被 mypy 判成越界（它在替我们假设
@@ -939,33 +945,51 @@ def _translate_validation_errors(exc: RequestValidationError) -> str:
             message = str(error.get("msg") or "")
             if message.startswith("Value error, "):
                 message = message[len("Value error, "):]
-            messages.append(message or f"{label}不合法")
+            items.append((field, message or f"{label}不合法"))
             continue
 
         template = ERROR_TEMPLATES.get(kind)
         if template is None:
-            messages.append(f"{label}不合法（{kind}）")
+            items.append((field, f"{label}不合法（{kind}）"))
             continue
         try:
-            messages.append(template.format(label=label, **context))
+            items.append((field, template.format(label=label, **context)))
         except (KeyError, IndexError, ValueError):
             # 模板引用了 ctx 里没有的键：宁可少一个数字，也不要抛异常
             # 把 422 变成 500 —— 那是用更糟的方式违反同一条契约。
-            messages.append(f"{label}不合法")
+            items.append((field, f"{label}不合法"))
 
-    return "；".join(dict.fromkeys(messages)) or "请求不合法"
+    # 同一字段可能被多条约束同时报错（例如 missing 与类型错误不会并存，
+    # 但保守去重没有代价）：整对相同才去重，消息不同说明约束不同。
+    return list(dict.fromkeys(items))
+
+
+def _translate_validation_errors(exc: RequestValidationError) -> str:
+    """把请求模型层的校验失败拼成一句中文说明（``detail`` 的值）。"""
+    return "；".join(message for _, message in _validation_error_items(exc)) or "请求不合法"
 
 
 @app.exception_handler(RequestValidationError)
 async def on_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
-    """请求模型层校验失败 → 422 + 中文说明。
+    """请求模型层校验失败 → 422 + 中文说明 + 字段级条目。
 
     没有这个处理器时，FastAPI 返回 ``{"detail": [{loc, msg, type}, ...]}``，
     ``msg`` 是 ``"Input should be greater than or equal to 1"`` 这类英文。
     与模块 docstring 的承诺直接冲突，也让 Web 界面只能显示一串英文。
+
+    Phase 5.2 起响应体多一个 ``fields`` 数组：``[{"field": "month",
+    "message": "公历月不能大于12"}]``。``field`` 是**原始字段名**（不是中文
+    标签）—— 前端要用它找到对应的输入框；中文在 ``message`` 里。
+    ``detail`` 字符串保留：现有消费者与测试依赖它，破坏响应形状是 API
+    层的重决策，不属于加一个数组的范围。
     """
+    items = _validation_error_items(exc)
     return JSONResponse(
-        status_code=422, content={"detail": _translate_validation_errors(exc)}
+        status_code=422,
+        content={
+            "detail": "；".join(message for _, message in items) or "请求不合法",
+            "fields": [{"field": field, "message": message} for field, message in items],
+        },
     )
 
 
