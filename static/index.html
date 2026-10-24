@@ -60,6 +60,15 @@
   .empty { color: var(--muted); font-style: italic; }
   .error { color: var(--accent); background: #fdf3f4; border: 1px solid var(--accent);
            padding: 10px 12px; border-radius: 4px; margin-top: 12px; white-space: pre-wrap; }
+  /* 字段级错误（Phase 5.2）：贴在出错的输入框下面，不是只会在顶部出现一次的
+     一段文字。五个输入框的时代，用户需要知道错的是哪一个。 */
+  .field-error { color: var(--accent); font-size: 12px; max-width: 220px; }
+  .field.invalid input, .field.invalid select { border-color: var(--accent); }
+  /* hidden 属性必须赢过布局规则。.row 是 flex 容器，UA 给 [hidden] 的
+     display:none 在特异性上输给 .row{display:flex} —— 不写这条，
+     真太阳时的经纬度行会在没勾选时漏出来。 */
+  [hidden] { display: none !important; }
+  .geo-hint { font-size: 12px; color: var(--muted); }
   footer { margin: 36px 0 8px; color: var(--muted); font-size: 12px; }
 </style>
 </head>
@@ -77,8 +86,12 @@
       <div class="field"><label for="month">月</label><input id="month" type="number" value="2" min="1" max="12"></div>
       <div class="field"><label for="day">日</label><input id="day" type="number" value="1" min="1" max="31"></div>
       <div class="field"><label for="hour">时（0-23）</label><input id="hour" type="number" value="12" min="0" max="23"></div>
+      <div class="field"><label for="minute">分（0-59）</label><input id="minute" type="number" value="0" min="0" max="59"></div>
       <div class="field"><label for="gender">性别</label>
         <select id="gender"><option value="">不填（只算流年）</option><option>男</option><option>女</option></select>
+      </div>
+      <div class="field"><label for="tst">真太阳时</label>
+        <input id="tst" type="checkbox" style="width:auto">
       </div>
       <div class="field"><label>&nbsp;</label>
         <button type="submit" id="run">多主题分析</button>
@@ -86,6 +99,15 @@
       <div class="field"><label>&nbsp;</label>
         <button type="button" class="ghost" id="chart-only">只看命盘</button>
       </div>
+    </div>
+
+    <!-- 真太阳时才需要的出生地经纬度。默认隐藏：民用时口径不问地理，
+         勾选真太阳时才出现 —— 不该让多数用户面对两个永远空着的输入框。
+         经度是必填（引擎缺了它只能拒绝），纬度只影响均时差细节可留空。 -->
+    <div class="row" id="geo-row" hidden>
+      <div class="field"><label for="longitude">经度（必填）</label><input id="longitude" type="number" step="0.1" min="-180" max="180"></div>
+      <div class="field"><label for="latitude">纬度（可空）</label><input id="latitude" type="number" step="0.1" min="-90" max="90"></div>
+      <div class="field"><span class="geo-hint">按出生地经度校正，西端地区可跨两个时辰</span></div>
     </div>
 
     <div class="topics" id="topics"></div>
@@ -128,6 +150,10 @@
 const TOPIC_OPTIONS = ["事业", "财运", "婚姻", "健康", "命局"];
 const $ = (id) => document.getElementById(id);
 
+/** 引擎返回的柱名是英文（year/month/day/hour）——界面其余全中文，
+ *  四个英文词杵在命盘表里破坏一致性。映射表放这里，渲染时不猜。 */
+const PILLAR_LABELS = { year: "年柱", month: "月柱", day: "日柱", hour: "时柱" };
+
 /** 建元素。**全程用 textContent，不用 innerHTML** —— 数据来自 API 与用户输入，
  *  拼 HTML 字符串等于自己开一个注入口。 */
 function el(tag, text, cls) {
@@ -145,6 +171,42 @@ function showError(message) {
   box.appendChild(el("div", message, "error"));
 }
 
+/** 把字段级错误贴到对应输入框下面（Phase 5.2）。
+ *
+ *  ``fields`` 是 API 422 响应里的数组：``[{"field": "month", "message": "…"}]``。
+ *  ``field`` 是**原始字段名**，与输入框的 id 一一对应 —— 契约测试
+ *  （tests/test_frontend_contract.py）钉住这个对应关系。
+ *
+ *  找不到对应输入框的条目（模型级错误，field 为「请求」）不丢：退回顶部
+ *  错误区，由 showError 显示。 */
+function showFieldErrors(fields) {
+  clearFieldErrors();
+  if (!Array.isArray(fields)) return;
+  for (const item of fields) {
+    const input = item && item.field ? $(item.field) : null;
+    if (!input) continue;
+    const host = input.closest(".field") || input.parentElement;
+    host.classList.add("invalid");
+    host.appendChild(el("div", item.message, "field-error"));
+  }
+}
+
+function clearFieldErrors() {
+  for (const node of document.querySelectorAll(".field.invalid")) {
+    node.classList.remove("invalid");
+    for (const child of Array.from(node.querySelectorAll(".field-error"))) {
+      node.removeChild(child);
+    }
+  }
+}
+
+/** 顶部错误区 + 字段级错误一起显示，再返回 false 方便调用方中断。 */
+function reportError(error) {
+  showError(String((error && error.message) || error));
+  showFieldErrors(error && error.fields);
+  return false;
+}
+
 async function post(path, body) {
   const res = await fetch(path, {
     method: "POST",
@@ -152,7 +214,13 @@ async function post(path, body) {
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+  if (!res.ok) {
+    // 把字段级条目带在错误对象上：只抛 message 会把 fields 数组丢掉，
+    // 前端就退回「顶部一句中文串」的旧体验。
+    const error = new Error(data.detail || `HTTP ${res.status}`);
+    error.fields = data.fields;
+    throw error;
+  }
   return data;
 }
 
@@ -162,9 +230,35 @@ function birth() {
     month: Number($("month").value),
     day: Number($("day").value),
     hour: Number($("hour").value),
+    minute: Number($("minute").value),
   };
   const gender = $("gender").value;
   if (gender) body.gender = gender;
+  // 真太阳时是显式开关：勾了才送口径与经纬度。不勾选时送经纬度没有意义
+  // （民用时口径不用它），还会让请求体暗示一种没被请求的校正。
+  if ($("tst").checked) {
+    body.true_solar_time = true;
+    const longitude = $("longitude").value.trim();
+    if (longitude) body.longitude = Number(longitude);
+    const latitude = $("latitude").value.trim();
+    if (latitude) body.latitude = Number(latitude);
+  }
+  return body;
+}
+
+/** 提交前的客户端守卫：真太阳时勾了但经度空着。
+ *
+ *  服务端同样会拒（请求模型层，中文直指经度），但那一来一回纯属浪费——
+ *  必填检查在客户端做，引擎级校验留给服务端当权威。 */
+function birthOrFieldError() {
+  clearFieldErrors();
+  const body = birth();
+  if ($("tst").checked && body.longitude === undefined) {
+    $("longitude").closest(".field").classList.add("invalid");
+    $("longitude").closest(".field").appendChild(
+      el("div", "开启真太阳时必须填写经度。", "field-error"));
+    return null;
+  }
   return body;
 }
 
@@ -205,7 +299,7 @@ function renderChart(chart) {
 
   for (const pillar of chart.pillars) {
     const row = el("tr");
-    row.appendChild(el("td", pillar.name));
+    row.appendChild(el("td", PILLAR_LABELS[pillar.name] || pillar.name));
     row.appendChild(el("td", pillar.heavenly_stem + pillar.earthly_branch, "pillar-glyph"));
     row.appendChild(el("td", (pillar.hidden_stems || []).join(" ")));
     row.appendChild(el("td", pillar.ten_god || ""));
@@ -368,9 +462,12 @@ async function onAnalyze(event) {
   event.preventDefault();
   const topics = selectedTopics();
   if (!topics.length) return showError("至少选一个主题。");
+  const body = birthOrFieldError();
+  if (!body) return;
   try {
-    const payload = await post("/api/analyze/multi", { ...birth(), topics });
+    const payload = await post("/api/analyze/multi", { ...body, topics });
     showError("");
+    clearFieldErrors();
     if (payload.results.some((r) => r.ok)) {
       renderChart(payload.chart);
       $("out-chart").hidden = false;
@@ -395,18 +492,21 @@ async function onAnalyze(event) {
       }
     }
   } catch (error) {
-    showError(String(error.message || error));
+    reportError(error);
   }
 }
 
 async function onChartOnly() {
+  const body = birthOrFieldError();
+  if (!body) return;
   try {
-    const chart = await post("/api/chart", birth());
+    const chart = await post("/api/chart", body);
     showError("");
+    clearFieldErrors();
     renderChart(chart);
     $("out-chart").hidden = false;
   } catch (error) {
-    showError(String(error.message || error));
+    reportError(error);
   }
 }
 
@@ -415,21 +515,35 @@ async function onTimeline() {
   const to = Number($("to").value);
   if (!(from > 0) || !(to > 0)) return showError("时间轴起止年要是正数。");
   if (from > to) return showError("起始年不能晚于结束年。");
+  const body = birthOrFieldError();
+  if (!body) return;
   try {
     const payload = await post("/api/timeline",
-      { ...birth(), topic: "财运", start_year: from, end_year: to });
+      { ...body, topic: "财运", start_year: from, end_year: to });
     showError("");
+    clearFieldErrors();
     renderTimeline(payload);
     $("out-timeline").hidden = false;
   } catch (error) {
-    showError(String(error.message || error));
+    reportError(error);
   }
+}
+
+/** 真太阳时开关：勾选才展开经纬度行。
+ *
+ *  取消勾选**不清空已填的值** —— 用户可能只是想切回去看一眼民用时的结果，
+ *  清空等于惩罚一次切换。请求体由 birth() 决定带不带，与输入框的显隐
+ *  解耦。 */
+function syncGeoRow() {
+  $("geo-row").hidden = !$("tst").checked;
 }
 
 buildTopicPicker();
 $("form").addEventListener("submit", onAnalyze);
 $("chart-only").addEventListener("click", onChartOnly);
 $("timeline").addEventListener("click", onTimeline);
+$("tst").addEventListener("change", syncGeoRow);
+syncGeoRow();
 </script>
 </body>
 </html>
