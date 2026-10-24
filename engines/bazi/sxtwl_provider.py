@@ -170,9 +170,17 @@ class SxtwlBaziProvider:
             raise ValueError(f"late_zi_policy 只能是 {LATE_ZI_POLICIES} 之一。")
         self.use_true_solar_time = use_true_solar_time
         self.late_zi_policy = late_zi_policy
+        # 非默认口径必须体现在 provenance 里，否则同版本号会掩盖不同结果。
+        # 真太阳时是 Phase 5.2 补的第二条：它同样改变时柱（西端地区可跨两个
+        # 时辰），漏记的后果与晚子时漏记相同 —— 两张不同的命盘共用一个版本号，
+        # 且错得看不出来。两个口径叠加时后缀累加（+roll+tst），不互相覆盖。
+        suffixes = []
         if late_zi_policy != DEFAULT_LATE_ZI_POLICY:
-            # 非默认口径必须体现在 provenance 里，否则同版本号会掩盖不同结果。
-            self.algorithm_version = f"{type(self).algorithm_version}+{late_zi_policy}"
+            suffixes.append(late_zi_policy)
+        if use_true_solar_time:
+            suffixes.append("tst")
+        if suffixes:
+            self.algorithm_version = f"{type(self).algorithm_version}+{'+'.join(suffixes)}"
 
     def _day_source(self, calculation_time: datetime) -> tuple[date, int]:
         """返回日柱所属日期与取时柱用的时辰序号。

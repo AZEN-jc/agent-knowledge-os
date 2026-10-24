@@ -108,6 +108,13 @@ class MingLiService:
         self.schools = schools if schools is not None else default_schools()
         self.registry = registry if registry is not None else build_registry(schools=self.schools)
         self.calculator = BaziCalculator(SxtwlBaziProvider())
+        # 真太阳时口径（Phase 5.2）：与民用时**一次建好两个** calculator，
+        # 不做惰性初始化 —— provider 构造没有 I/O，惰性只会引入「两个请求
+        # 同时首次开启」的竞态，没有收益。两个 calculator 都是不可变的，
+        # 并发下共享只读。
+        self._true_solar_calculator = BaziCalculator(
+            SxtwlBaziProvider(use_true_solar_time=True)
+        )
         self.analyst = AnalystAgent(
             self.registry,
             provider=provider,
@@ -117,9 +124,23 @@ class MingLiService:
         self.critic = CriticAgent()
         self.provider = provider
 
-    def analyze(self, birth_data: dict[str, Any], question: str) -> AnalysisResponse:
+    def _calculator_for(self, true_solar_time: bool) -> BaziCalculator:
+        """按排盘口径选 calculator。
+
+        口径是**请求级**的：同一个服务实例要同时服务民用时与真太阳时的
+        请求，所以选择发生在每次分析之前，而不是构造时定死。
+        """
+        return self._true_solar_calculator if true_solar_time else self.calculator
+
+    def analyze(
+        self,
+        birth_data: dict[str, Any],
+        question: str,
+        *,
+        true_solar_time: bool = False,
+    ) -> AnalysisResponse:
         birth = BirthInput(**birth_data)
-        chart = self.calculator.calculate_chart(birth)
+        chart = self._calculator_for(true_solar_time).calculate_chart(birth)
         return self._analyze_chart(chart, question)
 
     def _analyze_chart(self, chart: Chart, question: str) -> AnalysisResponse:
@@ -164,7 +185,11 @@ class MingLiService:
         )
 
     def analyze_multi(
-        self, birth_data: dict[str, Any], topics: list[str] | tuple[str, ...]
+        self,
+        birth_data: dict[str, Any],
+        topics: list[str] | tuple[str, ...],
+        *,
+        true_solar_time: bool = False,
     ) -> MultiAnalysisResponse:
         """跨主题**并发**分析。命盘只算一次，扇出点在它之后。
 
@@ -189,7 +214,7 @@ class MingLiService:
             raise ValueError("topics 不能为空。")
 
         birth = BirthInput(**birth_data)
-        chart = self.calculator.calculate_chart(birth)
+        chart = self._calculator_for(true_solar_time).calculate_chart(birth)
         names = {topic: resolve(topic).name for topic in topics}
 
         workers = min(len(topics), MAX_ANALYSIS_WORKERS)
@@ -219,6 +244,8 @@ class MingLiService:
         start_year: int,
         end_year: int,
         topic: str,
+        *,
+        true_solar_time: bool = False,
     ) -> tuple[Any, ...]:
         """分析某个年份区间内每一年的结构信号。
 
@@ -226,6 +253,6 @@ class MingLiService:
         缺性别时不猜默认方向 —— 与 ``analyze_period`` 的口径一致。
         """
         birth = BirthInput(**birth_data)
-        chart = self.calculator.calculate_chart(birth)
+        chart = self._calculator_for(true_solar_time).calculate_chart(birth)
         policy = ClassicalApproxDayunPolicy() if birth.gender else None
         return analyze_period(chart, start_year, end_year, topic, dayun_policy=policy)

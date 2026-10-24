@@ -110,6 +110,31 @@ class BirthRequest(BaseModel):
     gender: str | None = Field(
         default=None, max_length=16, description="性别；计算大运顺逆时需要", examples=["男"]
     )
+    true_solar_time: bool = Field(
+        default=False,
+        description=(
+            "是否按真太阳时排盘（默认关）。开启后必须同时提供 longitude —— "
+            "真太阳时校正依赖经度，缺了它只能拒绝，不能猜。算法版本号会带 "
+            "+tst 后缀，两张不同口径的命盘不会共用一个版本号。"
+        ),
+        examples=[False],
+    )
+
+    @model_validator(mode="after")
+    def _true_solar_time_needs_longitude(self) -> BirthRequest:
+        """开启真太阳时校正时必须提供经度。
+
+        为什么在请求模型层拦：引擎的 ``SxtwlBaziProvider`` 也会拒
+        （``开启真太阳时必须提供 longitude``），但在那之前 ``BirthInput``
+        已经构造成功 —— 错误会以「排盘失败」的面目出现，把配置错误伪装成
+        数据错误。在这里拦，用户看到的是一句直指经度字段的中文。
+
+        消息里带「经度」两个字，不依赖 ``FIELD_LABELS`` 的映射 —— 这条
+        错误是模型级的（``loc`` 为空），字段定位本来就走兜底分支。
+        """
+        if self.true_solar_time and self.longitude is None:
+            raise ValueError("开启真太阳时校正必须填写经度（longitude）。")
+        return self
 
 
 class AnalyzeRequest(BirthRequest):
@@ -465,6 +490,17 @@ def health() -> dict[str, str]:
     return {"status": "ok", "provider": "sxtwl"}
 
 
+def _birth_fields(request: BirthRequest) -> dict[str, Any]:
+    """剥掉排盘口径开关的出生信息字典。
+
+    ``true_solar_time`` 是**怎么排盘**的开关，不是**什么时候出生**的信息：
+    引擎的 ``BirthInput`` 没有这个字段，混在字典里传进服务层会以
+    ``TypeError`` 炸开，再被端点捕获成一次「排盘失败」—— 把配置错误
+    伪装成数据错误。剥下来单独作为关键字参数传（Phase 5.2）。
+    """
+    return request.model_dump(exclude={"true_solar_time"})
+
+
 @app.post(
     "/api/chart",
     summary="排盘",
@@ -474,7 +510,10 @@ def health() -> dict[str, str]:
 )
 def chart(request: BirthRequest) -> dict[str, Any]:
     try:
-        response = service.analyze(request.model_dump(), "命盘结构")
+        response = service.analyze(
+            _birth_fields(request), "命盘结构",
+            true_solar_time=request.true_solar_time,
+        )
     except (TypeError, ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=422, detail=_to_user_message(exc)) from exc
     return response.chart
@@ -502,7 +541,11 @@ def chart(request: BirthRequest) -> dict[str, Any]:
 )
 def analyze(request: AnalyzeRequest) -> dict[str, Any]:
     try:
-        response = service.analyze(request.model_dump(exclude={"question"}), request.question)
+        response = service.analyze(
+            request.model_dump(exclude={"question", "true_solar_time"}),
+            request.question,
+            true_solar_time=request.true_solar_time,
+        )
     except (TypeError, ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=422, detail=_to_user_message(exc)) from exc
     return response.to_dict()
@@ -531,10 +574,13 @@ def analyze(request: AnalyzeRequest) -> dict[str, Any]:
 def timeline(request: TimelineRequest) -> dict[str, Any]:
     try:
         windows = service.analyze_timeline(
-            request.model_dump(exclude={"start_year", "end_year", "topic"}),
+            request.model_dump(
+                exclude={"start_year", "end_year", "topic", "true_solar_time"}
+            ),
             request.start_year,
             request.end_year,
             request.topic,
+            true_solar_time=request.true_solar_time,
         )
     except (TypeError, ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=422, detail=_to_user_message(exc)) from exc
@@ -636,7 +682,9 @@ class MultiAnalysisResponse(BaseModel):
 def analyze_multi(request: MultiAnalyzeRequest) -> dict[str, Any]:
     try:
         response = service.analyze_multi(
-            request.model_dump(exclude={"topics"}), request.topics
+            request.model_dump(exclude={"topics", "true_solar_time"}),
+            request.topics,
+            true_solar_time=request.true_solar_time,
         )
     except (TypeError, ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=422, detail=_to_user_message(exc)) from exc
@@ -826,6 +874,7 @@ FIELD_LABELS: dict[str, str] = {
     "latitude": "纬度",
     "timezone": "时区",
     "gender": "性别",
+    "true_solar_time": "真太阳时",
     "question": "问题",
     "topic": "主题",
     "topics": "主题列表",
