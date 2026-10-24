@@ -111,6 +111,7 @@ RESPONSE_CONTRACT: frozenset[str] = frozenset({
     "results",
     "results[].ok",
     "results[].topic",
+    "results[].topic_name",
     "results[].error",
     "results[].analysis",
     "results[].analysis.analysis",

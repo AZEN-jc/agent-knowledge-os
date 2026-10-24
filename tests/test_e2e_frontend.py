@@ -243,8 +243,37 @@ def test_timeline_renders_year_windows(page):
     assert "信号是结构描述" in text  # note 里的立场声明必须出现在界面上
 
 
-# ── 5. 典籍库（Phase 5.4）─────────────────────────────────────────────
+# ── 6. 多主题工作台（Phase 5.5）───────────────────────────────────────
 
+
+def test_multi_topic_workbench_switches_between_topics(page):
+    """每个主题一条页签，点了才渲染对应的证据链。
+
+    此前只显示第一个成功主题、其余一句「见接口」—— 工作台的责任不能
+    推回给调用方。默认选中第一个成功主题；点另一个页签，详情区换成
+    那个主题的证据链（页签区本身不动）。
+    """
+    _fill_birth(page)
+    page.check('input[name="topic"][value="婚姻"]')
+    page.click("#run")
+
+    analysis = page.locator("#out-analysis")
+    analysis.wait_for(state="visible", timeout=15000)
+
+    tabs = page.locator("#topic-tabs button")
+    assert tabs.count() == 3  # 事业 / 财运 / 婚姻
+    # 默认选中第一个成功主题：详情区是它的证据链（断言详情区，不是整个
+    # section —— 页签自身也含主题名，那会让断言失去精度）。
+    assert "主题「事业」" in page.locator("#topic-detail").inner_text()
+
+    page.locator("#topic-tabs button", has_text="婚姻").click()
+    assert "主题「婚姻」" in page.locator("#topic-detail").inner_text()
+    assert "主题「事业」" not in page.locator("#topic-detail").inner_text()
+    # 页签还在：切主题不该把页签区清掉。
+    assert page.locator("#topic-tabs button").count() == 3
+
+
+# ── 5. 典籍库（Phase 5.4）─────────────────────────────────────────────
 
 def test_library_browser_shows_books_with_verifiable_citations(page):
     """典籍库：按底本聚合的规则卡，每条带 URN、逐字原文与可打开链接。"""

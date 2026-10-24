@@ -69,6 +69,14 @@
      真太阳时的经纬度行会在没勾选时漏出来。 */
   [hidden] { display: none !important; }
   .geo-hint { font-size: 12px; color: var(--muted); }
+  /* 多主题工作台（Phase 5.5）：主题页签 + 当前主题的证据链。 */
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tabs button {
+    font: inherit; padding: 5px 14px; border: 1px solid var(--line);
+    border-radius: 999px; background: #fff; color: var(--ink); cursor: pointer;
+  }
+  .tabs button.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .tabs button.failed { color: var(--accent); border-color: var(--accent); }
   footer { margin: 36px 0 8px; color: var(--muted); font-size: 12px; }
 </style>
 </head>
@@ -133,7 +141,10 @@
 
   <section id="out-analysis" hidden>
     <h2>证据链</h2>
-    <div id="analysis"></div>
+    <div id="analysis">
+      <div id="topic-tabs"></div>
+      <div id="topic-detail"></div>
+    </div>
   </section>
 
   <section id="out-timeline" hidden>
@@ -415,8 +426,7 @@ function renderCitation(citation, urn) {
   return box;
 }
 
-function renderChain(evidence) {
-  const host = $("analysis");
+function renderChain(host, evidence) {
   clear(host);
 
   const status = el("p", null, "report-line");
@@ -470,11 +480,58 @@ function renderChain(evidence) {
   }
 }
 
-function renderCritique(critique) {
-  const host = $("analysis");
+function renderCritique(host, critique) {
   const verdict = el("p", null, "verdict " + (critique.passed ? "ok" : "bad"));
   verdict.textContent = critique.passed ? "审查通过" : `审查未通过：${(critique.issues || []).join("；")}`;
   host.appendChild(verdict);
+}
+
+// ── 多主题工作台（Phase 5.5）──────────────────────────────────────────
+//
+// 一次请求分析多个主题，每个主题一条证据链。此前只渲染第一个成功主题、
+// 其余一句「见接口」带过 —— 那是把工作台的责任推回给调用方。现在每个
+// 主题一条页签，点了才渲染：证据链可能很长，全铺开等于没有焦点。
+// 页签区与详情区分开 —— 清详情不能清掉页签，否则点第二下就什么都没有。
+
+const WORKBENCH = { selected: null };
+
+function selectTopic(r) {
+  WORKBENCH.selected = r;
+  const detail = $("topic-detail");
+  clear(detail);
+  if (!r.ok) {
+    // 失败主题也占一条页签：点了看到失败原因，不是消失。
+    detail.appendChild(el("p", `主题「${r.topic_name}」分析失败：${r.error}`, "error"));
+    return;
+  }
+  renderChain(detail, r.analysis.analysis.evidence);
+  renderCritique(detail, r.analysis.critique);
+}
+
+function renderWorkbench(results) {
+  const tabs = $("topic-tabs");
+  clear(tabs);
+  clear($("topic-detail"));
+  WORKBENCH.selected = null;
+
+  for (const r of results) {
+    const tab = el("button", r.topic_name, r.ok ? null : "failed");
+    tab.type = "button";
+    tab.addEventListener("click", () => {
+      for (const node of Array.from(tabs.children)) node.classList.remove("active");
+      tab.classList.add("active");
+      selectTopic(r);
+    });
+    tabs.appendChild(tab);
+  }
+
+  // 默认选中第一个成功主题；全失败时选中第一个（页签点开是错误原因）。
+  const firstOk = results.find((r) => r.ok) || results[0];
+  if (firstOk) {
+    const firstTab = tabs.children[results.indexOf(firstOk)];
+    if (firstTab) firstTab.classList.add("active");
+    selectTopic(firstOk);
+  }
 }
 
 // ── 时间轴 ─────────────────────────────────────────────────────────────
@@ -614,24 +671,9 @@ async function onAnalyze(event) {
       renderChart(payload.chart);
       $("out-chart").hidden = false;
     }
-    const ok = payload.results.filter((r) => r.ok);
-    const bad = payload.results.filter((r) => !r.ok);
-    if (ok.length || bad.length) {
+    if (payload.results.length) {
       $("out-analysis").hidden = false;
-      clear($("analysis"));
-      if (bad.length) {
-        $("analysis").appendChild(el("p",
-          `以下主题分析失败：${bad.map((r) => `${r.topic}（${r.error}）`).join("；")}`, "error"));
-      }
-      const first = ok[0];
-      if (first) {
-        renderChain(first.analysis.analysis.evidence);
-        renderCritique(first.analysis.critique);
-        if (ok.length > 1) {
-          $("analysis").appendChild(el("p",
-            `另有 ${ok.length - 1} 个主题也分析成功，见接口 /api/analyze/multi 的完整返回。`, "signal"));
-        }
-      }
+      renderWorkbench(payload.results);
     }
   } catch (error) {
     reportError(error);
