@@ -1172,11 +1172,12 @@ function renderChart(chart) {
       const stages = (chart.auxiliary && chart.auxiliary.stages) || {};
       return stages[p.name] || "—";
     }, "ten-god-cell"],
-    ["空亡", (p) => {
-      const hits = (chart.auxiliary && chart.auxiliary.kong_wang_hit) || [];
-      return hits.indexOf(p.name) >= 0 ? "空" : "—";
-    }, "ten-god-cell"],
   ];
+  // 空亡一行只在真有柱落空时渲染：四格全「—」的行不提供信息，只占版面。
+  const emptyHits = (chart.auxiliary && chart.auxiliary.kong_wang_hit) || [];
+  if (emptyHits.length) {
+    rows.push(["空亡", (p) => (emptyHits.indexOf(p.name) >= 0 ? "空" : "—"), "ten-god-cell"]);
+  }
   for (const row_def of rows) {
     const label = row_def[0];
     const pick = row_def[1];
