@@ -333,7 +333,54 @@ def test_glossary_renders_structural_definitions(page):
         assert word not in text
 
 
+# ── 11. 分享链接（Phase 6.5）──────────────────────────────────────────
+
+
+def test_share_link_restores_the_form_without_sending_anything(browser, base_url):
+    """打开带 # 的链接：表单被回填，但**一个 API 请求都不发**。
+
+    自动请求等于在用户没点之前就把生辰再 POST 一次，与「请求结束即释放」
+    的立场不符。片段（# 之后）本身也不随 HTTP 请求发送。
+    """
+    context = browser.new_context(viewport={"width": 1280, "height": 900})
+    page = context.new_page()
+    api_calls: list[str] = []
+    page.on("request", lambda r: api_calls.append(r.url) if "/api/" in r.url else None)
+    try:
+        page.goto(
+            f"{base_url}/#v=1&y=1985&m=6&d=15&h=10&mi=30&g=%E5%A5%B3&topics=%E5%91%BD%E5%B1%80&fy=2030&ty=2040",
+            wait_until="domcontentloaded",
+        )
+        page.wait_for_timeout(700)
+
+        assert page.locator("#year").input_value() == "1985"
+        assert page.locator("#minute").input_value() == "30"
+        assert page.locator("#gender").input_value() == "女"
+        assert page.locator("#from").input_value() == "2030"
+        assert page.locator('input[name="topic"][value="命局"]').is_checked()
+        assert not page.locator('input[name="topic"][value="事业"]').is_checked()
+        # 提示条在，说明「已填好但未计算」
+        assert page.locator("#share-note").is_visible()
+        assert api_calls == [], f"打开分享链接不该发请求：{api_calls}"
+    finally:
+        context.close()
+
+
+def test_share_button_encodes_the_form_into_the_fragment(page):
+    _fill_birth(page)
+    page.select_option("#gender", "女")
+    page.click("#share-btn")
+
+    fragment = page.evaluate("() => location.hash")
+    assert fragment.startswith("#v=1")
+    assert "y=1990" in fragment
+    assert "mi=30" in fragment
+    assert "g=%E5%A5%B3" in fragment or "g=女" in fragment
+    # 不把纬度写进链接：引擎零使用，纯隐私暴露。
+    assert "lat" not in fragment
+
 # ── 7. 报告导出（Phase 5.7）───────────────────────────────────────────
+
 
 def test_export_json_downloads_the_full_report(page):
     """导出 JSON：下载到的文件是完整报告（含 URN 与逐字原文）。

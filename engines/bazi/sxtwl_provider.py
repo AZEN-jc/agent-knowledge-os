@@ -23,6 +23,7 @@ from zoneinfo import ZoneInfo
 
 import sxtwl
 
+from engines.bazi.auxiliary import auxiliary_of
 from engines.bazi.jieqi import month_pillar, year_pillar
 from engines.bazi.models import BirthInput, Chart, Pillar
 from engines.bazi.ten_gods import BRANCHES, ELEMENTS, STEMS, element_census, ten_god
@@ -234,6 +235,11 @@ class SxtwlBaziProvider:
                 "day_master_element": ELEMENTS[day_stem],
                 **element_census(pillars),
             },
+            # 胎元 / 空亡 / 十二长生（Phase 6.4）：无实质分歧的排盘派生量。
+            auxiliary=auxiliary_of(
+                month_stem, month_branch, day_stem, day_branch,
+                tuple(branch for _, _, branch in values),
+            ),
             relations=_relations(branch_values),
             provider=self.name,
             algorithm_version=self.algorithm_version,

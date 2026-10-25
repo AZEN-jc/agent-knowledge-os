@@ -108,6 +108,12 @@ RESPONSE_CONTRACT: frozenset[str] = frozenset({
     "elements.count",
     "elements.missing",
     "elements.dominant",
+    # 排盘派生量（Phase 6.4：胎元 / 空亡 / 十二长生）
+    "auxiliary",
+    "auxiliary.tai_yuan",
+    "auxiliary.kong_wang",
+    "auxiliary.kong_wang_hit",
+    "auxiliary.stages",
     # 多主题分析（/api/analyze/multi）
     "chart",
     "results",
@@ -336,11 +342,26 @@ def _extract_endpoints(js: str) -> set[tuple[str, str]]:
     三种调用形式都要覆盖：``post()``/``get()`` 包装（解析 JSON 的路径）
     与裸 ``request("METHOD", path)``（Phase 5.7 起导出走这条，因为它
     要 Response 不要 JSON）。查询串剥掉。
+
+    ``(?<![.\\w])`` 是必要的：``params.get("v")`` 是 URLSearchParams 的
+    方法调用，不是端点请求。没有这个断言，分享链接（Phase 6.5）一进来
+    就报「前端请求了未注册的端点 GET v」。
     """
-    pairs = {("post", path) for path in re.findall(r'post\(\s*"([^"]+)"', js)}
-    pairs |= {("post", path) for path in re.findall(r'request\(\s*"POST",\s*"([^"]+)"', js)}
-    pairs |= {("get", path.split("?")[0]) for path in re.findall(r'get\(\s*"([^"]+)"', js)}
-    pairs |= {("get", path.split("?")[0]) for path in re.findall(r'request\(\s*"GET",\s*"([^"]+)"', js)}
+    pairs = {
+        ("post", path) for path in re.findall(r'(?<![.\w])post\(\s*"([^"]+)"', js)
+    }
+    pairs |= {
+        ("post", path)
+        for path in re.findall(r'(?<![.\w])request\(\s*"POST",\s*"([^"]+)"', js)
+    }
+    pairs |= {
+        ("get", path.split("?")[0])
+        for path in re.findall(r'(?<![.\w])get\(\s*"([^"]+)"', js)
+    }
+    pairs |= {
+        ("get", path.split("?")[0])
+        for path in re.findall(r'(?<![.\w])request\(\s*"GET",\s*"([^"]+)"', js)
+    }
     return pairs
 
 

@@ -81,6 +81,10 @@ class Chart:
     elements: dict[str, Any] = field(default_factory=dict)
     dayun: tuple[dict[str, Any], ...] = ()
     relations: tuple[dict[str, Any], ...] = ()
+    #: 排盘派生量：胎元 / 空亡 / 十二长生（见 :mod:`engines.bazi.auxiliary`）。
+    #: 与 ``elements`` 同属「provider 算好、上层直接读」的一类，不放事实层 ——
+    #: 目前没有断语用它们当条件，先做成命盘属性。
+    auxiliary: dict[str, Any] = field(default_factory=dict)
     provider: str = ""
     algorithm_version: str = ""
 

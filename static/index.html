@@ -250,6 +250,11 @@
     border-left: 3px solid var(--seal); font-size: 14.5px;
   }
   .error:empty { display: none; }
+  /* 分享链接提示（Phase 6.5）：不是错误，用纸色提示条而不是红框。 */
+  .share-note {
+    margin: 18px 0 0; padding: 10px 14px; font-size: 13.5px; color: var(--ink-soft);
+    background: var(--paper-2); border-left: 2px solid var(--rule-strong);
+  }
 
   /* ── 命盘 ─────────────────────────────────────────────────────────── */
   .chart-head {
@@ -605,7 +610,7 @@
   .privacy h2 { font-size: 14px; letter-spacing: .16em; margin: 0 0 16px; }
   .privacy ul {
     list-style: none; margin: 0; padding: 0;
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 24px;
   }
   .privacy li { font-size: 12.5px; line-height: 1.85; color: var(--muted); }
   .privacy li b {
@@ -821,10 +826,14 @@
           <div class="field"><label>&nbsp;</label>
             <button type="button" class="ghost" id="glossary-btn">术语表</button>
           </div>
+          <div class="field"><label>&nbsp;</label>
+            <button type="button" class="ghost" id="share-btn">复制分享链接</button>
+          </div>
         </div>
       </form>
 
       <div id="error" role="alert" aria-live="assertive"></div>
+      <p id="share-note" class="share-note" hidden></p>
     </section>
 
     <section class="sec" id="out-chart" hidden>
@@ -887,6 +896,7 @@
         <li><b>不存储</b><strong>无账号、无数据库、无历史记录。</strong>生辰只用于当次计算，请求结束即释放。</li>
         <li><b>内存缓存</b>最多 <span id="cache-limit">256</span> 条结论缓存（键为分析输入，不含原始生辰字段），进程退出即清空；缓存命中会在响应里标注。</li>
         <li><b>导出与日志</b>导出文件留在你的设备上，服务端不保留副本；访问日志只含方法与状态码，不记录请求体（部署方另加日志的除外）。</li>
+        <li><b>分享链接</b>由浏览器在本地生成，参数写在 <code>#</code> 之后，<strong>不会随请求发到服务器</strong>；链接本身包含生辰（精确到分与经度 0.1°），请只发给信任的人。</li>
       </ul>
     </section>
 
@@ -1156,6 +1166,16 @@ function renderChart(chart) {
     ["藏干", (p) => (p.hidden_stems || []).join("　"), "hidden-stems"],
     ["十神", (p) => p.ten_god || "", "ten-god-cell"],
     ["纳音", (p) => p.na_yin || "", "na-yin-cell"],
+    // 星运与空亡（Phase 6.4）：胎元/空亡/十二长生随命盘产出。
+    // 阴干的十二长生有两说，后端返回 null，这里显示「—」而不是猜一个。
+    ["星运", (p) => {
+      const stages = (chart.auxiliary && chart.auxiliary.stages) || {};
+      return stages[p.name] || "—";
+    }, "ten-god-cell"],
+    ["空亡", (p) => {
+      const hits = (chart.auxiliary && chart.auxiliary.kong_wang_hit) || [];
+      return hits.indexOf(p.name) >= 0 ? "空" : "—";
+    }, "ten-god-cell"],
   ];
   for (const row_def of rows) {
     const label = row_def[0];
@@ -1218,6 +1238,19 @@ function renderChart(chart) {
   line.appendChild(document.createTextNode(
     relations.length ? relations.join("；") : "四支之间无结构关系"));
   box.appendChild(line);
+
+  // 胎元与空亡（Phase 6.4）。空亡恒为两支，落进四柱的那几柱在表里标「空」。
+  const auxiliary = chart.auxiliary;
+  if (auxiliary && auxiliary.tai_yuan) {
+    const aux = el("p", null, "relations-line");
+    aux.appendChild(el("b", "胎元　"));
+    aux.appendChild(document.createTextNode(auxiliary.tai_yuan));
+    const empty = (auxiliary.kong_wang || []).join("");
+    if (empty) {
+      aux.appendChild(document.createTextNode(`　·　空亡　${empty}`));
+    }
+    box.appendChild(aux);
+  }
 
   // 卷首右侧的小注与 provenance 重复，改由 HTML 静态声明；这里不再覆写。
   reveal(box);
@@ -1833,6 +1866,85 @@ function syncGeoRow() {
   $("geo-row").hidden = !$("tst").checked;
 }
 
+// ── 分享链接（Phase 6.5）──────────────────────────────────────────────
+//
+// 服务端零存储：生辰编码在 `#` 之后，片段不会随 HTTP 请求发送。
+//
+// **不放纬度**：引擎里 latitude 只做入参校验，真太阳时只读 longitude ——
+// 放进去只增加隐私暴露，零收益。经度取到 0.1°（≈11 km、≈24 秒时差），
+// 低于时辰分辨率，也不足以定位住址。也不做「生辰哈希」：出生时间空间约
+// 5×10⁷ 种，枚举几秒就能还原，哈希在这里只是给隐私贴一层假安全感。
+
+const SHARE_VERSION = "1";
+
+function encodeShare() {
+  const params = new URLSearchParams();
+  params.set("v", SHARE_VERSION);
+  params.set("y", $("year").value);
+  params.set("m", $("month").value);
+  params.set("d", $("day").value);
+  params.set("h", $("hour").value);
+  params.set("mi", $("minute").value);
+  if ($("gender").value) params.set("g", $("gender").value);
+  const topics = selectedTopics();
+  if (topics.length) params.set("topics", topics.join(","));
+  if ($("from").value) params.set("fy", $("from").value);
+  if ($("to").value) params.set("ty", $("to").value);
+  if ($("tst").checked) {
+    params.set("tst", "1");
+    const longitude = Number($("longitude").value);
+    if ($("longitude").value.trim() && Number.isFinite(longitude)) {
+      params.set("lon", (Math.round(longitude * 10) / 10).toFixed(1));
+    }
+  }
+  return `#${params.toString()}`;
+}
+
+/** 把分享链接里的参数回填到表单。返回是否成功解析。 */
+function applyShare() {
+  const raw = location.hash.replace(/^#/, "");
+  if (!raw) return false;
+  const params = new URLSearchParams(raw);
+  if (params.get("v") !== SHARE_VERSION) {
+    showError("这个分享链接的版本与当前页面不一致，无法解析。");
+    return false;
+  }
+  const fill = (id, key) => {
+    const value = params.get(key);
+    if (value !== null) $(id).value = value;
+  };
+  fill("year", "y");
+  fill("month", "m");
+  fill("day", "d");
+  fill("hour", "h");
+  fill("minute", "mi");
+  fill("gender", "g");
+  fill("from", "fy");
+  fill("to", "ty");
+  if (params.get("tst") === "1") {
+    $("tst").checked = true;
+    fill("longitude", "lon");
+  }
+  syncGeoRow();
+  const topics = params.get("topics");
+  if (topics !== null) {
+    const wanted = new Set(topics.split(",").filter(Boolean));
+    for (const input of document.querySelectorAll('input[name="topic"]')) {
+      input.checked = wanted.has(input.value);
+    }
+  }
+  return true;
+}
+
+async function onShare() {
+  const hash = encodeShare();
+  history.replaceState(null, "", `${location.pathname}${location.search}${hash}`);
+  const ok = await copyText(location.href);
+  const button = $("share-btn");
+  button.textContent = ok ? "已复制" : "链接已写入地址栏";
+  setTimeout(() => { button.textContent = "复制分享链接"; }, 1800);
+}
+
 buildTopicPicker();
 $("form").addEventListener("submit", onAnalyze);
 $("chart-only").addEventListener("click", onChartOnly);
@@ -1843,8 +1955,17 @@ $("export-json").addEventListener("click", () => onExport("json"));
 $("export-pdf").addEventListener("click", () => onExport("pdf"));
 $("library-btn").addEventListener("click", onLibrary);
 $("glossary-btn").addEventListener("click", onGlossary);
+$("share-btn").addEventListener("click", onShare);
 $("tst").addEventListener("change", syncGeoRow);
 syncGeoRow();
+
+// 打开分享链接：只回填表单，**不自动请求**。自动跑等于在用户没点之前
+// 就把生辰再 POST 一次，与「请求结束即释放」的立场不符。
+if (applyShare()) {
+  const note = $("share-note");
+  note.textContent = "这是分享链接里的生辰，已填好但未计算 —— 点「多主题分析」才会开始。";
+  note.hidden = false;
+}
 reveal(document);
 </script>
 </body>

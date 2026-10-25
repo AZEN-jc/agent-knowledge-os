@@ -173,6 +173,19 @@ def _draw_report(target: Any, report: dict[str, Any]) -> None:
         f"{pillar['heavenly_stem']}{pillar['earthly_branch']}"
         for pillar in chart["pillars"]
     ))
+    # 胎元 / 空亡（Phase 6.4）。十二长生逐柱在页面上看，报告只印胎元与空亡 ——
+    # 纸面空间有限，先放断语真正会引用的两项。
+    auxiliary = chart.get("auxiliary") or {}
+    if auxiliary.get("tai_yuan"):
+        line = f"胎元 {auxiliary['tai_yuan']}"
+        empty = "".join(auxiliary.get("kong_wang") or [])
+        if empty:
+            line += f"　·　空亡 {empty}"
+        hits = auxiliary.get("kong_wang_hit") or []
+        if hits:
+            names = {"year": "年", "month": "月", "day": "日", "hour": "时"}
+            line += "（" + "、".join(names.get(name, name) + "柱" for name in hits) + "落空亡）"
+        emit(line)
     emit("")
 
     for result in report["results"]:
