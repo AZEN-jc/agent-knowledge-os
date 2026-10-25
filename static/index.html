@@ -3,252 +3,829 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="description" content="确定性排盘、可核验出处、不做预测的命理推理工具。">
 <title>MingLi Agent · 可验证的命理推理</title>
 <style>
+  /* ═══════════════════════════════════════════════════════════════════
+     设计语言：校勘本（critical edition）
+     ───────────────────────────────────────────────────────────────────
+     这个产品的承诺是「每条结论都能追到命盘要素与典籍底本」。视觉就该
+     像一部精校典籍：纸、墨、朱印、栏线、页边注。不用仪表盘那套卡片
+     与阴影 —— 它会把「证据」讲成「指标」。
+
+     色：纸（暖白）、墨（近黑）、朱（印泥红）、青（校验通过）、赭（出处）
+     字：宋体承担正文与标题，等宽承担 URN 与字段路径 —— 后者是数据，
+         不是文句，字形本身就该区分开。
+     格：左栏是页边注（卷次索引），正文单栏，行宽 62–68 字。
+     ═══════════════════════════════════════════════════════════════════ */
   :root {
-    --ink: #1a1a1a; --muted: #6b6b6b; --line: #d8d4cc; --bg: #faf8f4;
-    --card: #ffffff; --accent: #8c2f39; --ok: #2f6b4f; --warn: #a8641a;
+    --paper: #f4efe4;
+    --paper-2: #efe8da;
+    --card: #fbf8f1;
+    --ink: #191510;
+    --ink-soft: #3d362b;
+    /* 文字色全部按 WCAG AA（4.5:1）在三种底色上验过：muted 最低 5.24、
+       faint 最低 4.64、ochre 最低 4.96、seal 最低 6.00。层级靠字号与字距
+       拉开，不靠继续变浅 —— 变浅的下一步就是不合格。 */
+    --muted: #675e4e;
+    --faint: #6f6656;
+    --rule: #d9cfba;
+    --rule-strong: #b9ab90;
+    --seal: #9b2c24;
+    --seal-deep: #7c1f19;
+    --seal-wash: #f2e2dc;
+    --jade: #2c6650;
+    --ochre: #7d5a28;
+    --focus: #9b2c24;
+    --serif: "Songti SC", "Noto Serif SC", "Source Han Serif SC", "STSong", serif;
+    --mono: "SF Mono", "JetBrains Mono", ui-monospace, "Menlo", monospace;
+    --ease: cubic-bezier(.2, .7, .2, 1);
   }
+
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
-    margin: 0; padding: 28px 24px; background: var(--bg); color: var(--ink);
-    font: 16px/1.65 "Songti SC", "Noto Serif CJK SC", serif;
+    margin: 0;
+    background:
+      radial-gradient(1200px 600px at 12% -10%, #fbf7ee 0%, transparent 60%),
+      linear-gradient(180deg, var(--paper) 0%, var(--paper-2) 100%);
+    color: var(--ink);
+    font: 17px/1.8 var(--serif);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
-  main { max-width: 980px; margin: 0 auto; }
-  h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: .06em; }
-  h2 { font-size: 15px; margin: 40px 0 12px; padding-bottom: 8px;
-       letter-spacing: .12em; border-bottom: 1px solid var(--line); }
-  .thesis { color: var(--muted); font-size: 13.5px; margin: 0 0 24px; max-width: 72ch; }
-  form, .card { background: var(--card); border: 1px solid var(--line);
-                border-radius: 4px; padding: 20px; }
-  .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
-  .field { display: flex; flex-direction: column; gap: 5px; }
-  .field label { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+  ::selection { background: var(--seal); color: #fff; }
+
+  /* 跳转链接：键盘用户第一下 Tab 就能绕过导航。 */
+  .skip {
+    position: absolute; left: 12px; top: -48px; z-index: 50;
+    background: var(--ink); color: var(--paper); padding: 8px 14px;
+    text-decoration: none; border-radius: 2px; transition: top .2s var(--ease);
+  }
+  .skip:focus { top: 12px; }
+
+  /* ── 版式骨架 ─────────────────────────────────────────────────────── */
+  .shell {
+    display: grid;
+    grid-template-columns: 176px minmax(0, 1fr);
+    gap: 56px;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 56px 32px 40px;
+  }
+  .col { min-width: 0; }
+
+  /* 左栏：页边注。粘性定位，滚动时始终看得见自己在哪一卷。 */
+  .rail {
+    position: sticky; top: 32px; align-self: start;
+    font-size: 12px; color: var(--muted);
+    border-left: 1px solid var(--rule);
+    padding-left: 18px;
+  }
+  .rail-mark {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .18em;
+    color: var(--faint); text-transform: uppercase;
+  }
+  .rail-nav { list-style: none; margin: 16px 0 0; padding: 0; }
+  .rail-nav li { margin: 0 0 9px; }
+  .rail-nav a {
+    color: var(--ink-soft); text-decoration: none; display: flex; gap: 8px;
+    align-items: baseline; transition: color .25s var(--ease);
+  }
+  .rail-nav a:hover { color: var(--seal); }
+  .rail-nav .no { font-family: var(--mono); font-size: 10px; color: var(--seal); }
+  .rail-foot {
+    margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--rule);
+    font-size: 11px; line-height: 1.7; color: var(--faint);
+  }
+
+  /* ── 卷首 ─────────────────────────────────────────────────────────── */
+  .hero { position: relative; padding: 8px 0 40px; }
+  .hero-seal {
+    position: absolute; right: 4px; top: 2px;
+    width: 62px; height: 62px; border: 2px solid var(--seal);
+    border-radius: 3px; color: var(--seal);
+    display: grid; grid-template-columns: 1fr 1fr; place-items: center;
+    font-size: 19px; line-height: 1; letter-spacing: 0;
+    transform: rotate(-3.5deg);
+    box-shadow: inset 0 0 0 3px var(--paper), inset 0 0 0 4px var(--seal);
+    opacity: .92;
+  }
+  .hero-kicker {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .3em;
+    color: var(--ochre); text-transform: uppercase; margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(40px, 6.4vw, 68px);
+    line-height: 1.02; letter-spacing: -.015em; font-weight: 600;
+    margin: 0 0 10px; max-width: 12ch;
+  }
+  h1 .cn { display: block; font-size: .42em; letter-spacing: .34em;
+            color: var(--ink-soft); margin-top: 14px; font-weight: 400; }
+  .thesis {
+    margin: 22px 0 0; max-width: 60ch; color: var(--ink-soft);
+    font-size: 16.5px; line-height: 1.85;
+  }
+  .hero-meta {
+    display: flex; flex-wrap: wrap; gap: 0 22px; margin: 26px 0 0;
+    padding-top: 14px; border-top: 1px solid var(--rule);
+    font-family: var(--mono); font-size: 11px; letter-spacing: .06em;
+    color: var(--muted);
+  }
+  .hero-meta span::before { content: "—"; margin-right: 8px; color: var(--faint); }
+
+  /* ── 卷次标题 ─────────────────────────────────────────────────────── */
+  .sec { margin-top: 64px; }
+  .sec-head {
+    display: flex; align-items: baseline; gap: 14px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--rule-strong);
+    margin-bottom: 22px;
+  }
+  .sec-no {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .2em;
+    color: var(--seal); white-space: nowrap;
+  }
+  h2 {
+    font-size: 21px; font-weight: 600; letter-spacing: .06em; margin: 0;
+  }
+  .sec-note {
+    margin-left: auto; font-size: 12px; color: var(--faint);
+    font-family: var(--mono); letter-spacing: .04em;
+  }
+
+  /* ── 卷宗（表单）──────────────────────────────────────────────────── */
+  .dossier {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-top: 2px solid var(--ink);
+    padding: 26px 28px 24px;
+  }
+  .dossier-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .26em;
+    color: var(--faint); text-transform: uppercase; margin: 0 0 18px;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 18px 22px; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .field > label {
+    font-size: 11.5px; letter-spacing: .12em; color: var(--muted);
+  }
   input, select, button {
-    font: inherit; padding: 7px 10px; border: 1px solid var(--line);
-    border-radius: 3px; background: #fff; color: var(--ink);
-    /* 触屏目标：40px 是 WCAG 2.5.8 的 24px 下限之上一个舒服的档位，
-       桌面端不显臃肿（行高 1.65 × 16px + 14px padding ≈ 40px）。 */
+    font: inherit; color: var(--ink);
+    background: transparent;
+    border: 0; border-bottom: 1px solid var(--rule-strong);
+    border-radius: 0; padding: 7px 2px;
     min-height: 40px;
   }
-  /* 复选框不适用上面的触屏目标规则 —— min-height 会把它撑成一个巨大的
-     方块（截图里那四个蓝块就是这么来的）。18px + accent-color 才是
-     原生控件的正确尺寸与品牌色。 */
+  input { width: 76px; font-family: var(--mono); font-size: 15px; }
+  select {
+    max-width: 178px; font-size: 15px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+                      linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: right 6px center, right 1px center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 20px; appearance: none;
+  }
+  input:focus, select:focus { outline: none; border-bottom-color: var(--seal); }
+  input:focus-visible, select:focus-visible, button:focus-visible,
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--focus); outline-offset: 3px;
+  }
+  /* 复选框：18px，朱色，和正文的墨色区分开。 */
   input[type="checkbox"] {
-    min-height: 0; width: 18px; height: 18px; padding: 0;
-    accent-color: var(--accent); cursor: pointer;
+    min-height: 0; width: 17px; height: 17px; padding: 0;
+    border: 1px solid var(--rule-strong); background: var(--card);
+    accent-color: var(--seal); cursor: pointer;
   }
-  input { width: 78px; }
-  /* 性别下拉不需要撑满 —— 「不填（只算流年）」是最长项，给它够用的宽度，
-     把剩下的空间留给同一行里的动作按钮。 */
-  select { max-width: 168px; }
-  button { cursor: pointer; background: var(--ink); color: #fff; border-color: var(--ink); }
-  button.ghost { background: #fff; color: var(--ink); }
-  button:hover { opacity: .85; }
-  /* 键盘焦点必须看得见（WCAG 2.4.7）。只给 :focus-visible —— 鼠标点击
-     不该留下一个常驻描边，那是视觉噪声。 */
-  input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
-    outline: 2px solid var(--accent); outline-offset: 2px;
+  button {
+    cursor: pointer; padding: 10px 18px; min-height: 40px;
+    border: 1px solid var(--ink); background: var(--ink); color: var(--paper);
+    font-size: 14.5px; letter-spacing: .08em;
+    transition: background .25s var(--ease), color .25s var(--ease),
+                transform .12s var(--ease), box-shadow .25s var(--ease);
   }
-  .topics { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; }
-  .topics label { display: flex; gap: 7px; align-items: center; font-size: 15px; cursor: pointer; }
-  table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 14.5px; }
-  th, td { border: 1px solid var(--line); padding: 8px 11px; text-align: left;
-           vertical-align: top; }
-  th { background: #f2efe9; font-weight: 600; font-size: 13px; letter-spacing: .06em; }
-  /* 表格左上角是行列标签的交界，不是数据格 —— 给它底色只会多一个深色块。 */
-  table th:first-child { background: transparent; }
-  .pillar-glyph { font-size: 21px; letter-spacing: .12em; font-weight: 600; }
-  .chart-meta { margin: 0 0 4px; font-size: 15px; }
-  .chart-meta strong { font-size: 17px; letter-spacing: .04em; }
-  .muted { color: var(--muted); font-size: 12.5px; }
-  .rule { border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px;
-          margin-top: 12px; background: var(--card); }
-  .rule-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
-  .rule-id { font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--muted); }
-  .tag { font-size: 11px; padding: 1px 7px; border: 1px solid var(--line);
-         border-radius: 999px; color: var(--muted); letter-spacing: .02em; }
-  .tag.classical { color: var(--accent); border-color: var(--accent); }
-  .conclusion { font-size: 15.5px; font-weight: 600; }
-  .cond { font-size: 13px; color: var(--muted); margin: 4px 0 0 14px;
-          padding-left: 10px; border-left: 1px solid var(--line); }
-  .cond code { font-family: ui-monospace, monospace; color: var(--ink); font-size: 12px; }
-  .citation { margin-top: 10px; padding: 10px 12px; background: #f7f3ec;
-              border-left: 3px solid var(--accent); font-size: 13px; }
-  .citation a { color: var(--accent); }
-  .verdict { font-weight: 600; }
-  .verdict.ok { color: var(--ok); }
-  .verdict.bad { color: var(--warn); }
-  .report-line { font-size: 15px; margin-top: 8px; }
-  .signal { font-size: 13px; color: var(--muted); margin-left: 16px; }
-  .empty { color: var(--muted); font-style: italic; }
-  .error { color: var(--accent); background: #fdf3f4; border: 1px solid var(--accent);
-           padding: 10px 12px; border-radius: 4px; margin-top: 12px; white-space: pre-wrap; }
-  /* 清空错误时 showError("") 会留一个空 div；:empty 把它收掉，避免页面上
-     常驻一条没有内容的红边（截图里那条红条）。 */
-  .error:empty { display: none; }
-  /* 字段级错误（Phase 5.2）：贴在出错的输入框下面，不是只会在顶部出现一次的
-     一段文字。五个输入框的时代，用户需要知道错的是哪一个。 */
-  .field-error { color: var(--accent); font-size: 12px; max-width: 220px; }
-  .field.invalid input, .field.invalid select { border-color: var(--accent); }
-  /* hidden 属性必须赢过布局规则。.row 是 flex 容器，UA 给 [hidden] 的
-     display:none 在特异性上输给 .row{display:flex} —— 不写这条，
-     真太阳时的经纬度行会在没勾选时漏出来。 */
+  button:hover { background: var(--seal-deep); border-color: var(--seal-deep); }
+  button:active { transform: translateY(1px); }
+  button.ghost {
+    background: transparent; color: var(--ink); border-color: var(--rule-strong);
+  }
+  button.ghost:hover {
+    background: transparent; color: var(--seal); border-color: var(--seal);
+  }
+  button[aria-busy="true"] { opacity: .55; pointer-events: none; }
+  /* 主按钮：朱印。它是整页唯一的实心红，权重最高。 */
+  #run {
+    background: var(--seal); border-color: var(--seal); color: #fff;
+    padding: 10px 24px; letter-spacing: .12em;
+    box-shadow: 0 1px 0 var(--seal-deep);
+  }
+  #run:hover { background: var(--seal-deep); border-color: var(--seal-deep); }
+
+  .topics { display: flex; gap: 6px 26px; flex-wrap: wrap; margin-top: 22px;
+            padding-top: 18px; border-top: 1px solid var(--rule); }
+  .topics label {
+    display: flex; gap: 8px; align-items: center; font-size: 15.5px;
+    cursor: pointer; color: var(--ink-soft);
+  }
+  .topics label:hover { color: var(--seal); }
+  .geo-hint { font-size: 12px; color: var(--faint); max-width: 30ch; line-height: 1.6; }
+  .field-error { color: var(--seal); font-size: 12px; max-width: 220px; }
+  .field.invalid > label { color: var(--seal); }
+  .field.invalid input, .field.invalid select { border-bottom-color: var(--seal); }
+  /* hidden 必须赢过布局：.row 是 flex 容器，UA 的 display:none 会输给它。 */
   [hidden] { display: none !important; }
-  .geo-hint { font-size: 12px; color: var(--muted); }
-  /* 多主题工作台（Phase 5.5）：主题页签 + 当前主题的证据链。 */
-  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+
+  /* ── 错误通报 ─────────────────────────────────────────────────────── */
+  .error {
+    margin: 20px 0 0; padding: 12px 16px; white-space: pre-wrap;
+    color: var(--seal-deep); background: var(--seal-wash);
+    border-left: 3px solid var(--seal); font-size: 14.5px;
+  }
+  .error:empty { display: none; }
+
+  /* ── 命盘 ─────────────────────────────────────────────────────────── */
+  .chart-head {
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+  .day-master {
+    font-size: 46px; letter-spacing: .02em; line-height: 1.05;
+  }
+  .day-master small {
+    display: block; font-family: var(--mono); font-size: 10px;
+    letter-spacing: .26em; color: var(--faint); text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .provenance {
+    margin-left: auto; font-family: var(--mono); font-size: 11px;
+    color: var(--muted); text-align: right; line-height: 1.9;
+  }
+  .provenance b { font-weight: 400; color: var(--ink-soft); }
+
+  table {
+    border-collapse: collapse; width: 100%; margin-top: 20px;
+    font-size: 15px; table-layout: fixed;
+  }
+  caption { caption-side: top; }
+  th, td {
+    border: 0; border-bottom: 1px solid var(--rule);
+    padding: 10px 12px; text-align: left; vertical-align: top;
+  }
+  thead th, table tr:first-child th {
+    border-bottom: 1px solid var(--rule-strong);
+    font-family: var(--mono); font-size: 10.5px; font-weight: 400;
+    letter-spacing: .2em; color: var(--muted); text-transform: uppercase;
+    padding-bottom: 8px;
+  }
+  table tr:first-child th:first-child { border-bottom-color: transparent; }
+  td:first-child {
+    font-size: 11.5px; letter-spacing: .14em; color: var(--muted);
+    width: 92px; white-space: nowrap;
+  }
+  .pillar-glyph {
+    font-size: 34px; line-height: 1.15; letter-spacing: .02em; font-weight: 600;
+  }
+  /* 藏干按传统连写：一格里小字并排。不用 flex —— td 变 flex 容器会
+     脱离表格布局，文字被压成一行一个字。 */
+  .hidden-stems { font-size: 14px; color: var(--ink-soft); letter-spacing: .12em; }
+  .ten-god-cell { font-size: 13.5px; color: var(--ink-soft); }
+  .na-yin-cell { font-size: 13px; color: var(--muted); }
+
+  /* 五行普查：五条横条。计数是 8 项里的分布，条长即占比。 */
+  .census { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--rule); }
+  .census-title {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .24em;
+    color: var(--faint); text-transform: uppercase; margin: 0 0 12px;
+  }
+  .census-grid { display: grid; gap: 7px; max-width: 340px; }
+  .census-row {
+    display: grid; grid-template-columns: 22px 1fr 46px; gap: 12px;
+    align-items: center; font-size: 13px;
+  }
+  .census-el { color: var(--ink-soft); letter-spacing: .1em; }
+  .census-bar { height: 3px; background: var(--rule); position: relative; }
+  .census-bar i {
+    position: absolute; inset: 0 auto 0 0; background: var(--ink-soft);
+    transition: width .9s var(--ease);
+  }
+  .census-row.is-missing .census-bar i { background: var(--seal); }
+  .census-row.is-dominant .census-bar i { background: var(--ochre); }
+  .census-n {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    text-align: right; padding-right: 4px;
+  }
+  .census-flags {
+    margin: 12px 0 0; font-size: 12.5px; color: var(--muted);
+    display: flex; gap: 18px; flex-wrap: wrap;
+  }
+  .census-flags em { font-style: normal; color: var(--seal); }
+  .relations-line {
+    margin: 14px 0 0; font-size: 13.5px; color: var(--muted);
+  }
+  .relations-line b { font-weight: 400; color: var(--ink-soft); }
+
+  /* ── 证据链 ───────────────────────────────────────────────────────── */
+  .workbench-head {
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .export-bar { display: flex; gap: 10px; margin-left: auto; }
+  .export-bar button { font-size: 13px; padding: 8px 14px; }
+
+  .tabs { display: flex; gap: 26px; flex-wrap: wrap;
+          border-bottom: 1px solid var(--rule); margin-bottom: 22px; }
   .tabs button {
-    font: inherit; padding: 5px 14px; border: 1px solid var(--line);
-    border-radius: 999px; background: #fff; color: var(--ink); cursor: pointer;
+    background: none; border: 0; border-bottom: 2px solid transparent;
+    color: var(--muted); padding: 8px 2px 10px; min-height: 0;
+    font-size: 15.5px; letter-spacing: .06em;
+    transition: color .25s var(--ease), border-color .25s var(--ease);
   }
-  .tabs button.active { background: var(--ink); color: #fff; border-color: var(--ink); }
-  .tabs button.failed { color: var(--accent); border-color: var(--accent); }
-  /* 时间轴的大运分组头（Phase 5.6）：十年一运，跨运的年份不该看起来连续。 */
+  .tabs button:hover { background: none; color: var(--ink); }
+  .tabs button.active { color: var(--ink); border-bottom-color: var(--seal); }
+  .tabs button.failed { color: var(--seal); }
+  .tabs button.failed::after { content: " ×"; font-size: 12px; }
+
+  .topic-head { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
+  .topic-head b { color: var(--ink); font-weight: 600; }
+  .coverage-note {
+    margin: 0 0 22px; font-size: 13.5px; line-height: 1.75; color: var(--muted);
+    max-width: 66ch;
+  }
+
+  /* 强度表：带刻度的尺，不是进度条 —— 它是等级，不是完成度。 */
+  .gauge { margin: 26px 0 18px; max-width: 520px; }
+  .gauge-top {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .gauge-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .22em;
+    color: var(--faint); text-transform: uppercase;
+  }
+  .gauge-value {
+    font-family: var(--mono); font-size: 26px; letter-spacing: .02em;
+    color: var(--ink); line-height: 1;
+  }
+  .gauge-scale { position: relative; height: 22px; }
+  .gauge-rail { position: absolute; left: 0; right: 0; top: 6px; height: 1px;
+                background: var(--rule-strong); }
+  .gauge-fill {
+    position: absolute; left: 0; top: 5px; height: 3px; width: 0;
+    background: var(--seal); transition: width 1.1s var(--ease);
+  }
+  .gauge-tick {
+    position: absolute; top: 2px; width: 1px; height: 8px; background: var(--rule-strong);
+  }
+  .gauge-tick.major { height: 12px; top: 0; background: var(--faint); }
+  .gauge-scale-labels {
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 9.5px; color: var(--faint);
+    margin-top: 2px;
+  }
+  .gauge-formula {
+    margin: 12px 0 0; font-family: var(--mono); font-size: 11px;
+    color: var(--muted); line-height: 1.9;
+  }
+  .gauge-formula b { font-weight: 400; color: var(--ink-soft); }
+
+  /* 规则条目：编号在左，正文在右，像校勘记的一条。 */
+  .entry {
+    position: relative; padding: 20px 0 20px 46px;
+    border-top: 1px solid var(--rule);
+  }
+  .entry::before {
+    content: attr(data-index);
+    position: absolute; left: 0; top: 22px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+    color: var(--faint);
+  }
+  .entry:hover::before { color: var(--seal); }
+  .entry-conclusion {
+    font-size: 18px; line-height: 1.6; margin: 0 0 10px;
+    letter-spacing: .01em;
+  }
+  .entry-meta {
+    display: flex; gap: 8px 14px; flex-wrap: wrap; align-items: baseline;
+    font-family: var(--mono); font-size: 10.5px; color: var(--muted);
+    letter-spacing: .04em;
+  }
+  .entry-meta .rule-id { color: var(--faint); }
+  .tag {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted);
+    border: 1px solid var(--rule-strong); padding: 1px 6px; border-radius: 1px;
+  }
+  .tag.classical { color: var(--seal); border-color: var(--seal); }
+  .tag.warn { color: var(--ochre); border-color: var(--ochre); }
+
+  /* 条件：两列定义表，点线引导。 */
+  .conditions { margin: 14px 0 0; }
+  .cond {
+    display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 4px 16px;
+    padding: 6px 0; font-size: 13px; color: var(--muted);
+    border-bottom: 1px dotted var(--rule);
+  }
+  .cond:last-child { border-bottom: 0; }
+  .cond code {
+    font-family: var(--mono); font-size: 11px; color: var(--ink-soft);
+    letter-spacing: .02em; overflow-wrap: anywhere;
+  }
+  .cond .val { color: var(--ink-soft); }
+  .cond .src {
+    grid-column: 2; font-family: var(--mono); font-size: 10.5px; color: var(--faint);
+  }
+
+  /* 出处：脚注块。朱色竖线 + 引号 + 可点开的底本链接。 */
+  .citation {
+    margin: 16px 0 0; padding: 14px 18px;
+    background: var(--paper-2);
+    border-left: 2px solid var(--seal);
+  }
+  .citation .urn {
+    font-family: var(--mono); font-size: 10.5px; color: var(--faint);
+    letter-spacing: .02em; word-break: break-all; margin-bottom: 8px;
+  }
+  .citation .cite-line { font-size: 13.5px; color: var(--ink-soft); }
+  .citation .quote {
+    margin: 8px 0 0; font-size: 15px; line-height: 1.85; color: var(--ink);
+  }
+  .citation .quote-label { color: var(--seal); font-size: 12px; letter-spacing: .08em; }
+  .citation a {
+    display: inline-block; margin-top: 10px; font-size: 12.5px;
+    color: var(--seal); text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color .25s var(--ease);
+  }
+  .citation a:hover { border-bottom-color: var(--seal); }
+  .copy-urn {
+    background: none; border: 0; padding: 0; min-height: 0;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+    color: var(--faint); cursor: pointer;
+  }
+  .copy-urn:hover { background: none; color: var(--seal); }
+
+  .verdict {
+    margin: 26px 0 0; padding-top: 16px; border-top: 1px solid var(--rule);
+    font-size: 13.5px; letter-spacing: .04em;
+  }
+  .verdict::before {
+    content: ""; display: inline-block; width: 7px; height: 7px;
+    margin-right: 9px; vertical-align: 1px; border-radius: 50%;
+  }
+  .verdict.ok { color: var(--jade); }
+  .verdict.ok::before { background: var(--jade); }
+  .verdict.bad { color: var(--seal); }
+  .verdict.bad::before { background: var(--seal); }
+  .verdict span { color: var(--muted); }
+
+  .empty { color: var(--faint); font-style: italic; }
+
+  /* ── 时间轴：一条脊，年份是节点 ───────────────────────────────────── */
+  .tl-note { margin: 0 0 26px; font-size: 13.5px; color: var(--muted); max-width: 68ch; }
   .dayun-head {
-    margin: 14px 0 4px; padding: 4px 10px; font-size: 13px; color: var(--muted);
-    border-left: 3px solid var(--line); background: #f7f3ec;
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+    margin: 34px 0 8px; padding: 8px 0 8px 0;
+    border-top: 1px solid var(--rule-strong);
+    font-size: 13px; color: var(--ink-soft); letter-spacing: .04em;
   }
-  /* 导出工具条（Phase 5.7）：跟在分析结果后面，导出的是刚看的这份。 */
-  .export-bar { display: flex; gap: 8px; margin-bottom: 12px; }
-  /* 隐私声明（Phase 5.8）：用户不会去读 docs/，声明的最低标准是看得见。 */
+  .dayun-head::before {
+    content: "大运"; font-family: var(--mono); font-size: 9.5px;
+    letter-spacing: .22em; color: var(--seal); text-transform: uppercase;
+  }
+  .tl-year {
+    position: relative; padding: 16px 0 16px 30px;
+    border-left: 1px solid var(--rule); margin-left: 6px;
+  }
+  .tl-year::before {
+    content: ""; position: absolute; left: -3.5px; top: 26px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--paper); border: 1px solid var(--rule-strong);
+  }
+  .tl-year:hover::before { background: var(--seal); border-color: var(--seal); }
+  .tl-year-head {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  }
+  .tl-ganzhi {
+    font-size: 24px; letter-spacing: .04em; font-weight: 600; line-height: 1.2;
+  }
+  .tl-strength {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em;
+    color: var(--faint);
+  }
+  .tl-report { margin: 8px 0 0; font-size: 14.5px; color: var(--ink-soft); }
+  .tl-signal {
+    margin: 8px 0 0; padding-left: 14px; border-left: 1px solid var(--rule);
+    font-size: 13px; color: var(--muted); line-height: 1.75;
+  }
+  .tl-signal b { font-weight: 400; color: var(--ink-soft); }
+  .tl-signal span { color: var(--faint); margin: 0 6px; }
+
+  /* ── 典籍库 ───────────────────────────────────────────────────────── */
+  .lib-intro { margin: 0 0 30px; font-size: 13.5px; color: var(--muted); max-width: 68ch; }
+  .book {
+    display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 0 28px;
+    padding: 22px 0; border-top: 1px solid var(--rule);
+  }
+  .book-spine { position: relative; padding-left: 16px; }
+  .book-spine::before {
+    content: ""; position: absolute; left: 0; top: 4px; bottom: 4px;
+    width: 3px; background: var(--seal); opacity: .75;
+  }
+  .book-title { font-size: 18px; line-height: 1.45; letter-spacing: .02em; }
+  .book-edition {
+    margin: 8px 0 0; font-size: 11.5px; color: var(--faint);
+    line-height: 1.7; font-family: var(--mono);
+  }
+  .book-count {
+    margin: 10px 0 0; font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: .14em; color: var(--muted);
+  }
+  .book-rules .entry { padding-top: 14px; padding-bottom: 14px; }
+  .book-rules .entry:first-child { border-top: 0; padding-top: 0; }
+  .backlog-head {
+    margin: 46px 0 6px; font-size: 15px; color: var(--ink);
+    letter-spacing: .06em;
+  }
+  .backlog-sub { margin: 0 0 20px; font-size: 12.5px; color: var(--faint); }
+  .backlog-row {
+    display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 6px 20px;
+    padding: 14px 0; border-top: 1px solid var(--rule); align-items: baseline;
+  }
+  .backlog-book { font-size: 15px; }
+  .backlog-blocker { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .backlog-next { font-size: 12.5px; color: var(--faint); grid-column: 2; }
+
+  /* ── 隐私与版权页 ─────────────────────────────────────────────────── */
   .privacy {
-    margin-top: 32px; padding: 14px 16px; background: var(--card);
-    border: 1px solid var(--line); border-radius: 4px;
+    margin-top: 72px; padding: 26px 0 0;
+    border-top: 2px solid var(--ink);
   }
-  .privacy h2 { font-size: 14px; margin: 0 0 8px; border-bottom: none; padding: 0; }
-  .privacy ul { margin: 0; padding-left: 18px; }
-  .privacy li { font-size: 13px; color: var(--muted); margin: 4px 0; }
-  .privacy strong { color: var(--ink); font-weight: 600; }
-  /* 视觉隐藏但保留给读屏器（表格标题等）。不用 display:none —— 那会把
-     内容从无障碍树里一并删掉。 */
+  .privacy h2 { font-size: 14px; letter-spacing: .16em; margin: 0 0 16px; }
+  .privacy ul {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;
+  }
+  .privacy li { font-size: 12.5px; line-height: 1.85; color: var(--muted); }
+  .privacy li b {
+    display: block; font-weight: 400; font-size: 10px; letter-spacing: .22em;
+    color: var(--seal); text-transform: uppercase; margin-bottom: 6px;
+    font-family: var(--mono);
+  }
+  .privacy strong { color: var(--ink-soft); font-weight: 600; }
+  .colophon {
+    margin: 40px 0 0; padding-top: 18px; border-top: 1px solid var(--rule);
+    font-size: 11.5px; line-height: 1.9; color: var(--faint);
+    display: flex; gap: 8px 28px; flex-wrap: wrap; justify-content: space-between;
+  }
+  .colophon code { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  /* 读屏器专用 */
   .sr-only {
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
     overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
   }
-  footer { margin: 20px 0 8px; color: var(--muted); font-size: 12px; }
 
-  /* ── 移动端（Phase 5.9）───────────────────────────────────────────────
-     640px 以下：边距收紧、输入框撑满（拇指点得准比排得齐重要）、
-     四柱表允许横向滚动（五列表在 390px 宽里塞不下，压字比滚动更糟）、
-     触屏目标抬到 44px（WCAG 2.5.5 的建议值）。 */
-  @media (max-width: 640px) {
-    body { padding: 14px; font-size: 16px; }
-    h1 { font-size: 20px; }
+  /* ── 动效 ─────────────────────────────────────────────────────────────
+     全部包在 prefers-reduced-motion 里：系统设了减少动效就一点都不动。
+     动效只做「出现」与「状态变化」，不做装饰性循环 —— 命理工具不需要
+     呼吸感，需要可信感。 */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-kicker, h1, .thesis, .hero-meta {
+      animation: rise .9s var(--ease) both;
+    }
+    h1 { animation-delay: .06s; }
+    .thesis { animation-delay: .14s; }
+    .hero-meta { animation-delay: .22s; }
+    .hero-seal { animation: seal-in .8s var(--ease) both .3s; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes seal-in {
+      from { opacity: 0; transform: rotate(-3.5deg) scale(.86); }
+      to { opacity: .92; transform: rotate(-3.5deg) scale(1); }
+    }
+    /* 进场效果只挂在 .js-reveal 下：JS 没跑（或被 CSP 拦）时元素保持
+       可见 —— 内容永远不该依赖动效脚本才能出现。 */
+    .js-reveal .sec, .js-reveal .entry,
+    .js-reveal .tl-year, .js-reveal .book {
+      opacity: 0; transform: translateY(10px);
+      transition: opacity .7s var(--ease), transform .7s var(--ease);
+    }
+    .js-reveal .sec.in, .js-reveal .entry.in,
+    .js-reveal .tl-year.in, .js-reveal .book.in { opacity: 1; transform: none; }
+  }
+
+  /* 减少动效：连宽度过渡也停掉。CSS 过渡不归 media query 自动管，
+     要显式关 —— 否则「系统设了减少动效」只关掉了一半。 */
+  @media (prefers-reduced-motion: reduce) {
+    .gauge-fill, .census-bar i { transition: none; }
+    html { scroll-behavior: auto; }
+  }
+
+  /* ── 响应式 ─────────────────────────────────────────────────────────── */
+  @media (max-width: 1024px) {
+    .shell { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 40px 26px 32px; }
+    .rail { position: static; display: flex; gap: 24px; flex-wrap: wrap;
+            border-left: 0; border-bottom: 1px solid var(--rule);
+            padding: 0 0 14px; margin-bottom: 28px; }
+    .rail-nav { display: flex; gap: 18px; margin: 0; flex-wrap: wrap; }
+    .rail-nav li { margin: 0; }
+    .rail-foot { margin: 0; padding: 0; border: 0; }
+    .privacy ul { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  }
+  @media (max-width: 720px) {
+    body { font-size: 16px; }
+    .shell { padding: 26px 18px 26px; }
+    h1 { font-size: clamp(34px, 11vw, 46px); }
+    /* 卷首小标与朱印在窄屏会挤在一起：给小标留出印章的宽度。 */
+    .hero-kicker { max-width: calc(100% - 64px); letter-spacing: .22em; }
+    .hero-seal { width: 48px; height: 48px; font-size: 15px; }
+    .sec { margin-top: 48px; }
+    .dossier { padding: 20px 18px; }
     .field { flex: 1 1 100%; }
-    input, select { width: 100%; min-height: 44px; }
-    button { min-height: 44px; padding: 8px 14px; }
-    .row { gap: 10px; }
+    input, select { width: 100%; max-width: none; min-height: 44px; }
+    button { min-height: 44px; }
+    .row { gap: 14px; }
+    .book { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .book-spine { padding-left: 14px; }
+    .backlog-row { grid-template-columns: minmax(0, 1fr); }
+    .backlog-next { grid-column: 1; }
+    .entry { padding-left: 34px; }
+    .cond { grid-template-columns: minmax(0, 1fr); }
+    .cond .src { grid-column: 1; }
+    /* 四柱表：窄屏允许表内横向滚动，不压字。 */
     table { display: block; overflow-x: auto; white-space: nowrap; }
-    .tabs button { min-height: 40px; }
-    .privacy { padding: 12px; }
+    .pillar-glyph { font-size: 28px; }
+    .export-bar { margin-left: 0; }
+    .workbench-head { gap: 12px; }
+    .day-master { font-size: 26px; }
+    .provenance { margin-left: 0; text-align: left; }
   }
 </style>
 </head>
 <body>
-<main>
-  <h1>MingLi Agent</h1>
-  <p class="thesis">
-    确定性排盘 → 事实提取 → 规则匹配 → 证据链。每个结论都能追到命盘要素与规则出处；
-    信号是结构描述，不是预测。证据强度是证据等级，不是事件概率。
-  </p>
+<a class="skip" href="#form">跳到生辰输入</a>
 
-  <form id="form">
-    <div class="row">
-      <div class="field"><label for="year">公历年</label><input id="year" type="number" value="1990"></div>
-      <div class="field"><label for="month">月</label><input id="month" type="number" value="2" min="1" max="12"></div>
-      <div class="field"><label for="day">日</label><input id="day" type="number" value="1" min="1" max="31"></div>
-      <div class="field"><label for="hour">时（0-23）</label><input id="hour" type="number" value="12" min="0" max="23"></div>
-      <div class="field"><label for="minute">分（0-59）</label><input id="minute" type="number" value="0" min="0" max="59"></div>
-      <div class="field"><label for="gender">性别</label>
-        <select id="gender"><option value="">不填（只算流年）</option><option>男</option><option>女</option></select>
-      </div>
-      <div class="field"><label for="tst">真太阳时</label>
-        <input id="tst" type="checkbox" style="width:auto">
-      </div>
-      <div class="field"><label>&nbsp;</label>
-        <button type="submit" id="run">多主题分析</button>
-      </div>
-      <div class="field"><label>&nbsp;</label>
-        <button type="button" class="ghost" id="chart-only">只看命盘</button>
-      </div>
-    </div>
-
-    <!-- 真太阳时才需要的出生地经纬度。默认隐藏：民用时口径不问地理，
-         勾选真太阳时才出现 —— 不该让多数用户面对两个永远空着的输入框。
-         经度是必填（引擎缺了它只能拒绝），纬度只影响均时差细节可留空。 -->
-    <div class="row" id="geo-row" hidden>
-      <div class="field"><label for="longitude">经度（必填）</label><input id="longitude" type="number" step="0.1" min="-180" max="180"></div>
-      <div class="field"><label for="latitude">纬度（可空）</label><input id="latitude" type="number" step="0.1" min="-90" max="90"></div>
-      <div class="field"><span class="geo-hint">按出生地经度校正，西端地区可跨两个时辰</span></div>
-    </div>
-
-    <div class="topics" id="topics"></div>
-
-    <div class="row" style="margin-top:14px">
-      <div class="field"><label for="from">时间轴起</label><input id="from" type="number" value="2024"></div>
-      <div class="field"><label for="to">时间轴止</label><input id="to" type="number" value="2030"></div>
-      <div class="field"><label for="timeline-topic">主题</label>
-        <select id="timeline-topic"></select>
-      </div>
-      <div class="field"><label>&nbsp;</label>
-        <button type="button" class="ghost" id="timeline">流年时间轴</button>
-      </div>
-      <div class="field"><label>&nbsp;</label>
-        <button type="button" class="ghost" id="shift-back">◀ 前一段</button>
-      </div>
-      <div class="field"><label>&nbsp;</label>
-        <button type="button" class="ghost" id="shift-forward">后一段 ▶</button>
-      </div>
-      <div class="field"><label>&nbsp;</label>
-        <button type="button" class="ghost" id="library-btn">典籍库</button>
-      </div>
-    </div>
-  </form>
-
-  <div id="error" role="alert" aria-live="assertive"></div>
-
-  <section id="out-chart" hidden>
-    <h2>命盘</h2>
-    <div class="card" id="chart"></div>
-  </section>
-
-  <section id="out-analysis" hidden>
-    <h2>证据链</h2>
-    <div class="export-bar">
-      <button type="button" class="ghost" id="export-json">导出 JSON</button>
-      <button type="button" class="ghost" id="export-pdf">导出 PDF</button>
-    </div>
-    <div id="analysis">
-      <div id="topic-tabs"></div>
-      <div id="topic-detail"></div>
-    </div>
-  </section>
-
-  <section id="out-timeline" hidden>
-    <h2>流年时间轴</h2>
-    <div class="card" id="timeline-out"></div>
-  </section>
-
-  <section id="out-library" hidden>
-    <h2>典籍与规则库</h2>
-    <div class="card" id="library"></div>
-  </section>
-
-  <section class="privacy" id="privacy">
-    <h2>隐私与数据</h2>
-    <ul>
-      <li><strong>不存储</strong>：无账号、无数据库、无历史记录；生辰只用于当次计算，请求结束即释放。</li>
-      <li><strong>内存缓存</strong>：最多 <span id="cache-limit">256</span> 条结论缓存（键为分析输入，不含原始生辰字段），进程退出即清空；缓存命中会在响应里标注。</li>
-      <li><strong>导出与日志</strong>：导出文件留在你的设备上，服务端不保留副本；访问日志只含方法与状态码，不记录请求体（部署方另加日志的除外）。</li>
+<div class="shell">
+  <aside class="rail" aria-label="卷次索引">
+    <div class="rail-mark">MingLi · 校勘本</div>
+    <ul class="rail-nav">
+      <li><a href="#sec-form"><span class="no">壹</span>生辰</a></li>
+      <li><a href="#out-chart"><span class="no">贰</span>命盘</a></li>
+      <li><a href="#out-analysis"><span class="no">叁</span>证据链</a></li>
+      <li><a href="#out-timeline"><span class="no">肆</span>流年</a></li>
+      <li><a href="#out-library"><span class="no">伍</span>典籍</a></li>
+      <li><a href="#privacy"><span class="no">陆</span>数据</a></li>
     </ul>
-  </section>
+    <div class="rail-foot">
+      确定性排盘<br>
+      寿星天文历对拍<br>
+      不做预测
+    </div>
+  </aside>
 
-  <footer>
-    确定性部分由 <code>engines.bazi</code> 计算（寿星天文历对拍）；结构层规则来自可执行定义表；
-    典籍层规则逐字回对固化底本，出处带书名、底本、逐字原文与可打开地址。
-  </footer>
-</main>
+  <div class="col">
+    <header class="hero">
+      <div class="hero-seal" aria-hidden="true">命理</div>
+      <p class="hero-kicker">A verifiable reasoning engine</p>
+      <h1>MingLi Agent<span class="cn">可验证的命理推理</span></h1>
+      <p class="thesis">
+        确定性排盘 → 事实提取 → 规则匹配 → 证据链。每个结论都能追到命盘要素与规则出处；
+        信号是结构描述，不是预测。证据强度是证据等级，不是事件概率。
+      </p>
+      <p class="hero-meta">
+        <span>寿星天文历对拍</span>
+        <span>典籍逐字回对</span>
+        <span>审查独立复算</span>
+      </p>
+    </header>
+
+    <section class="sec" id="sec-form">
+      <div class="sec-head">
+        <span class="sec-no">壹</span>
+        <h2>生辰</h2>
+        <span class="sec-note">local civil time</span>
+      </div>
+
+      <form class="dossier" id="form">
+        <p class="dossier-label">卷宗 · 出生信息</p>
+        <div class="row">
+          <div class="field"><label for="year">公历年</label><input id="year" type="number" value="1990"></div>
+          <div class="field"><label for="month">月</label><input id="month" type="number" value="2" min="1" max="12"></div>
+          <div class="field"><label for="day">日</label><input id="day" type="number" value="1" min="1" max="31"></div>
+          <div class="field"><label for="hour">时</label><input id="hour" type="number" value="12" min="0" max="23"></div>
+          <div class="field"><label for="minute">分</label><input id="minute" type="number" value="0" min="0" max="59"></div>
+          <div class="field"><label for="gender">性别</label>
+            <select id="gender"><option value="">不填（只算流年）</option><option>男</option><option>女</option></select>
+          </div>
+          <div class="field"><label for="tst">真太阳时</label>
+            <input id="tst" type="checkbox">
+          </div>
+          <div class="field"><label>&nbsp;</label>
+            <button type="submit" id="run">多主题分析</button>
+          </div>
+          <div class="field"><label>&nbsp;</label>
+            <button type="button" class="ghost" id="chart-only">只看命盘</button>
+          </div>
+        </div>
+
+        <!-- 真太阳时才需要的出生地经纬度。默认隐藏：民用时口径不问地理，
+             勾选真太阳时才出现 —— 不该让多数用户面对两个永远空着的输入框。
+             经度是必填（引擎缺了它只能拒绝），纬度只影响均时差细节可留空。 -->
+        <div class="row" id="geo-row" hidden>
+          <div class="field"><label for="longitude">经度（必填）</label><input id="longitude" type="number" step="0.1" min="-180" max="180"></div>
+          <div class="field"><label for="latitude">纬度（可空）</label><input id="latitude" type="number" step="0.1" min="-90" max="90"></div>
+          <div class="field"><span class="geo-hint">按出生地经度校正，西端地区可跨两个时辰</span></div>
+        </div>
+
+        <div class="topics" id="topics"></div>
+
+        <div class="row" style="margin-top:22px">
+          <div class="field"><label for="from">时间轴起</label><input id="from" type="number" value="2024"></div>
+          <div class="field"><label for="to">时间轴止</label><input id="to" type="number" value="2030"></div>
+          <div class="field"><label for="timeline-topic">主题</label>
+            <select id="timeline-topic"></select>
+          </div>
+          <div class="field"><label>&nbsp;</label>
+            <button type="button" class="ghost" id="timeline">流年时间轴</button>
+          </div>
+          <div class="field"><label>&nbsp;</label>
+            <button type="button" class="ghost" id="shift-back">◀ 前一段</button>
+          </div>
+          <div class="field"><label>&nbsp;</label>
+            <button type="button" class="ghost" id="shift-forward">后一段 ▶</button>
+          </div>
+          <div class="field"><label>&nbsp;</label>
+            <button type="button" class="ghost" id="library-btn">典籍库</button>
+          </div>
+        </div>
+      </form>
+
+      <div id="error" role="alert" aria-live="assertive"></div>
+    </section>
+
+    <section class="sec" id="out-chart" hidden>
+      <div class="sec-head">
+        <span class="sec-no">贰</span>
+        <h2>命盘</h2>
+        <span class="sec-note" id="chart-note">four pillars</span>
+      </div>
+      <div class="card" id="chart"></div>
+    </section>
+
+    <section class="sec" id="out-analysis" hidden>
+      <div class="sec-head">
+        <span class="sec-no">叁</span>
+        <h2>证据链</h2>
+        <span class="sec-note">each line traceable</span>
+      </div>
+      <div class="workbench-head">
+        <div class="export-bar">
+          <button type="button" class="ghost" id="export-json">导出 JSON</button>
+          <button type="button" class="ghost" id="export-pdf">导出 PDF</button>
+        </div>
+      </div>
+      <div id="analysis">
+        <div id="topic-tabs" class="tabs" role="group" aria-label="主题"></div>
+        <div id="topic-detail"></div>
+      </div>
+    </section>
+
+    <section class="sec" id="out-timeline" hidden>
+      <div class="sec-head">
+        <span class="sec-no">肆</span>
+        <h2>流年时间轴</h2>
+        <span class="sec-note">structural signals</span>
+      </div>
+      <div class="card" id="timeline-out"></div>
+    </section>
+
+    <section class="sec" id="out-library" hidden>
+      <div class="sec-head">
+        <span class="sec-no">伍</span>
+        <h2>典籍与规则库</h2>
+        <span class="sec-note">canonical sources</span>
+      </div>
+      <div class="card" id="library"></div>
+    </section>
+
+    <section class="privacy" id="privacy">
+      <h2>隐私与数据</h2>
+      <ul>
+        <li><b>不存储</b><strong>无账号、无数据库、无历史记录。</strong>生辰只用于当次计算，请求结束即释放。</li>
+        <li><b>内存缓存</b>最多 <span id="cache-limit">256</span> 条结论缓存（键为分析输入，不含原始生辰字段），进程退出即清空；缓存命中会在响应里标注。</li>
+        <li><b>导出与日志</b>导出文件留在你的设备上，服务端不保留副本；访问日志只含方法与状态码，不记录请求体（部署方另加日志的除外）。</li>
+      </ul>
+    </section>
+
+    <footer class="colophon">
+      <span>确定性部分由 <code>engines.bazi</code> 计算（寿星天文历对拍）；结构层规则来自可执行定义表。</span>
+      <span>典籍层规则逐字回对固化底本，出处带书名、底本、逐字原文与可打开地址。</span>
+    </footer>
+  </div>
+</div>
 
 <script>
 "use strict";
@@ -257,8 +834,11 @@ const TOPIC_OPTIONS = ["事业", "财运", "婚姻", "健康", "命局"];
 const $ = (id) => document.getElementById(id);
 
 /** 引擎返回的柱名是英文（year/month/day/hour）——界面其余全中文，
- *  四个英文词杵在命盘表里破坏一致性。映射表放这里，渲染时不猜。 */
+ *  四个英文词杵在命盘里破坏一致性。映射表放这里，渲染时不猜。 */
 const PILLAR_LABELS = { year: "年柱", month: "月柱", day: "日柱", hour: "时柱" };
+
+/** 五行条的满格宽度基准：四柱天干 + 四支本气 = 8 项。 */
+const CENSUS_TOTAL = 8;
 
 /** 建元素。**全程用 textContent，不用 innerHTML** —— 数据来自 API 与用户输入，
  *  拼 HTML 字符串等于自己开一个注入口。 */
@@ -270,6 +850,55 @@ function el(tag, text, cls) {
 }
 
 function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+
+/** 显示/隐藏输出卷。卷首标题与 data-sec 的关系在 HTML 里声明一次，
+ *  JS 不再各处硬编码 id。 */
+function showSection(id, visible) {
+  const node = $(id);
+  if (!node) return;
+  node.hidden = !visible;
+  if (visible) reveal(node);
+}
+
+/** 进场：IntersectionObserver 给 .sec / .entry / .tl-year / .book 加 .in。
+ *  只在支持 IO 的浏览器里跑；不支持的（或减少动效的）直接可见 ——
+ *  动效是增强，不是内容。 */
+const REVEAL_SELECTOR = ".sec, .entry, .tl-year, .book";
+let revealObserver = null;
+if ("IntersectionObserver" in window) {
+  document.documentElement.classList.add("js-reveal");
+  revealObserver = new IntersectionObserver((changes) => {
+    for (const change of changes) {
+      if (change.isIntersecting) {
+        change.target.classList.add("in");
+        revealObserver.unobserve(change.target);
+      }
+    }
+  }, { rootMargin: "0px 0px -8% 0px", threshold: 0.04 });
+}
+function reveal(scope) {
+  if (!revealObserver) return;
+  const nodes = scope.matches && scope.matches(REVEAL_SELECTOR)
+    ? [scope] : Array.from(scope.querySelectorAll(REVEAL_SELECTOR));
+  for (const node of nodes) {
+    if (!node.classList.contains("in")) revealObserver.observe(node);
+  }
+}
+
+/** 数字滚动：强度值从 0 走到目标值。只动一次，且尊重减少动效。 */
+function countUp(node, target, digits) {
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) { node.textContent = target.toFixed(digits); return; }
+  const start = performance.now();
+  const duration = 900;
+  function frame(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    node.textContent = (target * eased).toFixed(digits);
+    if (t < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
 
 function showError(message) {
   const box = $("error");
@@ -420,62 +1049,91 @@ function renderChart(chart) {
   const box = $("chart");
   clear(box);
 
-  // 命盘头行：日主是这张盘的主角，加重；provider 与算法版本是 provenance，
-  // 压成同一行的小字 —— 两者权重不同，不该同样大。
-  const meta = el("p", null, "chart-meta");
-  meta.appendChild(el("strong", `日主 ${chart.day_master}`));
-  meta.appendChild(el("span",
-    `　${chart.provider}　·　算法 ${chart.algorithm_version}`, "muted"));
-  box.appendChild(meta);
+  // 卷首：日主是这张盘的主角，用大字号；provider 与算法版本是 provenance，
+  // 压到右端小字。两者权重不同，不该同样大。
+  const head = el("div", null, "chart-head");
+  const master = el("div", null, "day-master");
+  master.appendChild(el("small", "日主"));
+  master.appendChild(document.createTextNode(chart.day_master));
+  head.appendChild(master);
+  const provenance = el("div", null, "provenance");
+  const providerLine = el("div");
+  providerLine.appendChild(document.createTextNode("provider　"));
+  providerLine.appendChild(el("b", chart.provider));
+  provenance.appendChild(providerLine);
+  const versionLine = el("div");
+  versionLine.appendChild(document.createTextNode("算法　"));
+  versionLine.appendChild(el("b", chart.algorithm_version));
+  provenance.appendChild(versionLine);
+  head.appendChild(provenance);
+  box.appendChild(head);
 
   // 四列对齐：每个柱一列，天干/地支/藏干/十神/纳音各一行 —— 传统命盘的
   // 读法。Phase 5.3 之前是「一行一柱」的横表，读起来要左右扫。
   const table = el("table");
   // 读屏器需要知道这张表是什么（Phase 5.9）。视觉上隐藏，无障碍树里保留。
   table.appendChild(el("caption", "四柱命盘：年柱、月柱、日柱、时柱", "sr-only"));
-  const head = el("tr");
-  head.appendChild(el("th", ""));
+  const headRow = el("tr");
+  headRow.appendChild(el("th", ""));
   for (const pillar of chart.pillars) {
-    head.appendChild(el("th", PILLAR_LABELS[pillar.name] || pillar.name));
+    headRow.appendChild(el("th", PILLAR_LABELS[pillar.name] || pillar.name));
   }
-  table.appendChild(head);
+  table.appendChild(headRow);
 
   const rows = [
-    ["天干", (p) => p.heavenly_stem],
-    ["地支", (p) => p.earthly_branch],
-    ["藏干", (p) => (p.hidden_stems || []).join(" ")],
-    ["十神", (p) => p.ten_god || ""],
-    ["纳音", (p) => p.na_yin || ""],
+    ["天干", (p) => p.heavenly_stem, "pillar-glyph"],
+    ["地支", (p) => p.earthly_branch, "pillar-glyph"],
+    ["藏干", (p) => (p.hidden_stems || []).join("　"), "hidden-stems"],
+    ["十神", (p) => p.ten_god || "", "ten-god-cell"],
+    ["纳音", (p) => p.na_yin || "", "na-yin-cell"],
   ];
   for (const row_def of rows) {
     const label = row_def[0];
     const pick = row_def[1];
+    const cellClass = row_def[2];
     const row = el("tr");
     row.appendChild(el("td", label));
     for (const pillar of chart.pillars) {
-      const glyph = label === "天干" || label === "地支";
-      row.appendChild(el("td", pick(pillar), glyph ? "pillar-glyph" : null));
+      row.appendChild(el("td", pick(pillar), cellClass));
     }
     table.appendChild(row);
   }
   box.appendChild(table);
 
   // 五行普查（Phase 5.3）：计数、缺失、偏旺都来自 provider 随命盘产出的
-  // chart.elements（与事实层同一个 element_census 实现）。缺与偏旺为空时
-  // 不渲染那一行 —— 「缺：无」也是信息，但计数行本身已经说完了。
+  // chart.elements（与事实层同一个 element_census 实现）。用横条而不是
+  // 一行文字 —— 计数是分布，条形才读得出分布。
   const elements = chart.elements;
   if (elements && elements.count) {
-    const counts = Object.entries(elements.count)
-      .map((entry) => entry[0] + entry[1])
-      .join("　");
-    let line = `五行计数　${counts}`;
-    if (elements.missing && elements.missing.length) {
-      line += `　·　缺：${elements.missing.join("、")}`;
+    const census = el("div", null, "census");
+    census.appendChild(el("p", "五行计数 · 八项分布", "census-title"));
+    const grid = el("div", null, "census-grid");
+    const missing = elements.missing || [];
+    const dominant = elements.dominant || [];
+    for (const entry of Object.entries(elements.count)) {
+      const element = entry[0];
+      const count = entry[1];
+      const row = el("div", null, "census-row");
+      if (missing.indexOf(element) >= 0) row.classList.add("is-missing");
+      if (dominant.indexOf(element) >= 0) row.classList.add("is-dominant");
+      row.appendChild(el("span", element, "census-el"));
+      const bar = el("div", null, "census-bar");
+      const fill = el("i");
+      fill.style.width = `${Math.round((count / CENSUS_TOTAL) * 100)}%`;
+      bar.appendChild(fill);
+      row.appendChild(bar);
+      row.appendChild(el("span", String(count), "census-n"));
+      grid.appendChild(row);
     }
-    if (elements.dominant && elements.dominant.length) {
-      line += `　·　偏旺：${elements.dominant.join("、")}`;
+    census.appendChild(grid);
+    const flags = el("p", null, "census-flags");
+    flags.appendChild(el("span", missing.length ? `缺：${missing.join("、")}` : "五行不缺"));
+    if (dominant.length) {
+      const mark = el("em", `偏旺：${dominant.join("、")}`);
+      flags.appendChild(mark);
     }
-    box.appendChild(el("p", line, "signal"));
+    census.appendChild(flags);
+    box.appendChild(census);
   }
 
   // relations 的形状是 {type, branches, pillars}，不是 {type, pair} ——
@@ -485,49 +1143,89 @@ function renderChart(chart) {
   const relations = (chart.relations || []).map(
     (relation) => `${relation.type}：${(relation.branches || []).join("")}（${(relation.pillars || []).join("+")}）`
   );
-  box.appendChild(el("p", null, "signal"));
-  box.lastChild.textContent =
-    relations.length ? `地支关系 ${relations.join("；")}` : "四支之间无结构关系";
+  const line = el("p", null, "relations-line");
+  line.appendChild(el("b", "地支关系　"));
+  line.appendChild(document.createTextNode(
+    relations.length ? relations.join("；") : "四支之间无结构关系"));
+  box.appendChild(line);
 
-  // 「缺五行」一行曾在这里读 chart.elements.missing —— 那个键从来不存在
-  // （provider 只放 day_master_element），所以这行从来没显示过。删掉而不是
-  // 留着：五行普查（count/missing/dominant）属于 Phase 5.3 命盘可视化，
-  // 到时候连着 provider 的 element_census 一起做，读真实存在的键。
-  // 教训与 relations 那条注释同族：读错字段不会报错，只会让一行永远空白。
+  // 卷首右侧的小注与 provenance 重复，改由 HTML 静态声明；这里不再覆写。
+  reveal(box);
 }
 
 // ── 证据链 ─────────────────────────────────────────────────────────────
 
+/** 条件取值的人类可读形式。
+ *
+ *  ``JSON.stringify`` 给的是 ``["偏财","比肩"]`` —— 给机器看的。校勘本的
+ *  读者要的是「偏财」「比肩」。只改呈现，不改数据。 */
+function formatValue(value) {
+  if (Array.isArray(value)) return value.map((item) => formatValue(item)).join("");
+  if (typeof value === "string") return `「${value}」`;
+  if (value === null || value === undefined) return "空";
+  return String(value);
+}
+
 function renderCondition(condition) {
   const line = el("div", null, "cond");
   line.appendChild(el("code", condition.key));
-  line.appendChild(document.createTextNode(
-    `　要求 ${JSON.stringify(condition.expected)}　实际 ${JSON.stringify(condition.actual)}`
-  ));
+  const value = el("span", null, "val");
+  value.textContent =
+    `要求 ${formatValue(condition.expected)}　实际 ${formatValue(condition.actual)}`;
+  line.appendChild(value);
   const sources = condition.sources || [];
   if (sources.length) {
-    line.appendChild(document.createTextNode(`　← ${sources.join("、")}`));
+    line.appendChild(el("span", sources.join("、"), "src"));
   }
   return line;
+}
+
+/** 复制文本。剪贴板 API 在非安全上下文（http 非 localhost）不可用，
+ *  失败就静默 —— 复制是便利，不是功能依赖。 */
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 function renderCitation(citation, urn) {
   if (!citation && !urn) return null;
   const box = el("div", null, "citation");
-  if (urn) box.appendChild(el("div", urn));
+  if (urn) {
+    const urnLine = el("div", null, "urn");
+    urnLine.appendChild(document.createTextNode(urn));
+    const copy = el("button", "复制", "copy-urn");
+    copy.type = "button";
+    copy.style.marginLeft = "10px";
+    copy.addEventListener("click", async () => {
+      const ok = await copyText(urn);
+      copy.textContent = ok ? "已复制" : "复制失败";
+      setTimeout(() => { copy.textContent = "复制"; }, 1600);
+    });
+    urnLine.appendChild(copy);
+    box.appendChild(urnLine);
+  }
   if (citation) {
-    box.appendChild(el("div", null, null));
-    box.lastChild.textContent =
+    const citeLine = el("div", null, "cite-line");
+    citeLine.textContent =
       `${citation.book}　·　${citation.edition}${citation.chapter ? "　·　" + citation.chapter : ""}`;
+    box.appendChild(citeLine);
     if (citation.original_text) {
-      box.appendChild(el("div", null, null));
-      box.lastChild.textContent = `原文：「${citation.original_text}」`;
+      // 引号写成真实文本而不是 CSS 伪元素：伪元素进不了 textContent，
+      // 读屏器与「复制这段原文」都拿不到。视觉一样，语义不一样。
+      const quote = el("p", null, "quote");
+      quote.appendChild(el("span", "原文：", "quote-label"));
+      quote.appendChild(document.createTextNode(`「${citation.original_text}」`));
+      box.appendChild(quote);
     }
     if (citation.url) {
       // 变量名 anchor 而不是 link：证据链的循环变量叫 link，两个不同的
       // 东西共用一个名字，静态契约测试（tests/test_frontend_contract.py）
       // 提取属性路径时会把 DOM 属性误登记成响应字段。
-      const anchor = el("a", "打开出处");
+      const anchor = el("a", "打开出处 ↗");
       anchor.href = citation.url;
       anchor.target = "_blank";
       anchor.rel = "noopener noreferrer";
@@ -537,51 +1235,100 @@ function renderCitation(citation, urn) {
   return box;
 }
 
+/** 强度表：0–1 的刻度尺。它是证据等级，不是完成度 —— 所以画刻度，
+ *  不画进度条。 */
+function renderGauge(evidence) {
+  const gauge = el("div", null, "gauge");
+  const top = el("div", null, "gauge-top");
+  top.appendChild(el("span", "证据强度 · evidence level", "gauge-label"));
+  const value = el("span", null, "gauge-value");
+  value.textContent = "0.00";
+  top.appendChild(value);
+  gauge.appendChild(top);
+
+  const scale = el("div", null, "gauge-scale");
+  scale.appendChild(el("div", null, "gauge-rail"));
+  const fill = el("div", null, "gauge-fill");
+  scale.appendChild(fill);
+  for (let i = 0; i <= 10; i += 1) {
+    const tick = el("div", null, i % 5 === 0 ? "gauge-tick major" : "gauge-tick");
+    tick.style.left = `${i * 10}%`;
+    scale.appendChild(tick);
+  }
+  gauge.appendChild(scale);
+  const labels = el("div", null, "gauge-scale-labels");
+  labels.appendChild(el("span", "0"));
+  labels.appendChild(el("span", "0.5"));
+  labels.appendChild(el("span", "1"));
+  gauge.appendChild(labels);
+
+  const formula = el("p", null, "gauge-formula");
+  formula.appendChild(el("b", "支持 "));
+  formula.appendChild(document.createTextNode(
+    `${evidence.strength_breakdown.supporting_rules} 条 · 原始支持量 `
+    + `${evidence.strength_breakdown.raw_support} · 饱和常数 `
+    + `${evidence.strength_breakdown.saturation_k}`));
+  gauge.appendChild(formula);
+
+  // 数值与填充在下一帧再动：元素先入 DOM，过渡才有起点。
+  const strength = evidence.strength;
+  requestAnimationFrame(() => {
+    fill.style.width = `${Math.max(0, Math.min(1, strength)) * 100}%`;
+  });
+  countUp(value, strength, 2);
+  return gauge;
+}
+
 function renderChain(host, evidence) {
   clear(host);
 
-  const status = el("p", null, "report-line");
-  status.appendChild(el("span", `主题「${evidence.topic_name}」覆盖状态：${evidence.status}`, null));
-  host.appendChild(status);
-  host.appendChild(el("p", evidence.coverage_note, "signal"));
+  const topicHead = el("p", null, "topic-head");
+  topicHead.appendChild(document.createTextNode("主题"));
+  topicHead.appendChild(el("b", `「${evidence.topic_name}」`));
+  topicHead.appendChild(document.createTextNode(`　覆盖状态 ${evidence.status}`));
+  host.appendChild(topicHead);
+  host.appendChild(el("p", evidence.coverage_note, "coverage-note"));
 
   if (evidence.untraced_rules && evidence.untraced_rules.length) {
     host.appendChild(el("p", `证据链断环：${evidence.untraced_rules.join("、")}`, "error"));
   }
   if (evidence.unreviewed_rules && evidence.unreviewed_rules.length) {
-    host.appendChild(el("p", `含未校核规则：${evidence.unreviewed_rules.join("、")}`, "signal"));
+    host.appendChild(el("p", `含未校核规则：${evidence.unreviewed_rules.join("、")}`, "coverage-note"));
   }
 
-  const strength = el("p", null, "report-line");
-  strength.textContent =
-    `证据强度 ${evidence.strength.toFixed(2)}（支持 ${evidence.strength_breakdown.supporting_rules} 条`
-    + `，原始支持量 ${evidence.strength_breakdown.raw_support}，饱和常数 ${evidence.strength_breakdown.saturation_k}）`;
-  host.appendChild(strength);
+  host.appendChild(renderGauge(evidence));
 
   if (!evidence.chain.length) {
     host.appendChild(el("p", "这条命盘没有命中任何规则。", "empty"));
     return;
   }
 
+  let index = 0;
   for (const link of evidence.chain) {
     // 卡片变量叫 card 不叫 rule：典籍库（Phase 5.4）的循环变量叫 rule，
     // 那是数据根。DOM 变量与数据根共用一个名字，静态契约测试的属性
     // 路径提取就会把 DOM 属性误登记成响应字段。
-    const card = el("div", null, "rule");
-    const head = el("div", null, "rule-head");
-    head.appendChild(el("span", link.conclusion, "conclusion"));
-    card.appendChild(head);
+    index += 1;
+    const card = el("div", null, "entry");
+    card.setAttribute("data-index", String(index).padStart(2, "0"));
 
-    const meta = el("div", null, "rule-head");
+    card.appendChild(el("p", link.conclusion, "entry-conclusion"));
+
+    const meta = el("div", null, "entry-meta");
     meta.appendChild(el("span", link.rule_id, "rule-id"));
     meta.appendChild(el("span", link.confidence, "tag"));
-    meta.appendChild(el("span", link.source_tier, link.source_tier === "classical" ? "tag classical" : "tag"));
+    meta.appendChild(el("span", link.source_tier,
+      link.source_tier === "classical" ? "tag classical" : "tag"));
     meta.appendChild(el("span", link.review_status, "tag"));
-    if (!link.is_production_ready) meta.appendChild(el("span", "未达生产就绪", "tag"));
+    if (!link.is_production_ready) meta.appendChild(el("span", "未达生产就绪", "tag warn"));
     card.appendChild(meta);
 
-    for (const condition of link.conditions || []) {
-      card.appendChild(renderCondition(condition));
+    if (link.conditions && link.conditions.length) {
+      const conditions = el("div", null, "conditions");
+      for (const condition of link.conditions) {
+        conditions.appendChild(renderCondition(condition));
+      }
+      card.appendChild(conditions);
     }
 
     const citation = renderCitation(link.citation, link.urn);
@@ -589,11 +1336,17 @@ function renderChain(host, evidence) {
 
     host.appendChild(card);
   }
+  reveal(host);
 }
 
 function renderCritique(host, critique) {
   const verdict = el("p", null, "verdict " + (critique.passed ? "ok" : "bad"));
-  verdict.textContent = critique.passed ? "审查通过" : `审查未通过：${(critique.issues || []).join("；")}`;
+  verdict.textContent = critique.passed ? "审查通过" : "审查未通过";
+  if (!critique.passed) {
+    verdict.appendChild(el("span", `：${(critique.issues || []).join("；")}`));
+  } else {
+    verdict.appendChild(el("span", "：结论未越过证据边界"));
+  }
   host.appendChild(verdict);
 }
 
@@ -661,8 +1414,7 @@ function renderTimeline(payload) {
   const host = $("timeline-out");
   clear(host);
 
-  const intro = el("p", payload.note, "signal");
-  host.appendChild(intro);
+  host.appendChild(el("p", payload.note, "tl-note"));
 
   // 大运分组（Phase 5.6）：十年一运，跨运的年份不该看起来连续。dayun
   // 变化时插一个分组头，把「哪几年走哪步运」摆在明面上。没有 gender
@@ -688,18 +1440,19 @@ function renderTimeline(payload) {
       lastDayun = dayunKey;
     }
 
-    const block = el("div", null, "rule");
-    const head = el("div", null, "rule-head");
+    const block = el("div", null, "tl-year");
+    const head = el("div", null, "tl-year-head");
     head.appendChild(el("span",
-      `${window.liunian.stem}${window.liunian.branch}年`, "pillar-glyph"));
-    head.appendChild(el("span", `证据强度 ${window.strength.toFixed(2)}`, "tag"));
+      `${window.liunian.stem}${window.liunian.branch}年`, "tl-ganzhi"));
+    head.appendChild(el("span", `证据强度 ${window.strength.toFixed(2)}`, "tl-strength"));
     block.appendChild(head);
-    block.appendChild(el("p", window.report, "report-line"));
+    block.appendChild(el("p", window.report, "tl-report"));
 
     for (const signal of window.signals) {
-      const line = el("div", null, "signal");
-      line.appendChild(el("span", signal.label, null));
-      line.appendChild(document.createTextNode(`　—　${signal.detail}`));
+      const line = el("p", null, "tl-signal");
+      line.appendChild(el("b", signal.label));
+      line.appendChild(el("span", "—"));
+      line.appendChild(document.createTextNode(signal.detail));
       block.appendChild(line);
     }
     if (!window.signals.length) {
@@ -707,6 +1460,7 @@ function renderTimeline(payload) {
     }
     host.appendChild(block);
   }
+  reveal(host);
 }
 
 // ── 典籍库（Phase 5.4）────────────────────────────────────────────────
@@ -736,48 +1490,58 @@ function renderLibrary(payload, backlog) {
 
   host.appendChild(el("p",
     `典籍层规则 ${payload.total} 条，按底本聚合。每条断语都能逐字回对固化底本，`
-    + `出处带书名、底本、逐字原文与可打开地址。`, "signal"));
+    + `出处带书名、底本、逐字原文与可打开地址。`, "lib-intro"));
 
   const books = groupByBook(payload.rules);
   if (!books.length) {
     host.appendChild(el("p", "典籍层规则为空。", "empty"));
   }
   for (const book of books) {
-    const card = el("div", null, "rule");
-    const head = el("div", null, "rule-head");
-    head.appendChild(el("span", `《${book.book}》`, "conclusion"));
-    head.appendChild(el("span", book.edition, "tag"));
-    head.appendChild(el("span", `${book.rules.length} 条`, "tag"));
-    card.appendChild(head);
+    const block = el("div", null, "book");
 
+    const spine = el("div", null, "book-spine");
+    spine.appendChild(el("div", `《${book.book}》`, "book-title"));
+    spine.appendChild(el("p", book.edition, "book-edition"));
+    spine.appendChild(el("p", `${book.rules.length} 条断语`, "book-count"));
+    block.appendChild(spine);
+
+    const rules = el("div", null, "book-rules");
+    let index = 0;
     for (const rule of book.rules) {
-      const line = el("div", null, "cond");
-      line.appendChild(el("code", rule.urn || rule.id));
-      line.appendChild(document.createTextNode(`　${rule.conclusion}`));
-      card.appendChild(line);
+      index += 1;
+      // DOM 变量叫 card：rule 是数据根（典籍规则），entry 也是数据根
+      // （待录入清单），两个都不能借给 DOM 用。
+      const card = el("div", null, "entry");
+      card.setAttribute("data-index", String(index).padStart(2, "0"));
+      card.appendChild(el("p", rule.conclusion, "entry-conclusion"));
+      // 不再重复 URN：下面的 citation 块已经带 URN 与复制按钮。
+      // 同一条标识在一屏里出现两次，读者会以为是两个不同的东西。
       const citation = renderCitation(rule.citation, rule.urn);
       if (citation) card.appendChild(citation);
+      rules.appendChild(card);
     }
-    host.appendChild(card);
+    block.appendChild(rules);
+    host.appendChild(block);
   }
 
   // 待录入典籍：库里没有什么也要看得见。「诚实留白」是项目约束 ——
   // 只展示已录入的，会让人以为规则库已经覆盖了这些书。
   if (backlog && backlog.entries.length) {
-    host.appendChild(el("p", "待录入典籍（有公有领域底本、尚未逐字录入）", "report-line"));
+    host.appendChild(el("p", "待录入典籍", "backlog-head"));
+    host.appendChild(el("p", "有公有领域底本、尚未逐字录入。卡点与下一步一并列出。", "backlog-sub"));
     for (const entry of backlog.entries) {
-      const block = el("div", null, "rule");
-      const head = el("div", null, "rule-head");
-      head.appendChild(el("span", `《${entry.book}》`, "conclusion"));
-      head.appendChild(el("span", entry.status, "tag"));
-      head.appendChild(el("span", entry.topic, "tag"));
-      block.appendChild(head);
-      block.appendChild(el("p", `卡点：${entry.blocker}`, "signal"));
-      block.appendChild(el("p", `下一步：${entry.needed_action}`, "signal"));
-      host.appendChild(block);
+      const row = el("div", null, "backlog-row");
+      row.appendChild(el("span", `《${entry.book}》`, "backlog-book"));
+      const blocker = el("div", null, "backlog-blocker");
+      blocker.appendChild(el("div", `卡点：${entry.blocker}`));
+      blocker.appendChild(el("div", `下一步：${entry.needed_action}`));
+      row.appendChild(blocker);
+      row.appendChild(el("span", entry.status, "tag"));
+      host.appendChild(row);
     }
-    host.appendChild(el("p", `按优先级，下一步处理：${backlog.next_action}`, "signal"));
+    host.appendChild(el("p", `按优先级，下一步处理：${backlog.next_action}`, "backlog-sub"));
   }
+  reveal(host);
 }
 
 async function onLibrary() {
@@ -789,7 +1553,7 @@ async function onLibrary() {
     ]);
     showError("");
     renderLibrary(classical, backlog);
-    $("out-library").hidden = false;
+    showSection("out-library", true);
   } catch (error) {
     reportError(error);
   }
@@ -797,40 +1561,63 @@ async function onLibrary() {
 
 // ── 装配 ───────────────────────────────────────────────────────────────
 
+/** 按钮忙态：请求期间禁用并改文案。1–2 秒的等待没有反馈会让人怀疑卡死。 */
+function setBusy(button, busy, label) {
+  if (!button) return;
+  if (busy) {
+    button.dataset.idle = button.textContent;
+    button.textContent = label || "推演中…";
+    button.setAttribute("aria-busy", "true");
+    button.disabled = true;
+  } else {
+    if (button.dataset.idle) button.textContent = button.dataset.idle;
+    button.removeAttribute("aria-busy");
+    button.disabled = false;
+  }
+}
+
 async function onAnalyze(event) {
   event.preventDefault();
   const topics = selectedTopics();
   if (!topics.length) return showError("至少选一个主题。");
   const body = birthOrFieldError();
   if (!body) return;
+  const button = $("run");
+  setBusy(button, true);
   try {
     const payload = await post("/api/analyze/multi", { ...body, topics });
     showError("");
     clearFieldErrors();
     if (payload.results.some((r) => r.ok)) {
       renderChart(payload.chart);
-      $("out-chart").hidden = false;
+      showSection("out-chart", true);
     }
     if (payload.results.length) {
-      $("out-analysis").hidden = false;
+      showSection("out-analysis", true);
       renderWorkbench(payload.results);
     }
   } catch (error) {
     reportError(error);
+  } finally {
+    setBusy(button, false);
   }
 }
 
 async function onChartOnly() {
   const body = birthOrFieldError();
   if (!body) return;
+  const button = $("chart-only");
+  setBusy(button, true, "排盘中…");
   try {
     const chart = await post("/api/chart", body);
     showError("");
     clearFieldErrors();
     renderChart(chart);
-    $("out-chart").hidden = false;
+    showSection("out-chart", true);
   } catch (error) {
     reportError(error);
+  } finally {
+    setBusy(button, false);
   }
 }
 
@@ -847,7 +1634,7 @@ async function onTimeline() {
     showError("");
     clearFieldErrors();
     renderTimeline(payload);
-    $("out-timeline").hidden = false;
+    showSection("out-timeline", true);
   } catch (error) {
     reportError(error);
   }
@@ -896,6 +1683,8 @@ async function onExport(format) {
   if (!topics.length) return showError("至少选一个主题。");
   const body = birthOrFieldError();
   if (!body) return;
+  const button = format === "pdf" ? $("export-pdf") : $("export-json");
+  setBusy(button, true, "生成中…");
   try {
     // 走 request() 而不是裸 fetch：错误整形（fields 数组）与其余请求
     // 同一条路。区别只在拿到 Response 之后取 blob 而不是 json。
@@ -905,6 +1694,8 @@ async function onExport(format) {
     showError("");
   } catch (error) {
     reportError(error);
+  } finally {
+    setBusy(button, false);
   }
 }
 
@@ -928,6 +1719,7 @@ $("export-pdf").addEventListener("click", () => onExport("pdf"));
 $("library-btn").addEventListener("click", onLibrary);
 $("tst").addEventListener("change", syncGeoRow);
 syncGeoRow();
+reveal(document);
 </script>
 </body>
 </html>
