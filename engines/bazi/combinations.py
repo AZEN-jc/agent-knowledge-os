@@ -11,8 +11,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from itertools import combinations
-from typing import Iterable
 
 #: 三合局：三支齐备才算成局，所化为一个五行。
 SAN_HE: dict[tuple[str, str, str], str] = {
