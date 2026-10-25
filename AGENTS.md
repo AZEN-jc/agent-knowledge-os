@@ -68,6 +68,11 @@ python -m pytest tests/test_e2e_frontend.py -q
 # 装好浏览器再跑，它是阻塞门禁。本机已有系统 Chrome 时可跳过 170MB
 # 下载：MINGLI_E2E_CHANNEL=chrome python -m pytest tests/test_e2e_frontend.py -q
 
+# 视觉回归（Phase 5.9）：页面骨架的文本快照（不是像素比对，理由见文件头）。
+python -m pytest tests/test_frontend_snapshot.py -q
+# 有意改界面时重新生成基线，并在提交信息里说明改了什么、为什么：
+UPDATE_SNAPSHOTS=1 python -m pytest tests/test_frontend_snapshot.py -q
+
 # 静态检查
 ruff check .
 mypy .

@@ -19,105 +19,15 @@ CI 里由 ``.github/workflows/ci.yml`` 的专门步骤装好再跑。缺浏览�
 
 from __future__ import annotations
 
-import os
-import socket
-import threading
-import time
-from pathlib import Path
-
 import pytest
 
 pytest.importorskip("playwright.sync_api", reason="未安装 playwright")
 
-from playwright.sync_api import expect, sync_playwright
+from playwright.sync_api import expect
 
-#: 本地开发可用系统 Chrome 跑 E2E，不必下载 170MB 的捆绑浏览器：
-#: ``MINGLI_E2E_CHANNEL=chrome python -m pytest tests/test_e2e_frontend.py -q``
-#: CI 不设这个变量 —— 那边用 ``playwright install chromium`` 的捆绑浏览器，
-#: 不依赖镜像里预装什么。channel 的其他合法值见 Playwright 文档
-#: （msedge 等），本仓库只承诺 chrome 这一种本地路径。
-CHANNEL = os.environ.get("MINGLI_E2E_CHANNEL") or None
-
-
-def _browser_available() -> bool:
-    """浏览器是否可用。
-
-    两种跳过理由要分开：包装了但没跑 ``playwright install chromium``
-    （bundled 二进制缺失）时 launch() 抛的是 "Executable doesn't exist"，
-    不是 skip —— 没有这道检查，CI 主步骤（只装包不装浏览器）会被动
-    变红，E2E 从门禁退化成噪声。设了 CHANNEL 时走系统浏览器，由
-    launch() 自己报错，这里不再替它判断。
-    """
-    if CHANNEL:
-        return True
-    try:
-        with sync_playwright() as playwright:
-            return Path(playwright.chromium.executable_path).exists()
-    except Exception:
-        return False
-
-
-pytestmark = pytest.mark.skipif(
-    not _browser_available(),
-    reason="未安装 Chromium 浏览器（playwright install chromium，或设 MINGLI_E2E_CHANNEL=chrome）",
-)
-
-import uvicorn  # noqa: E402
-
-from api.server import app  # noqa: E402
-
-
-def _free_port() -> int:
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        return int(sock.getsockname()[1])
-
-
-@pytest.fixture(scope="session")
-def base_url():
-    """在本线程起一个真实 uvicorn，跑完即关。
-
-    为什么不用 TestClient：E2E 要验的是**浏览器与服务器之间**那一层 ——
-    fetch、CORS 无关但 JSON 往返、静态文件服务、以及页面 JS 在真实
-    HTTP 响应上的行为。TestClient 跳过网络，正好跳过要验的东西。
-    """
-    port = _free_port()
-    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
-    server = uvicorn.Server(config)
-    thread = threading.Thread(target=server.run, daemon=True)
-    thread.start()
-    deadline = time.time() + 15
-    while not server.started:
-        if time.time() > deadline:
-            raise RuntimeError("uvicorn 15 秒内没起来")
-        time.sleep(0.05)
-    try:
-        yield f"http://127.0.0.1:{port}"
-    finally:
-        server.should_exit = True
-        thread.join(timeout=10)
-
-
-@pytest.fixture(scope="session")
-def browser():
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True, channel=CHANNEL)
-        try:
-            yield browser
-        finally:
-            browser.close()
-
-
-@pytest.fixture
-def page(browser, base_url):
-    context = browser.new_context(
-        viewport={"width": 1280, "height": 900},
-        accept_downloads=True,  # Phase 5.7：报告导出走浏览器下载
-    )
-    page = context.new_page()
-    page.goto(base_url, wait_until="domcontentloaded")
-    yield page
-    context.close()
+#: 真实 uvicorn 与 Chromium 的 fixture 在 tests/conftest.py ——
+#: 跨模块 import fixture 会让 pytest 各注册一份 session 实例，
+#: 第二份在事件循环里启动 Playwright 会报 Sync-API-inside-asyncio-loop。
 
 
 def _fill_birth(page, *, month: int = 6, day: int = 15, hour: int = 12) -> None:
@@ -275,9 +185,9 @@ def test_timeline_shift_moves_the_window_by_its_own_span(page):
     page.click("#shift-forward")
     assert page.locator("#from").input_value() == "2031"
     assert page.locator("#to").input_value() == "2037"
-    # 平移后自动重跑：新区间的结果已经在页面上。
-    page.locator("#out-timeline").wait_for(state="visible", timeout=15000)
-    assert "2031" in page.locator("#out-timeline").inner_text()
+    # 平移后自动重跑。**不能**用 wait_for(visible) 等结果 —— section 早就
+    # 可见，它等不到「内容换新」，读到的还是上一段的 2024–2030（CI 上红过）。
+    expect(page.locator("#out-timeline")).to_contain_text("2031", timeout=15000)
 
 
 def test_timeline_groups_years_by_dayun(page):
@@ -350,6 +260,37 @@ def test_privacy_statement_is_visible_without_running_anything(page):
     assert "不存储" in text
     assert "内存缓存" in text
     assert "导出与日志" in text
+
+
+# ── 9. 移动端（Phase 5.9）─────────────────────────────────────────────
+
+
+def test_mobile_viewport_has_no_page_level_horizontal_overflow(browser, base_url):
+    """390×844（iPhone 14 逻辑分辨率）跑主链路：页面本身不得横向溢出。
+
+    四柱表在窄屏里允许**表内**横向滚动（table{display:block;overflow-x:auto}），
+    那是有意的 —— 五列表压字比滚动更糟。但页面级的横向滚动条说明布局
+    破了，这条零容忍。
+    """
+    context = browser.new_context(viewport={"width": 390, "height": 844})
+    page = context.new_page()
+    try:
+        page.goto(base_url, wait_until="domcontentloaded")
+        _fill_birth(page)
+        page.click("#run")
+        page.locator("#out-analysis").wait_for(state="visible", timeout=15000)
+
+        overflow = page.evaluate(
+            "() => document.documentElement.scrollWidth"
+            " - document.documentElement.clientWidth"
+        )
+        assert overflow <= 1, f"移动端出现页面级横向溢出：{overflow}px"
+
+        # 触屏目标：主按钮高度不低于 40px（移动端断点抬到 44px）。
+        box = page.locator("#run").bounding_box()
+        assert box and box["height"] >= 40
+    finally:
+        context.close()
 
 
 # ── 7. 报告导出（Phase 5.7）───────────────────────────────────────────
