@@ -33,7 +33,9 @@ pdfmetrics.registerFont(UnicodeCIDFont(_CJK_FONT))
 
 #: 报告 JSON 的格式版本。报告结构变更时升它 —— 消费者（下载工具、
 #: 归档脚本）靠它判断要不要重新解析，而不是靠猜。
-REPORT_FORMAT_VERSION = 1
+#:
+#: 2：证据块增加 ``plain_summary`` 与人话条件 ``plain``（Phase 6.1）。
+REPORT_FORMAT_VERSION = 2
 
 _PAGE_WIDTH, _PAGE_HEIGHT = A4
 _MARGIN = 56
@@ -182,6 +184,9 @@ def _draw_report(target: Any, report: dict[str, Any]) -> None:
         evidence = analysis["evidence"]
         emit(f"── 主题「{evidence['topic_name']}」"
              f"（覆盖状态：{evidence['status']}）", font_size=12, bold=True)
+        # 人话总述在前（Phase 6.1）：报告是给人读的，不是给机器审的。
+        if evidence.get("plain_summary"):
+            emit(evidence["plain_summary"])
         emit(evidence["coverage_note"])
         emit(
             f"证据强度 {evidence['strength']:.2f}"
@@ -197,10 +202,18 @@ def _draw_report(target: Any, report: dict[str, Any]) -> None:
                  f"（{link['confidence']} / {link['source_tier']} / {link['review_status']}）")
             for condition in link.get("conditions") or []:
                 sources = "、".join(condition.get("sources") or [])
-                emit(
-                    f"　条件 {condition['key']}：要求 {condition['expected']}，"
-                    f"实际 {condition['actual']}（出处：{sources}）"
-                )
+                # 人话一行，字段级依据一行（缩进）—— 与页面上的层次一致。
+                if condition.get("plain"):
+                    emit(f"　· {condition['plain']}")
+                    emit(
+                        f"　　依据 {condition['key']}：要求 {condition['expected']}，"
+                        f"实际 {condition['actual']}（出处：{sources}）"
+                    )
+                else:
+                    emit(
+                        f"　条件 {condition['key']}：要求 {condition['expected']}，"
+                        f"实际 {condition['actual']}（出处：{sources}）"
+                    )
             if link.get("urn"):
                 emit(f"　URN：{link['urn']}")
             citation = link.get("citation")

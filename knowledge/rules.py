@@ -227,11 +227,18 @@ class ConditionTrace:
     sources: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
+        # ``plain`` 是给人看的一句话（Phase 6.1）：key/expected/actual 是
+        # 给机器与审计用的，普通读者看不懂 ``ten_god_with_root``。翻译在
+        # knowledge/explain.py 里统一维护，这里只挂上去 —— 前端、报告、
+        # API 三处共用同一句，不各写一份。
+        from knowledge.explain import explain_condition
+
         return {
             "key": self.key,
             "expected": self.expected,
             "actual": self.actual,
             "sources": list(self.sources),
+            "plain": explain_condition(self.key, self.expected, self.actual),
         }
 
 

@@ -34,6 +34,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from agents.prompt import contract as llm_contract
 from knowledge.classical_backlog import CLASSICAL_BACKLOG, BacklogStatus, next_action
+from knowledge.explain import GLOSSARY
 from knowledge.provenance import ReviewStatus, SourceTier
 from knowledge.topics import TOPICS
 from runtime.mingli_service import MingLiService
@@ -242,6 +243,20 @@ class TopicListResponse(BaseModel):
     topics: list[TopicResponse]
 
 
+class GlossaryEntryResponse(BaseModel):
+    """一个术语的结构定义（不含吉凶判断）。"""
+
+    term: str
+    plain: str = Field(description="一句话定义；只描述结构，不判断好坏")
+    example: str = Field(default="", description="具体例子，可为空")
+
+
+class GlossaryResponse(BaseModel):
+    total: int
+    note: str
+    terms: list[GlossaryEntryResponse]
+
+
 class ConditionTraceResponse(BaseModel):
     """一条条件被满足的完整依据。"""
 
@@ -249,6 +264,10 @@ class ConditionTraceResponse(BaseModel):
     expected: Any = Field(description="规则要求的值")
     actual: Any = Field(description="命盘实际给出的值")
     sources: list[str] = Field(description="该事实在命盘里的出处，形如 chart.pillars.month")
+    plain: str = Field(
+        default="",
+        description="这句话的普通中文说法（Phase 6.1）；key/expected/actual 给机器，plain 给人",
+    )
 
 
 class RuleChainResponse(BaseModel):
@@ -311,6 +330,10 @@ class EvidenceResponse(BaseModel):
     topic_name: str
     status: str = Field(description="covered / base_only / unknown")
     coverage_note: str = Field(description="主题覆盖说明；非 covered 时必须向用户披露")
+    plain_summary: str = Field(
+        default="",
+        description="整段证据的普通中文总述（Phase 6.1）：先说覆盖状态，再说命中多少条",
+    )
     schools: list[str]
     facts: list[FactResponse]
     chain: list[RuleChainResponse] = Field(description="完整证据链，可逐条回溯到命盘要素")
@@ -776,6 +799,27 @@ def export_report(request: ReportRequest) -> Response:
 
 
 # ── LLM 提示契约 ──────────────────────────────────────────────────────
+
+
+@app.get(
+    "/api/glossary",
+    summary="术语表",
+    description=(
+        "返回分析里出现的术语及其**结构定义**（Phase 6.1）。\n\n"
+        "定义只描述结构（例如「偏财：日主所克、阴阳相同」），不写吉凶含义"
+        "（「偏财代表横财」是判断，不是定义）。每一条都能在命盘上验证。\n\n"
+        "前端用它做术语提示；报告与接口里的人话说明来自同一份 "
+        "``knowledge/explain.py``，三处不各写一份。"
+    ),
+    tags=["说明"],
+    response_model=GlossaryResponse,
+)
+def glossary() -> GlossaryResponse:
+    return GlossaryResponse(
+        total=len(GLOSSARY),
+        note="以下定义只描述结构，不含吉凶判断；每一条都能在命盘上逐项验证。",
+        terms=[GlossaryEntryResponse(**entry) for entry in GLOSSARY],
+    )
 
 
 @app.get(

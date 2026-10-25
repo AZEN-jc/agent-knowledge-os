@@ -293,6 +293,46 @@ def test_mobile_viewport_has_no_page_level_horizontal_overflow(browser, base_url
         context.close()
 
 
+# ── 10. 可读性（Phase 6.1）────────────────────────────────────────────
+
+
+def test_analysis_shows_plain_language_before_technical_detail(page):
+    """每条证据先给一句人话，再给字段级依据。
+
+    这是老板明确提的要求：结论要让人看懂。判据很具体——人话里不能出现
+    `ten_god_with_root` 这类字段名，但字段名必须仍然在（审计要它）。
+    """
+    _fill_birth(page)
+    page.click("#run")
+    page.locator("#out-analysis").wait_for(state="visible", timeout=15000)
+
+    detail = page.locator("#topic-detail")
+    plain = detail.locator(".cond-plain").first
+    plain.wait_for(state="visible", timeout=10000)
+    plain_text = plain.inner_text()
+    assert len(plain_text) > 8
+    assert "ten_god" not in plain_text  # 人话里不许有字段名
+    assert plain_text.endswith("。")
+
+    # 技术依据仍在，只是退到第二行。
+    assert detail.locator(".cond-tech").count() >= 1
+    # 整段总述也在。
+    assert "这次共命中" in detail.locator(".plain-summary").inner_text()
+
+
+def test_glossary_renders_structural_definitions(page):
+    page.click("#glossary-btn")
+
+    section = page.locator("#out-glossary")
+    section.wait_for(state="visible", timeout=15000)
+    text = section.inner_text()
+    assert "十神" in text
+    assert "日主" in text
+    # 术语表只给结构定义，不给吉凶判断。
+    for word in ("富贵", "克妻", "大吉"):
+        assert word not in text
+
+
 # ── 7. 报告导出（Phase 5.7）───────────────────────────────────────────
 
 def test_export_json_downloads_the_full_report(page):
@@ -318,7 +358,7 @@ def test_export_json_downloads_the_full_report(page):
     import json as json_module
 
     payload = json_module.loads(download.path().read_text(encoding="utf-8"))
-    assert payload["format_version"] == 1
+    assert payload["format_version"] >= 2  # Phase 6.1 起证据块带人话总述
     assert payload["succeeded"] >= 1
     # 报告里必须带得走：URN、逐字原文、算法版本 —— 导出的是可核验的存档。
     text = download.path().read_text(encoding="utf-8")

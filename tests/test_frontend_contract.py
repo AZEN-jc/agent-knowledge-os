@@ -76,6 +76,8 @@ SAMPLES: list[tuple[str, str, dict[str, object] | None]] = [
     # 典籍库（Phase 5.4）：浏览器按需加载的两个 GET。
     ("get", "/api/rules?source_tier=classical", None),
     ("get", "/api/classics/backlog", None),
+    # 术语表（Phase 6.1）：按需加载。
+    ("get", "/api/glossary", None),
 ]
 
 # ── 响应契约：前端被允许读取的每一条路径 ──────────────────────────────
@@ -119,6 +121,7 @@ RESPONSE_CONTRACT: frozenset[str] = frozenset({
     "results[].analysis.analysis.evidence.topic_name",
     "results[].analysis.analysis.evidence.status",
     "results[].analysis.analysis.evidence.coverage_note",
+    "results[].analysis.analysis.evidence.plain_summary",
     "results[].analysis.analysis.evidence.untraced_rules",
     "results[].analysis.analysis.evidence.unreviewed_rules",
     "results[].analysis.analysis.evidence.strength",
@@ -145,6 +148,7 @@ RESPONSE_CONTRACT: frozenset[str] = frozenset({
     "results[].analysis.analysis.evidence.chain[].conditions[].expected",
     "results[].analysis.analysis.evidence.chain[].conditions[].actual",
     "results[].analysis.analysis.evidence.chain[].conditions[].sources",
+    "results[].analysis.analysis.evidence.chain[].conditions[].plain",
     "results[].analysis.critique",
     "results[].analysis.critique.passed",
     "results[].analysis.critique.issues",
@@ -194,6 +198,11 @@ RESPONSE_CONTRACT: frozenset[str] = frozenset({
     "entries[].blocker",
     "entries[].needed_action",
     "next_action",
+    # 术语表（Phase 6.1：/api/glossary）
+    "terms",
+    "terms[].term",
+    "terms[].plain",
+    "terms[].example",
 })
 
 #: JS 里可能承载 API 数据的根变量名。属性提取只锚定这些名字 —— DOM
@@ -201,7 +210,7 @@ RESPONSE_CONTRACT: frozenset[str] = frozenset({
 DATA_ROOTS = (
     "chart", "payload", "data", "evidence", "critique", "window", "signal",
     "link", "condition", "citation", "pillar", "r", "first", "item",
-    "relation", "elements", "rule", "entry",
+    "relation", "elements", "rule", "entry", "definition",
 )
 
 #: 别名 → 真实响应路径前缀。渲染函数的参数与循环变量都是别名：它们指向
@@ -214,6 +223,7 @@ ALIASES: dict[str, str] = {
     "elements": "elements",  # chart.elements 的局部别名（Phase 5.3 五行普查）
     "rule": "rules[]",       # 典籍库的规则循环变量（Phase 5.4）
     "entry": "entries[]",    # 待录入清单的循环变量（Phase 5.4）
+    "definition": "terms[]",  # 术语表的循环变量（Phase 6.1）
     "evidence": "results[].analysis.analysis.evidence",
     "critique": "results[].analysis.critique",
     "citation": "results[].analysis.analysis.evidence.chain[].citation",

@@ -355,10 +355,23 @@
 
   .topic-head { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
   .topic-head b { color: var(--ink); font-weight: 600; }
+  /* 整段证据的人话总述（Phase 6.1）：先说结论来自哪里、命中几条。 */
+  .plain-summary {
+    margin: 0 0 10px; padding: 12px 16px; font-size: 14.5px; line-height: 1.8;
+    color: var(--ink-soft); background: var(--paper-2);
+    border-left: 2px solid var(--rule-strong);
+  }
   .coverage-note {
-    margin: 0 0 22px; font-size: 13.5px; line-height: 1.75; color: var(--muted);
+    margin: 6px 0 0; font-size: 13px; line-height: 1.75; color: var(--muted);
     max-width: 66ch;
   }
+  .coverage-details { margin: 0 0 20px; }
+  .coverage-toggle {
+    cursor: pointer; font-size: 12px; letter-spacing: .06em; color: var(--faint);
+    list-style: none; display: inline-block; border-bottom: 1px dotted var(--rule-strong);
+  }
+  .coverage-toggle::-webkit-details-marker { display: none; }
+  .coverage-toggle:hover { color: var(--seal); }
 
   /* 强度表：带刻度的尺，不是进度条 —— 它是等级，不是完成度。 */
   .gauge { margin: 26px 0 18px; max-width: 520px; }
@@ -426,21 +439,27 @@
   .tag.classical { color: var(--seal); border-color: var(--seal); }
   .tag.warn { color: var(--ochre); border-color: var(--ochre); }
 
-  /* 条件：两列定义表，点线引导。 */
+  /* 条件：人话在前，字段级依据在后（Phase 6.1）。
+     读者先要知道「命盘里有什么」，`ten_god_with_root` 是审计用的。 */
   .conditions { margin: 14px 0 0; }
   .cond {
-    display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 4px 16px;
-    padding: 6px 0; font-size: 13px; color: var(--muted);
-    border-bottom: 1px dotted var(--rule);
+    padding: 9px 0; border-bottom: 1px dotted var(--rule);
   }
   .cond:last-child { border-bottom: 0; }
-  .cond code {
-    font-family: var(--mono); font-size: 11px; color: var(--ink-soft);
+  .cond-plain {
+    margin: 0 0 4px; font-size: 14px; line-height: 1.7; color: var(--ink-soft);
+  }
+  .cond-tech {
+    display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 2px 16px;
+    font-size: 12px; color: var(--muted);
+  }
+  .cond-tech code {
+    font-family: var(--mono); font-size: 10.5px; color: var(--faint);
     letter-spacing: .02em; overflow-wrap: anywhere;
   }
-  .cond .val { color: var(--ink-soft); }
-  .cond .src {
-    grid-column: 2; font-family: var(--mono); font-size: 10.5px; color: var(--faint);
+  .cond-tech .val { color: var(--muted); }
+  .cond-tech .src {
+    grid-column: 2; font-family: var(--mono); font-size: 10px; color: var(--faint);
   }
 
   /* 出处：脚注块。朱色竖线 + 引号 + 可点开的底本链接。 */
@@ -563,6 +582,21 @@
   .backlog-blocker { font-size: 13px; color: var(--muted); line-height: 1.7; }
   .backlog-next { font-size: 12.5px; color: var(--faint); grid-column: 2; }
 
+  /* 术语表（Phase 6.1）：两列卡片，定义在上、例子在下。 */
+  .glossary-grid {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 40px; margin-top: 8px;
+  }
+  .glossary-item { padding: 16px 0; border-top: 1px solid var(--rule); }
+  .glossary-term {
+    margin: 0 0 6px; font-size: 16px; letter-spacing: .04em; color: var(--ink);
+  }
+  .glossary-plain { margin: 0; font-size: 13.5px; line-height: 1.8; color: var(--muted); }
+  .glossary-example {
+    margin: 8px 0 0; font-family: var(--mono); font-size: 11.5px;
+    color: var(--faint); line-height: 1.7;
+  }
+
   /* ── 隐私与版权页 ─────────────────────────────────────────────────── */
   .privacy {
     margin-top: 72px; padding: 26px 0 0;
@@ -672,6 +706,7 @@
     .row { gap: 14px; }
     .book { grid-template-columns: minmax(0, 1fr); gap: 14px; }
     .book-spine { padding-left: 14px; }
+    .glossary-grid { grid-template-columns: minmax(0, 1fr); }
     .backlog-row { grid-template-columns: minmax(0, 1fr); }
     .backlog-next { grid-column: 1; }
     .entry { padding-left: 34px; }
@@ -699,7 +734,8 @@
       <li><a href="#out-analysis"><span class="no">叁</span>证据链</a></li>
       <li><a href="#out-timeline"><span class="no">肆</span>流年</a></li>
       <li><a href="#out-library"><span class="no">伍</span>典籍</a></li>
-      <li><a href="#privacy"><span class="no">陆</span>数据</a></li>
+      <li><a href="#out-glossary"><span class="no">陆</span>术语</a></li>
+      <li><a href="#privacy"><span class="no">柒</span>数据</a></li>
     </ul>
     <div class="rail-foot">
       确定性排盘<br>
@@ -782,6 +818,9 @@
           <div class="field"><label>&nbsp;</label>
             <button type="button" class="ghost" id="library-btn">典籍库</button>
           </div>
+          <div class="field"><label>&nbsp;</label>
+            <button type="button" class="ghost" id="glossary-btn">术语表</button>
+          </div>
         </div>
       </form>
 
@@ -831,6 +870,15 @@
         <span class="sec-note">canonical sources</span>
       </div>
       <div class="card" id="library"></div>
+    </section>
+
+    <section class="sec" id="out-glossary" hidden>
+      <div class="sec-head">
+        <span class="sec-no">陆</span>
+        <h2>术语表</h2>
+        <span class="sec-note">structural definitions</span>
+      </div>
+      <div class="card" id="glossary"></div>
     </section>
 
     <section class="privacy" id="privacy">
@@ -1190,15 +1238,21 @@ function formatValue(value) {
 
 function renderCondition(condition) {
   const line = el("div", null, "cond");
-  line.appendChild(el("code", condition.key));
+  // 人话在前：读者先知道「命盘里有什么」，字段级依据退到第二行。
+  if (condition.plain) {
+    line.appendChild(el("p", condition.plain, "cond-plain"));
+  }
+  const tech = el("div", null, "cond-tech");
+  tech.appendChild(el("code", condition.key));
   const value = el("span", null, "val");
   value.textContent =
     `要求 ${formatValue(condition.expected)}　实际 ${formatValue(condition.actual)}`;
-  line.appendChild(value);
+  tech.appendChild(value);
   const sources = condition.sources || [];
   if (sources.length) {
-    line.appendChild(el("span", sources.join("、"), "src"));
+    tech.appendChild(el("span", sources.join("、"), "src"));
   }
+  line.appendChild(tech);
   return line;
 }
 
@@ -1309,7 +1363,18 @@ function renderChain(host, evidence) {
   topicHead.appendChild(el("b", `「${evidence.topic_name}」`));
   topicHead.appendChild(document.createTextNode(`　覆盖状态 ${evidence.status}`));
   host.appendChild(topicHead);
-  host.appendChild(el("p", evidence.coverage_note, "coverage-note"));
+  // 先给人话总述（Phase 6.1），再给技术性的覆盖说明。
+  // 覆盖说明折进可展开项：它与总述说的是同一件事，只是更技术 —— 平铺
+  // 会让读者连读两遍同样的意思。数据仍在，只是不占版面。
+  if (evidence.plain_summary) {
+    host.appendChild(el("p", evidence.plain_summary, "plain-summary"));
+  }
+  if (evidence.coverage_note) {
+    const details = el("details", null, "coverage-details");
+    details.appendChild(el("summary", "这条判断的依据范围", "coverage-toggle"));
+    details.appendChild(el("p", evidence.coverage_note, "coverage-note"));
+    host.appendChild(details);
+  }
 
   if (evidence.untraced_rules && evidence.untraced_rules.length) {
     host.appendChild(el("p", `证据链断环：${evidence.untraced_rules.join("、")}`, "error"));
@@ -1581,6 +1646,44 @@ async function onLibrary() {
   }
 }
 
+// ── 术语表（Phase 6.1）────────────────────────────────────────────────
+
+/** 术语卡：一个词 + 一句结构定义 + 一个例子。
+ *
+ *  定义由后端 ``knowledge/explain.py`` 维护，前端不存副本 —— 术语表与
+ *  条件人话必须同源，两处各写一份必然漂移。 */
+function renderGlossary(payload) {
+  const host = $("glossary");
+  clear(host);
+  host.appendChild(el("p", payload.note, "lib-intro"));
+
+  const grid = el("div", null, "glossary-grid");
+  // 循环变量叫 definition：item 已经是字段错误的别名、entry 是待录入清单的
+  // 别名，借来用会让契约测试的路径归一化指错地方。
+  for (const definition of payload.terms) {
+    const card = el("div", null, "glossary-item");
+    card.appendChild(el("p", definition.term, "glossary-term"));
+    card.appendChild(el("p", definition.plain, "glossary-plain"));
+    if (definition.example) {
+      card.appendChild(el("p", definition.example, "glossary-example"));
+    }
+    grid.appendChild(card);
+  }
+  host.appendChild(grid);
+  reveal(host);
+}
+
+async function onGlossary() {
+  try {
+    const payload = await get("/api/glossary");
+    showError("");
+    renderGlossary(payload);
+    showSection("out-glossary", true);
+  } catch (error) {
+    reportError(error);
+  }
+}
+
 // ── 装配 ───────────────────────────────────────────────────────────────
 
 /** 按钮忙态：请求期间禁用并改文案。1–2 秒的等待没有反馈会让人怀疑卡死。 */
@@ -1739,6 +1842,7 @@ $("shift-forward").addEventListener("click", () => shiftTimeline(1));
 $("export-json").addEventListener("click", () => onExport("json"));
 $("export-pdf").addEventListener("click", () => onExport("pdf"));
 $("library-btn").addEventListener("click", onLibrary);
+$("glossary-btn").addEventListener("click", onGlossary);
 $("tst").addEventListener("change", syncGeoRow);
 syncGeoRow();
 reveal(document);

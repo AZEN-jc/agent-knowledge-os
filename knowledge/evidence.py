@@ -172,12 +172,17 @@ class Evidence:
         return not self.untraced_rule_ids
 
     def to_dict(self) -> dict[str, Any]:
+        # 整段证据的人话总述（Phase 6.1）：先说覆盖状态，再说命中多少条、
+        # 其中几条有典籍原文。读者先看这一句，再看逐条。
+        from knowledge.explain import explain_evidence
+
         return {
             "topic": self.topic,
             "topic_id": self.topic_id,
             "topic_name": self.topic_name,
             "status": str(self.status),
             "coverage_note": self.coverage_note,
+            "plain_summary": explain_evidence(self),
             "schools": list(self.schools),
             "facts": [
                 {

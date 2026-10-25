@@ -202,6 +202,10 @@ def test_pdf_draws_only_strings_from_the_report():
     assert "不是预测" in drawn                          # 立场声明随报告走
     # 指纹：报告能回答「哪版契约、哪版规则库」。
     assert "契约指纹" in drawn
+    # 人话层（Phase 6.1）：报告是给人读的，条件要先有一句普通中文，
+    # 字段级依据跟在后面。
+    assert "依据 " in drawn
+    assert "出现在天干上" in drawn or "四柱天干与四支本气里没有" in drawn
 
 
 def test_pdf_reports_failed_topics_instead_of_hiding_them():
