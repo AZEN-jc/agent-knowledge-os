@@ -25,6 +25,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from engines.bazi.combinations import (
+    SEASON_OF_BRANCH,
+    SIJI_BRANCHES,
+    combination_elements,
+    formed_combinations,
+    stem_combinations,
+)
 from engines.bazi.models import Chart
 from engines.bazi.ten_gods import (
     ELEMENTS,
@@ -79,6 +86,15 @@ FACT_SCHEMA: dict[str, str] = {
     "month_branch_extended_ten_god": "月支藏干中在天干（年月时）透出者对应的十神",
     "day_master_vs_month": "日主与月令的生克关系（同我 / 生我 / 我生 / 我克 / 克我）",
     "year_month_elements": "年月两柱干与本气出现的五行（去重）",
+    # 月令季节与年月支：卷八的断语大量以「春生」「丑月」「寅年月」开头，
+    # 单干单支表达不了「季节」与「年月两支同时出现」。
+    "month_season": "月支所属季节（春 / 夏 / 秋 / 冬，三合局分组：寅卯辰春）",
+    "month_is_siji": "月支是否为四季月（辰未戌丑，土旺之月）",
+    "year_month_branches": "年支与月支（二元组）",
+    # 合局：卷八的「火局」「金神入火局」需要一个能表达「三支齐备成局」的键。
+    "has_combination": "四支中成局的三合 / 三会（形如「三合火局」）",
+    "combination_elements": "四支成局所化的五行（去重）",
+    "stem_combinations": "四干中的天干五合（形如「甲己合土」）",
     # 五行计数
     "count_木": "木的计数",
     "count_火": "火的计数",
@@ -271,6 +287,22 @@ def extract_facts(chart: Chart) -> tuple[Fact, ...]:
         "chart.pillars[*].hidden_stems",
     ))
 
+    # 月令季节与年月两支（Phase 6.3）：卷八的断语大量以「春生」「丑月」
+    # 「寅年月」开头。季节用三合局分组（寅卯辰春），辰同时算四季月 ——
+    # 两个口径并存，因为「春生」与「四季月」在断语里指不同范围。
+    month_branch_value = pillars[1].earthly_branch
+    facts.append(Fact(
+        "month_season", SEASON_OF_BRANCH[month_branch_value], "chart.pillars.month"
+    ))
+    facts.append(Fact(
+        "month_is_siji", month_branch_value in SIJI_BRANCHES, "chart.pillars.month"
+    ))
+    facts.append(Fact(
+        "year_month_branches",
+        (pillars[0].earthly_branch, month_branch_value),
+        "chart.pillars[*].earthly_branch",
+    ))
+
     # 透干定格法所需的事实：月支藏干中，出现在年月时天干上的那些十神。
     # 不含日柱天干 —— 日干是日主本身，不是十神，混进来会让「透干」的含义走样。
     stem_gods = {
@@ -299,6 +331,24 @@ def extract_facts(chart: Chart) -> tuple[Fact, ...]:
 
     branches = tuple(pillar.earthly_branch for pillar in pillars)
     facts.append(Fact("four_branches", tuple(dict.fromkeys(branches)), "chart.pillars[*].earthly_branch"))
+    # 合局（Phase 6.3）：卷八有「金神入火局」「寅戌會火」这类断语，
+    # 需要能表达「三支齐备成局」与「成局所化五行」。不成局时这两键不产出
+    # （已登记在 STRUCTURALLY_OPTIONAL / STRUCTURAL_ABSENCE）。
+    formed = formed_combinations(branches)
+    if formed:
+        facts.append(Fact(
+            "has_combination", tuple(name for name, _ in formed),
+            "chart.pillars[*].earthly_branch",
+        ))
+        facts.append(Fact(
+            "combination_elements", combination_elements(branches),
+            "chart.pillars[*].earthly_branch",
+        ))
+    combined_stems = stem_combinations(pillar.heavenly_stem for pillar in pillars)
+    if combined_stems:
+        facts.append(Fact(
+            "stem_combinations", combined_stems, "chart.pillars[*].heavenly_stem"
+        ))
     facts.append(Fact(
         "repeated_branches",
         tuple(branch for branch in dict.fromkeys(branches) if branches.count(branch) >= 2),

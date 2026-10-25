@@ -147,10 +147,43 @@ def audit_fact_map(chart) -> dict[str, object]:
         year_month_stem_elements + year_month_main_elements
     ))
 
-    return {
+    # 季节与合局（Phase 6.3）。同样独立写一份，不 import 产品实现 ——
+    # 复用就意味着「产品把辰判成夏，复核也跟着判成夏」。
+    season_of = {
+        "寅": "春", "卯": "春", "辰": "春",
+        "巳": "夏", "午": "夏", "未": "夏",
+        "申": "秋", "酉": "秋", "戌": "秋",
+        "亥": "冬", "子": "冬", "丑": "冬",
+    }
+    branch_set = {pillar.earthly_branch for pillar in pillars}
+    san_he = {
+        frozenset({"寅", "午", "戌"}): "火",
+        frozenset({"申", "子", "辰"}): "水",
+        frozenset({"亥", "卯", "未"}): "木",
+        frozenset({"巳", "酉", "丑"}): "金",
+    }
+    san_hui = {
+        frozenset({"寅", "卯", "辰"}): "木",
+        frozenset({"巳", "午", "未"}): "火",
+        frozenset({"申", "酉", "戌"}): "金",
+        frozenset({"亥", "子", "丑"}): "水",
+    }
+    formed: list[tuple[str, str]] = []
+    for table, label in ((san_he, "三合"), (san_hui, "三会")):
+        for members, element in table.items():
+            if members <= branch_set:
+                formed.append((f"{label}{element}局", element))
+
+    fact_map: dict[str, object] = {
         **pillar_codes,
         **pillar_full_codes,
         "year_month_elements": year_month_elements,
+        "month_season": season_of[pillars[1].earthly_branch],
+        "year_month_branches": (pillars[0].earthly_branch, pillars[1].earthly_branch),
+        # 不去重：产品的 ``transparent_ten_gods`` 按柱逐个收（年干与时干
+        # 同为偏财时会出现两次）。复核要照产品的实际取值来，不能顺手
+        # 用「更合理」的集合语义 —— 那会掩盖产品侧真的改了行为。
+        "transparent_ten_gods": tuple(transparent),
         "day_master_root": "有根" if day_element in {ELEMENT_OF[s] for s in hidden} else "无根",
         "day_master_same_element_level": audit_same_element_level(same_element),
         "day_master_vs_month": audit_month_relation(day_element, ELEMENT_OF[month_main]),
@@ -170,6 +203,11 @@ def audit_fact_map(chart) -> dict[str, object]:
             god for god in transparent if god not in set(hidden_gods)
         )),
     }
+    # 合局类键与产品同语义：不成局时**不产出**，而不是产出空元组。
+    if formed:
+        fact_map["has_combination"] = tuple(name for name, _ in formed)
+        fact_map["combination_elements"] = tuple(dict.fromkeys(el for _, el in formed))
+    return fact_map
 
 
 def audit_sample() -> tuple[BirthInput, ...]:

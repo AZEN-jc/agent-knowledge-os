@@ -208,6 +208,22 @@ TEMPLATES: dict[str, Any] = {
     "year_month_elements": lambda expected, actual: (
         f"年月两柱出现的五行有：{_fmt(actual)}。"
     ),
+    "month_season": lambda expected, actual: f"月支属于{_fmt(actual)}季。",
+    "month_is_siji": lambda expected, actual: (
+        "月支是四季月（辰未戌丑，土旺之月）。" if actual else "月支不是四季月。"
+    ),
+    "year_month_branches": lambda expected, actual: (
+        f"年支与月支分别是{_fmt(actual)}。"
+    ),
+    "has_combination": lambda expected, actual: (
+        f"四支成局：{_fmt(actual)}。" if actual else "四支没有成局。"
+    ),
+    "combination_elements": lambda expected, actual: (
+        f"成局所化的五行是{_fmt(actual)}。" if actual else "四支没有成局，也就没有所化五行。"
+    ),
+    "stem_combinations": lambda expected, actual: (
+        f"天干有五合：{_fmt(actual)}。" if actual else "天干之间没有五合。"
+    ),
     # 五行计数
     "count_木": lambda expected, actual: f"木出现 {actual} 次（天干 + 四支本气共 8 项）。",
     "count_火": lambda expected, actual: f"火出现 {actual} 次（天干 + 四支本气共 8 项）。",

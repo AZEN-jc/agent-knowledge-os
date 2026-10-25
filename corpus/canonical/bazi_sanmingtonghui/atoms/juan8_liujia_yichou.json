@@ -1,0 +1,341 @@
+{
+  "atom_version": 1,
+  "corpus_id": "bazi_sanmingtonghui_j8",
+  "urn_edition": "bazi:sanmingtonghui:ws761697",
+  "section": "六甲日乙丑時斷",
+  "coverage": {
+    "entries_in_section": 6,
+    "entries_covered": 6,
+    "atoms": 18,
+    "deferred_clauses": 3,
+    "deferred_note": "三处从句依赖大运走向（「南方運」「西方運」），事实词表里没有大运事实 —— 这是 BLOCKED_SCHEMA，不是遗漏。对应条目其余从句已录。",
+    "note": "六甲日乙丑时断共 6 个日柱条目，全部覆盖。条件类型分布：日时组合 6、月令季节 5、月支单支 3、年月五行 1、年月支 1、合局 1、透干十神 1。"
+  },
+  "note": "断语的现代汉语转述由人写；条件必须能被事实词表表达，表达不了就写进 deferred_note，不许把有条件的断语当无条件用。",
+  "atoms": [
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_yichou_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.jiazi_yichou_01",
+      "citation": { "exact_quote": "甲子日乙丑時連珠得合妻賢子貴" },
+      "condition": { "day_stem": "甲", "day_branch": "子", "hour_stem": "乙", "hour_branch": "丑" },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["連珠得合"],
+        "conclusion": "甲子日乙丑时，古法称「连珠得合」，原文断「妻贤子贵」。此条只由日时组合决定，无年月附加条件；原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「連珠」指日时干支相接（甲子→乙丑），「得合」指子丑六合。两个术语都由日时组合唯一确定，不需要外部条件。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_yichou_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.jiazi_yichou_02",
+      "citation": { "exact_quote": "春月身旺財帛破散" },
+      "condition": { "day_stem": "甲", "day_branch": "子", "hour_stem": "乙", "hour_branch": "丑", "month_season": "春" },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["春月"],
+        "conclusion": "甲子日乙丑时生于春月（寅卯辰），原文断「身旺，财帛破散」。条件只含日时组合与月令季节；原文未给出更细的月份或十神条件。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "季节按三合局分组：寅卯辰为春。辰同时是四季月，此处按「春」取，因为原文说的是「春月」而非「四季月」。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_yichou_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.jiazi_yichou_03",
+      "citation": { "exact_quote": "夏月甲衰金神有制貴" },
+      "condition": { "day_stem": "甲", "day_branch": "子", "hour_stem": "乙", "hour_branch": "丑", "month_season": "夏" },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["夏月", "金神有制"],
+        "conclusion": "甲子日乙丑时生于夏月（巳午未），原文断「甲衰，金神有制，贵」。「金神有制」的具体所指（何者制之）原文未明，未纳入判定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「甲衰」是日主在夏月的旺衰判断，属原文断语，本系统不另行推算旺衰。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_yichou_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.jiazi_yichou_04",
+      "citation": { "exact_quote": "秋生近侍之貴" },
+      "condition": { "day_stem": "甲", "day_branch": "子", "hour_stem": "乙", "hour_branch": "丑", "month_season": "秋" },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["秋生"],
+        "conclusion": "甲子日乙丑时生于秋月（申酉戌），原文断「近侍之贵」。条件只有日时组合与月令季节。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_yichou_05",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.jiazi_yichou_05",
+      "citation": { "exact_quote": "丑月最吉" },
+      "condition": { "day_stem": "甲", "day_branch": "子", "hour_stem": "乙", "hour_branch": "丑", "month_branch": "丑" },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["丑月"],
+        "conclusion": "甲子日乙丑时，月支亦为丑，原文断「最吉」。此条以月支单支为条件，不含季节条件。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_yichou_06",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.jiazi_yichou_06",
+      "citation": { "exact_quote": "亥子多凶" },
+      "condition": { "day_stem": "甲", "day_branch": "子", "hour_stem": "乙", "hour_branch": "丑", "month_branch": ["亥", "子"] },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["亥子"],
+        "conclusion": "甲子日乙丑时，月支为亥或子，原文断「多凶」。原文「亥子」未注明是年支还是月支，此处按与上句「丑月」并列的月支解读；若按年月两支解则范围更宽，未纳入。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "与「丑月最吉」并列，故取月支口径。这个歧义写进 conclusion，不静默选一个。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yinyi_yichou_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.yinyi_yichou_01",
+      "citation": { "exact_quote": "甲寅日乙丑時春貧" },
+      "condition": { "day_stem": "甲", "day_branch": "寅", "hour_stem": "乙", "hour_branch": "丑", "month_season": "春" },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["春貧"],
+        "conclusion": "甲寅日乙丑时生于春月，原文断「贫」。条件只有日时组合与季节。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yinyi_yichou_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.yinyi_yichou_02",
+      "citation": { "exact_quote": "秋貴" },
+      "condition": { "day_stem": "甲", "day_branch": "寅", "hour_stem": "乙", "hour_branch": "丑", "month_season": "秋" },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["秋貴"],
+        "conclusion": "甲寅日乙丑时生于秋月，原文断「贵」。引文取「秋貴」两字，其主语由前文「甲寅日乙丑時」限定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "引文是连续原文的一截，不是改写；主语由同条目前半句限定。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yinyi_yichou_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.yinyi_yichou_03",
+      "citation": { "exact_quote": "冬富" },
+      "condition": { "day_stem": "甲", "day_branch": "寅", "hour_stem": "乙", "hour_branch": "丑", "month_season": "冬" },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["冬富"],
+        "conclusion": "甲寅日乙丑时生于冬月，原文断「富」。条件只有日时组合与季节。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yinyi_yichou_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.yinyi_yichou_04",
+      "citation": { "exact_quote": "夏火制金神吉" },
+      "condition": { "day_stem": "甲", "day_branch": "寅", "hour_stem": "乙", "hour_branch": "丑", "month_season": "夏" },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["火制金神"],
+        "conclusion": "甲寅日乙丑时生于夏月，原文断「火制金神，吉」。条件只有日时组合与季节；「火制金神」的具体所指未纳入判定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_chenchen_yichou_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.chenchen_yichou_01",
+      "citation": { "exact_quote": "甲辰日乙丑時主富厚有財" },
+      "condition": { "day_stem": "甲", "day_branch": "辰", "hour_stem": "乙", "hour_branch": "丑" },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["富厚有財"],
+        "conclusion": "甲辰日乙丑时，原文断「富厚有财」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_chenchen_yichou_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.chenchen_yichou_02",
+      "citation": { "exact_quote": "通火氣年月貴" },
+      "condition": { "day_stem": "甲", "day_branch": "辰", "hour_stem": "乙", "hour_branch": "丑", "year_month_elements": ["火"] },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["通火氣"],
+        "conclusion": "甲辰日乙丑时，年月两柱出现火（干或本气），原文断「贵」。「通火气」按年月两柱出现火解读；原文未限定必须透干还是藏干，故取更宽的「出现」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "同一句后接「（一云）主血」，是异说，未另立原子 —— 异说与主说并列会给出两个相反倾向，需要单独处理。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_wuwu_yichou_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.wuwu_yichou_01",
+      "citation": { "exact_quote": "甲午日乙丑時金神入火局身弱貧夭" },
+      "condition": { "day_stem": "甲", "day_branch": "午", "hour_stem": "乙", "hour_branch": "丑", "combination_elements": ["火"] },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["金神入火局"],
+        "conclusion": "甲午日乙丑时，四支成火局（三合或三会），原文断「身弱，贫夭」。「入火局」以四支成局的所化五行为条件，不区分三合与三会。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "原文「寅戌㑹火」说明成局靠寅戌与日支午三合；此处用「成局所化五行为火」表达，不写死是哪三支 —— 三会火局（巳午未）在语义上同样是「入火局」。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_wuwu_yichou_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.wuwu_yichou_02",
+      "citation": { "exact_quote": "寅戌㑹火是一木疊逢火位不吉" },
+      "condition": { "day_stem": "甲", "day_branch": "午", "hour_stem": "乙", "hour_branch": "丑", "has_combination": ["三合火局"] },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["寅戌會火", "木疊逢火"],
+        "conclusion": "甲午日乙丑时，寅午戌三合火局齐备，原文断「一木叠逢火位，不吉」。此条比上一条更严：要求三合火局成立，不只是成火局。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "两条并存不是重复：上条认「任何火局」，本条只认「寅午戌三合」，命盘成三会火局时只命中上条。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_shenshen_yichou_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.shenshen_yichou_01",
+      "citation": { "exact_quote": "甲申日乙丑時帶疾平常" },
+      "condition": { "day_stem": "甲", "day_branch": "申", "hour_stem": "乙", "hour_branch": "丑" },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["帶疾"],
+        "conclusion": "甲申日乙丑时，原文断「带疾，平常」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「带疾」是底本的判断，本系统照录，不构成医学意见。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_shenshen_yichou_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.shenshen_yichou_02",
+      "citation": { "exact_quote": "秋生化煞天干透印綬尤貴" },
+      "condition": { "day_stem": "甲", "day_branch": "申", "hour_stem": "乙", "hour_branch": "丑", "month_season": "秋", "transparent_ten_gods": ["偏印", "正印"] },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["化煞", "透印綬"],
+        "conclusion": "甲申日乙丑时生于秋月，且天干透出印（偏印或正印），原文断「尤贵」。两个条件并列：季节与透干十神。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「化煞」的具体机制原文未展开，未纳入；只取可验证的两个条件。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_xuxu_yichou_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.xuxu_yichou_01",
+      "citation": { "exact_quote": "甲戌日乙丑時田連阡陌貫朽粟陳但未免先刑" },
+      "condition": { "day_stem": "甲", "day_branch": "戌", "hour_stem": "乙", "hour_branch": "丑" },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["田連阡陌"],
+        "conclusion": "甲戌日乙丑时，原文断「田连阡陌，贯朽粟陈，但未免先刑」。此条只由日时组合决定；「先刑」的具体所指（丑戌未三刑之一部）未纳入判定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "丑戌相刑是四支关系的一种，但「先刑」指早年还是先经历刑伤，原文未明，故不写成条件。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_xuxu_yichou_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_yichou.xuxu_yichou_02",
+      "citation": { "exact_quote": "寅年月父子俱顯" },
+      "condition": { "day_stem": "甲", "day_branch": "戌", "hour_stem": "乙", "hour_branch": "丑", "year_month_branches": ["寅"] },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": ["寅年月"],
+        "conclusion": "甲戌日乙丑时，年支或月支为寅，原文断「父子俱显」。「寅年月」按年月两支中出现寅解读。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    }
+  ]
+}

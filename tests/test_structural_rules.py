@@ -42,6 +42,10 @@ STRUCTURAL_ABSENCE: frozenset[str] = frozenset({
     "liunian_relation_pairs",
     "dayun_relations",
     "dayun_relation_pairs",
+    # 合局类键：四支不成局、四干无五合时不产出（Phase 6.3）。
+    "has_combination",
+    "combination_elements",
+    "stem_combinations",
 })
 
 
@@ -518,6 +522,29 @@ RULE_WITNESS: dict[str, tuple[int, int, int, int]] = {
     "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_05": (1958, 3, 28, 0),
     "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_06": (1956, 6, 6, 0),
     "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_07": (1958, 11, 23, 0),
+    # ── 典籍层（卷八 · 六甲日乙丑时断，Phase 6.3）────────────────────────
+    # 18 条原子按「日时组合 + 一层限制」组织：同一日时下的无条件断语是
+    # 条件断语的**真子集**，所以条件断语的见证盘必然同时命中它。这不是
+    # 挑盘不慎，是条件包含关系决定的 —— 逐条登记进 WITNESS_ALSO_MATCHES。
+    # 见证盘都取「该条件最早成立的那一天」，季节类靠 60 日周期跨月找。
+    "rule_bazi_sanmingtonghui_j8_jiazi_yichou_01": (1950, 1, 29, 2),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yichou_02": (1950, 3, 30, 2),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yichou_03": (1950, 5, 29, 2),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yichou_04": (1950, 9, 26, 2),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yichou_05": (1950, 1, 29, 2),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yichou_06": (1950, 11, 25, 2),
+    "rule_bazi_sanmingtonghui_j8_yinyi_yichou_01": (1950, 3, 20, 2),
+    "rule_bazi_sanmingtonghui_j8_yinyi_yichou_02": (1950, 9, 16, 2),
+    "rule_bazi_sanmingtonghui_j8_yinyi_yichou_03": (1950, 1, 19, 2),
+    "rule_bazi_sanmingtonghui_j8_yinyi_yichou_04": (1950, 5, 19, 2),
+    "rule_bazi_sanmingtonghui_j8_chenchen_yichou_01": (1950, 1, 9, 2),
+    "rule_bazi_sanmingtonghui_j8_chenchen_yichou_02": (1950, 1, 9, 2),
+    "rule_bazi_sanmingtonghui_j8_wuwu_yichou_01": (1950, 10, 26, 2),
+    "rule_bazi_sanmingtonghui_j8_wuwu_yichou_02": (1950, 10, 26, 2),
+    "rule_bazi_sanmingtonghui_j8_shenshen_yichou_01": (1950, 2, 18, 2),
+    "rule_bazi_sanmingtonghui_j8_shenshen_yichou_02": (1952, 10, 5, 2),
+    "rule_bazi_sanmingtonghui_j8_xuxu_yichou_01": (1950, 2, 8, 2),
+    "rule_bazi_sanmingtonghui_j8_xuxu_yichou_02": (1950, 2, 8, 2),
 }
 
 # ── 见证盘的同组重叠豁免 ──────────────────────────────────────────────
@@ -543,5 +570,57 @@ WITNESS_ALSO_MATCHES: dict[str, frozenset[str]] = {
     }),
     "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_07": frozenset({
         "rule_bazi_sanmingtonghui_j8_jiachen_jiazi_01",
+    }),
+    # ── 六甲日乙丑时（Phase 6.3）──────────────────────────────────────
+    # 同一条目里，「无条件断语」是「条件断语」的**真子集**：条件断语的
+    # 见证盘必然同时命中同条目的无条件断语。这不是挑盘不慎，是条件包含
+    # 关系决定的 —— 拆成两条是因为原文本来就是两句（一句只说日时，
+    # 一句加了月份/季节）。
+    #
+    # 反向不必然成立：无条件断语的见证盘只在自己恰好落在那个条件下时
+    # 才多命中。甲子日那条的见证落在丑月，所以它额外命中「丑月最吉」。
+    "rule_bazi_sanmingtonghui_j8_jiazi_yichou_01": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_yichou_05",  # 见证盘在丑月
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yichou_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_yichou_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yichou_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_yichou_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yichou_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_yichou_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yichou_05": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_yichou_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yichou_06": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_yichou_01",
+    }),
+    # 甲辰日：无条件 + 「通火气年月」，见证盘年月有火，两条都成立。
+    "rule_bazi_sanmingtonghui_j8_chenchen_yichou_01": frozenset({
+        "rule_bazi_sanmingtonghui_j8_chenchen_yichou_02",
+    }),
+    "rule_bazi_sanmingtonghui_j8_chenchen_yichou_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_chenchen_yichou_01",
+    }),
+    # 甲午日：三合火局成立时，必然也满足「成火局」那条 —— 后者更宽。
+    "rule_bazi_sanmingtonghui_j8_wuwu_yichou_01": frozenset({
+        "rule_bazi_sanmingtonghui_j8_wuwu_yichou_02",
+    }),
+    "rule_bazi_sanmingtonghui_j8_wuwu_yichou_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_wuwu_yichou_01",
+    }),
+    # 甲申日：「秋生 + 透印」的见证盘当然也满足无条件那条；
+    # 无条件那条的见证盘不在秋月，所以不需要反向登记。
+    "rule_bazi_sanmingtonghui_j8_shenshen_yichou_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_shenshen_yichou_01",
+    }),
+    # 甲戌日：无条件 + 「寅年月」，见证盘年支为寅，两条都成立。
+    "rule_bazi_sanmingtonghui_j8_xuxu_yichou_01": frozenset({
+        "rule_bazi_sanmingtonghui_j8_xuxu_yichou_02",
+    }),
+    "rule_bazi_sanmingtonghui_j8_xuxu_yichou_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_xuxu_yichou_01",
     }),
 }

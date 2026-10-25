@@ -324,7 +324,12 @@ _YEAR_MONTH_MENTION = re.compile(r"年月")
 """
 
 _MONTH_KEYS = ("month_branch", "month_pillar")
-_YEAR_MONTH_KEYS = ("year_month_elements", "month_pillar", "month_branch", "year_pillar")
+#: 年月层限制可以由哪些键表达。``year_month_branches`` 是 Phase 6.3 加的：
+#: 「寅年月」「子未年月」这类断语限制的是年月两支，不是五行也不是整柱。
+_YEAR_MONTH_KEYS = (
+    "year_month_elements", "year_month_branches",
+    "month_pillar", "month_branch", "year_pillar",
+)
 
 
 def _check_time_restriction(quote: str, condition: dict[str, Any], where: str) -> None:

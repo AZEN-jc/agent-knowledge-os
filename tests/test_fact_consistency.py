@@ -64,6 +64,10 @@ STRUCTURALLY_OPTIONAL = frozenset({
     "liunian_relation_pairs",
     "dayun_relations",
     "dayun_relation_pairs",
+    # 合局类键：四支不成局、四干无五合时不产出（Phase 6.3）。
+    "has_combination",
+    "combination_elements",
+    "stem_combinations",
 })
 
 #: 由 :func:`knowledge.flow_facts.flow_facts` 产出的键，不是本命盘事实。
@@ -84,6 +88,7 @@ SOURCE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
         r"^chart\.pillars\.(year|month|day|hour)$",
         r"^chart\.pillars\.(year|month|day|hour)\.hidden_stems$",
         r"^chart\.pillars\[\*\]\.(ten_god|hidden_stems|earthly_branch)$",
+        r"^chart\.pillars\[\*\]\.heavenly_stem$",
     )
 )
 
