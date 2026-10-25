@@ -25,7 +25,10 @@ dependencies = [
   # 第二实现：独立命理库，仅用于 differential testing 交叉校验，不参与生产排盘
   "lunar_python==1.4.8",
   "fastapi",
-  "uvicorn"
+  "uvicorn",
+  # PDF 报告导出（Phase 5.7）。钉版本：渲染层的 API 变动会直接改变产物
+  # 字节，浮动的 minor 足以让「同一份报告」产出不同的 PDF。
+  "reportlab==5.1.0"
 ]
 
 [tool.pytest.ini_options]

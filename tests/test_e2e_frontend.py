@@ -29,7 +29,7 @@ import pytest
 
 pytest.importorskip("playwright.sync_api", reason="未安装 playwright")
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 #: 本地开发可用系统 Chrome 跑 E2E，不必下载 170MB 的捆绑浏览器：
 #: ``MINGLI_E2E_CHANNEL=chrome python -m pytest tests/test_e2e_frontend.py -q``
@@ -110,7 +110,10 @@ def browser():
 
 @pytest.fixture
 def page(browser, base_url):
-    context = browser.new_context(viewport={"width": 1280, "height": 900})
+    context = browser.new_context(
+        viewport={"width": 1280, "height": 900},
+        accept_downloads=True,  # Phase 5.7：报告导出走浏览器下载
+    )
     page = context.new_page()
     page.goto(base_url, wait_until="domcontentloaded")
     yield page
@@ -282,6 +285,10 @@ def test_timeline_groups_years_by_dayun(page):
 
     分组头带步号与起运年龄；缺 gender 时明说「只算流年、不分大运组」——
     不猜默认方向，与 /api/timeline 的口径一致。
+
+    第二次点击后 section 已经可见，``wait_for(visible)`` 会立即返回并
+    读到上一轮的内容（全量跑时踩过一次）。断言用 ``expect`` 的自动重试：
+    它等的是「文本变成新的」，不是「元素可见」。
     """
     _fill_birth(page)
     page.fill("#from", "2024")
@@ -290,14 +297,12 @@ def test_timeline_groups_years_by_dayun(page):
 
     timeline = page.locator("#out-timeline")
     timeline.wait_for(state="visible", timeout=15000)
-    assert "未提供性别" in timeline.inner_text()
+    expect(timeline).to_contain_text("未提供性别", timeout=15000)
 
     page.select_option("#gender", "男")
     page.click("#timeline")
-    timeline.wait_for(state="visible", timeout=15000)
-    text = timeline.inner_text()
-    assert "大运" in text and "起" in text  # 分组头：第 N 步，X起
-    assert "未提供性别" not in text
+    expect(timeline).to_contain_text("起", timeout=15000)
+    expect(timeline).not_to_contain_text("未提供性别", timeout=15000)
 
 
 # ── 6. 多主题工作台（Phase 5.5）───────────────────────────────────────
@@ -328,6 +333,60 @@ def test_multi_topic_workbench_switches_between_topics(page):
     assert "主题「事业」" not in page.locator("#topic-detail").inner_text()
     # 页签还在：切主题不该把页签区清掉。
     assert page.locator("#topic-tabs button").count() == 3
+
+
+# ── 7. 报告导出（Phase 5.7）───────────────────────────────────────────
+
+
+def test_export_json_downloads_the_full_report(page):
+    """导出 JSON：下载到的文件是完整报告（含 URN 与逐字原文）。
+
+    勾「命局」：默认主题（事业/财运）只有公共结构层证据，命盘要不命中
+    典籍层规则，URN 断言会空转。1990-02-28 00:00 日柱甲子 + 时柱甲子，
+    命中《三命通會》卷八断语（选型同 test_citation_allowlist.py）。
+    """
+    _fill_birth(page)
+    page.fill("#month", "2")
+    page.fill("#day", "28")
+    page.fill("#hour", "0")
+    page.check('input[name="topic"][value="命局"]')
+    page.click("#run")
+    page.locator("#out-analysis").wait_for(state="visible", timeout=15000)
+
+    with page.expect_download() as download_info:
+        page.click("#export-json")
+    download = download_info.value
+    assert download.suggested_filename == "mingli-report.json"
+
+    import json as json_module
+
+    payload = json_module.loads(download.path().read_text(encoding="utf-8"))
+    assert payload["format_version"] == 1
+    assert payload["succeeded"] >= 1
+    # 报告里必须带得走：URN、逐字原文、算法版本 —— 导出的是可核验的存档。
+    text = download.path().read_text(encoding="utf-8")
+    assert "urn:divination:" in text
+    assert "sxtwl-2.0.7-bazi-v2" in text
+
+
+def test_export_pdf_downloads_a_real_pdf(page):
+    """导出 PDF：文件头是 %PDF，且不是空壳。"""
+    _fill_birth(page)
+    page.fill("#month", "2")
+    page.fill("#day", "28")
+    page.fill("#hour", "0")
+    page.check('input[name="topic"][value="命局"]')
+    page.click("#run")
+    page.locator("#out-analysis").wait_for(state="visible", timeout=15000)
+
+    with page.expect_download() as download_info:
+        page.click("#export-pdf")
+    download = download_info.value
+    assert download.suggested_filename == "mingli-report.pdf"
+
+    content = download.path().read_bytes()
+    assert content[:5] == b"%PDF-"
+    assert len(content) > 2000
 
 
 # ── 5. 典籍库（Phase 5.4）─────────────────────────────────────────────

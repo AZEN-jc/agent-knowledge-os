@@ -82,6 +82,8 @@
     margin: 14px 0 4px; padding: 4px 10px; font-size: 13px; color: var(--muted);
     border-left: 3px solid var(--line); background: #f7f3ec;
   }
+  /* 导出工具条（Phase 5.7）：跟在分析结果后面，导出的是刚看的这份。 */
+  .export-bar { display: flex; gap: 8px; margin-bottom: 12px; }
   footer { margin: 36px 0 8px; color: var(--muted); font-size: 12px; }
 </style>
 </head>
@@ -155,6 +157,10 @@
 
   <section id="out-analysis" hidden>
     <h2>证据链</h2>
+    <div class="export-bar">
+      <button type="button" class="ghost" id="export-json">导出 JSON</button>
+      <button type="button" class="ghost" id="export-pdf">导出 PDF</button>
+    </div>
     <div id="analysis">
       <div id="topic-tabs"></div>
       <div id="topic-detail"></div>
@@ -240,29 +246,35 @@ function reportError(error) {
   return false;
 }
 
+/** 发请求并做好错误整形，返回原始 Response。
+ *
+ *  返回 Response 而不是解析后的 JSON：导出（Phase 5.7）要的是 blob，
+ *  解析了就把字节弄丢了。post/get 在这一层之上解析。 */
 async function request(method, path, body) {
   const res = await fetch(path, {
     method: method,
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     // 把字段级条目带在错误对象上：只抛 message 会把 fields 数组丢掉，
     // 前端就退回「顶部一句中文串」的旧体验。
+    const data = await res.json().catch(() => ({}));
     const error = new Error(data.detail || `HTTP ${res.status}`);
     error.fields = data.fields;
     throw error;
   }
-  return data;
+  return res;
 }
 
 async function post(path, body) {
-  return request("POST", path, body);
+  const res = await request("POST", path, body);
+  return res.json();
 }
 
 async function get(path) {
-  return request("GET", path);
+  const res = await request("GET", path);
+  return res.json();
 }
 
 function birth() {
@@ -774,6 +786,42 @@ function shiftTimeline(direction) {
   onTimeline();
 }
 
+// ── 报告导出（Phase 5.7）─────────────────────────────────────────────
+
+/** 触发浏览器下载。Blob + 临时锚元素，不经过任何服务端跳转。 */
+function download(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const anchor = el("a", filename);
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+}
+
+/** 导出当前分析（同样的生辰与主题选择）。
+ *
+ *  复用 selectedTopics 与 birthOrFieldError：导出的是**刚看的这份**，
+ *  不是让用户再填一遍。请求体只多一个 format —— 服务端 /api/report
+ *  复用多主题分析的同一份校验（ReportRequest 继承 MultiAnalyzeRequest）。 */
+async function onExport(format) {
+  const topics = selectedTopics();
+  if (!topics.length) return showError("至少选一个主题。");
+  const body = birthOrFieldError();
+  if (!body) return;
+  try {
+    // 走 request() 而不是裸 fetch：错误整形（fields 数组）与其余请求
+    // 同一条路。区别只在拿到 Response 之后取 blob 而不是 json。
+    const res = await request("POST", "/api/report", { ...body, topics, format });
+    const blob = await res.blob();
+    download(blob, `mingli-report.${format}`);
+    showError("");
+  } catch (error) {
+    reportError(error);
+  }
+}
+
 /** 真太阳时开关：勾选才展开经纬度行。
  *
  *  取消勾选**不清空已填的值** —— 用户可能只是想切回去看一眼民用时的结果，
@@ -789,6 +837,8 @@ $("chart-only").addEventListener("click", onChartOnly);
 $("timeline").addEventListener("click", onTimeline);
 $("shift-back").addEventListener("click", () => shiftTimeline(-1));
 $("shift-forward").addEventListener("click", () => shiftTimeline(1));
+$("export-json").addEventListener("click", () => onExport("json"));
+$("export-pdf").addEventListener("click", () => onExport("pdf"));
 $("library-btn").addEventListener("click", onLibrary);
 $("tst").addEventListener("change", syncGeoRow);
 syncGeoRow();

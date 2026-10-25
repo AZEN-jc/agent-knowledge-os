@@ -74,6 +74,7 @@ def _runtime_imports() -> set[str]:
     third_party = {
         "sxtwl", "lunar_python", "fastapi", "uvicorn", "pydantic", "pytest",
         "rich", "requests", "dotenv", "everos", "arbiter_lite", "ruff", "mypy",
+        "reportlab", "playwright",
     }
     found: set[str] = set()
     for path in sorted(REPO.rglob("*.py")):

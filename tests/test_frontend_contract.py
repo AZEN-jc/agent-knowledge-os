@@ -321,9 +321,16 @@ def _extract_request_fields(js: str) -> set[str]:
 
 
 def _extract_endpoints(js: str) -> set[tuple[str, str]]:
-    """提取前端请求的 (方法, 端点)：post() 与 get() 两类，查询串剥掉。"""
+    """提取前端请求的 (方法, 端点)。
+
+    三种调用形式都要覆盖：``post()``/``get()`` 包装（解析 JSON 的路径）
+    与裸 ``request("METHOD", path)``（Phase 5.7 起导出走这条，因为它
+    要 Response 不要 JSON）。查询串剥掉。
+    """
     pairs = {("post", path) for path in re.findall(r'post\(\s*"([^"]+)"', js)}
+    pairs |= {("post", path) for path in re.findall(r'request\(\s*"POST",\s*"([^"]+)"', js)}
     pairs |= {("get", path.split("?")[0]) for path in re.findall(r'get\(\s*"([^"]+)"', js)}
+    pairs |= {("get", path.split("?")[0]) for path in re.findall(r'request\(\s*"GET",\s*"([^"]+)"', js)}
     return pairs
 
 

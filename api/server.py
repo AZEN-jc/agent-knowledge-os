@@ -24,11 +24,11 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -37,6 +37,7 @@ from knowledge.classical_backlog import CLASSICAL_BACKLOG, BacklogStatus, next_a
 from knowledge.provenance import ReviewStatus, SourceTier
 from knowledge.topics import TOPICS
 from runtime.mingli_service import MingLiService
+from runtime.report import build_report, render_pdf, report_json
 
 #: 引擎支持范围的两个窄窗口（Phase 3.1 修好历法换算后的剩余边界）。
 #:
@@ -495,15 +496,20 @@ def health() -> dict[str, str]:
     return {"status": "ok", "provider": "sxtwl"}
 
 
-def _birth_fields(request: BirthRequest) -> dict[str, Any]:
-    """剥掉排盘口径开关的出生信息字典。
+def _birth_fields(request: BirthRequest, *extra: str) -> dict[str, Any]:
+    """剥掉排盘口径开关与派生字段的出生信息字典。
 
     ``true_solar_time`` 是**怎么排盘**的开关，不是**什么时候出生**的信息：
     引擎的 ``BirthInput`` 没有这个字段，混在字典里传进服务层会以
     ``TypeError`` 炸开，再被端点捕获成一次「排盘失败」—— 把配置错误
     伪装成数据错误。剥下来单独作为关键字参数传（Phase 5.2）。
+
+    ``extra`` 给派生字段用：``/api/report`` 的 ``topics``/``format`` 与
+    ``/api/analyze`` 的 ``question`` 同属请求侧的附加参数，同样不是出生
+    信息（Phase 5.7 补这个口子——第一版忘了剥，422 的报错是
+    「BirthInput 收到意外参数 topics」）。
     """
-    return request.model_dump(exclude={"true_solar_time"})
+    return request.model_dump(exclude={"true_solar_time", *extra})
 
 
 @app.post(
@@ -713,6 +719,59 @@ def list_topics() -> TopicListResponse:
         total=len(TOPICS),
         note="covered = 有专属规则；base_only = 只有公共结构层；unknown = 未登记的主题。",
         topics=[TopicResponse(**topic.to_dict()) for topic in TOPICS],  # type: ignore[arg-type]
+    )
+
+
+class ReportRequest(MultiAnalyzeRequest):
+    """导出请求 = 多主题分析请求 + 目标格式。
+
+    复用 ``MultiAnalyzeRequest``：导出的是**同一次分析**，不是另一种
+    分析。出生信息与主题的校验规则因此完全一致 —— 导出端点不接受
+    分析端点不接受的东西。
+    """
+
+    format: Literal["json", "pdf"] = Field(
+        default="json",
+        description="导出格式：json（结构化存档）或 pdf（排版后的报告）",
+    )
+
+
+@app.post(
+    "/api/report",
+    summary="导出分析报告",
+    description=(
+        "把一次多主题分析导出为 JSON 或 PDF。\n\n"
+        "**导出不新增判断**：报告里的每个字都是接口已经断言过的东西的"
+        "复述 —— 命盘、证据链、强度算式、审查结论、指纹。JSON 与"
+        "``/api/analyze/multi`` 的响应逐字段一致（API 视图是它的子集）；"
+        "PDF 是同一份内容的排版。\n\n"
+        "PDF 用 reportlab 的 CID 字体渲染中文；Content-Disposition 为"
+        "attachment，浏览器直接弹下载。"
+    ),
+    tags=["分析"],
+    responses=UNPROCESSABLE,
+)
+def export_report(request: ReportRequest) -> Response:
+    try:
+        report = build_report(
+            service,
+            _birth_fields(request, "topics", "format"),
+            request.topics,
+            true_solar_time=request.true_solar_time,
+        )
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=422, detail=_to_user_message(exc)) from exc
+
+    if request.format == "pdf":
+        return Response(
+            content=render_pdf(report),
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=mingli-report.pdf"},
+        )
+    return Response(
+        content=report_json(report),
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=mingli-report.json"},
     )
 
 
