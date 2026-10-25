@@ -335,8 +335,24 @@ def test_multi_topic_workbench_switches_between_topics(page):
     assert page.locator("#topic-tabs button").count() == 3
 
 
-# ── 7. 报告导出（Phase 5.7）───────────────────────────────────────────
+# ── 8. 隐私声明（Phase 5.8）───────────────────────────────────────────
 
+
+def test_privacy_statement_is_visible_without_running_anything(page):
+    """隐私声明在首屏可见，不需要先跑一次分析。
+
+    写在页面上而不是只写在 docs/：用户不会去读仓库文档。这条断言
+    「看得见」，内容的一致性由 tests/test_privacy_disclosure.py 钉。
+    """
+    privacy = page.locator("#privacy")
+    assert privacy.is_visible()
+    text = privacy.inner_text()
+    assert "不存储" in text
+    assert "内存缓存" in text
+    assert "导出与日志" in text
+
+
+# ── 7. 报告导出（Phase 5.7）───────────────────────────────────────────
 
 def test_export_json_downloads_the_full_report(page):
     """导出 JSON：下载到的文件是完整报告（含 URN 与逐字原文）。

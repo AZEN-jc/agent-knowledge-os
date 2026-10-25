@@ -84,7 +84,16 @@
   }
   /* 导出工具条（Phase 5.7）：跟在分析结果后面，导出的是刚看的这份。 */
   .export-bar { display: flex; gap: 8px; margin-bottom: 12px; }
-  footer { margin: 36px 0 8px; color: var(--muted); font-size: 12px; }
+  /* 隐私声明（Phase 5.8）：用户不会去读 docs/，声明的最低标准是看得见。 */
+  .privacy {
+    margin-top: 32px; padding: 14px 16px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 4px;
+  }
+  .privacy h2 { font-size: 14px; margin: 0 0 8px; border-bottom: none; padding: 0; }
+  .privacy ul { margin: 0; padding-left: 18px; }
+  .privacy li { font-size: 13px; color: var(--muted); margin: 4px 0; }
+  .privacy strong { color: var(--ink); font-weight: 600; }
+  footer { margin: 20px 0 8px; color: var(--muted); font-size: 12px; }
 </style>
 </head>
 <body>
@@ -175,6 +184,15 @@
   <section id="out-library" hidden>
     <h2>典籍与规则库</h2>
     <div class="card" id="library"></div>
+  </section>
+
+  <section class="privacy" id="privacy">
+    <h2>隐私与数据</h2>
+    <ul>
+      <li><strong>不存储</strong>：无账号、无数据库、无历史记录；生辰只用于当次计算，请求结束即释放。</li>
+      <li><strong>内存缓存</strong>：最多 <span id="cache-limit">256</span> 条结论缓存（键为分析输入，不含原始生辰字段），进程退出即清空；缓存命中会在响应里标注。</li>
+      <li><strong>导出与日志</strong>：导出文件留在你的设备上，服务端不保留副本；访问日志只含方法与状态码，不记录请求体（部署方另加日志的除外）。</li>
+    </ul>
   </section>
 
   <footer>
