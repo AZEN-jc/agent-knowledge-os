@@ -1,0 +1,717 @@
+{
+  "atom_version": 1,
+  "corpus_id": "bazi_sanmingtonghui_j8",
+  "urn_edition": "ws761697",
+  "section": "六甲日丙寅時斷",
+  "coverage": {
+    "entries_in_section": 6,
+    "entries_covered": 6,
+    "atoms": 23,
+    "deferred_clauses": 4,
+    "deferred_note": "四处从句未能录入：①「午月行東北方運五六品貴」与「行西南方運最吉」「行西方運大貴」依赖大运走向，事实词表只有 dayun_* 的逐年事实、没有「行某方运」的整体判断；②「年月無庚辛金貴」与「年月無己酉辛丑字」是否定条件，词表没有「年月不含某干」的表达；③「己亥二三品」未言年或月，条件落点不明；④「火木化主厚福」的「化」指化气格，现有成局事实只有三合与三会。以上均为 BLOCKED_SCHEMA 或 BLOCKED_AMBIGUOUS，不是遗漏。",
+    "note": "六甲日丙寅时断共 6 个日柱条目，全部覆盖。条件类型分布：日时组合 6、月支单支 7、月支多选 4、年月支 3、年月五行 3、成局 1、透干十神 1、计数 1。"
+  },
+  "note": "本节原文多处以「某月」限定，与乙丑节（多论季节）不同：丙寅为甲木的食神长生位，原文按月支分论吉凶，因此本节月支条件占比最高。",
+  "atoms": [
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_bingyin_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiazi_bingyin_01",
+      "citation": {
+        "exact_quote": "甲子日丙寅時日禄居時青雲得路"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "丙",
+        "hour_branch": "寅"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "日禄居時",
+          "青雲得路"
+        ],
+        "conclusion": "甲子日丙寅时，时支寅是甲木的临官禄位，古法称「日禄居时」，原文断「青云得路」。此条只由日时组合决定；原文另附「年月无庚辛」「午月行东北方运」等条件，见同节其余条目与 note。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「日禄」指甲的临官位在寅。原文「年月無庚辛金貴」是否定条件，词表没有「年月不含某干」的表达，未录（见 coverage.deferred_note）。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_bingyin_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiazi_bingyin_02",
+      "citation": {
+        "exact_quote": "申月歸禄逢煞主大權貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "month_branch": "申"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "歸禄逢煞",
+          "大權貴"
+        ],
+        "conclusion": "甲子日丙寅时生于申月，原文断「归禄逢煞，主大权贵」。时支寅为甲禄，申中庚金对甲为七杀，故称「逢煞」；原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「歸禄」沿用上条的日禄在时；「煞」取申的本气庚金（甲的七杀）。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_bingyin_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiazi_bingyin_03",
+      "citation": {
+        "exact_quote": "水局平常"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "combination_elements": [
+          "水"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "水局",
+          "平常"
+        ],
+        "conclusion": "甲子日丙寅时，四支成水局（申子辰三合或亥子丑三会），原文断「平常」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「水局」按四支成局取，不是「命局里有水」——后者几乎所有盘都成立，等于无条件。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_bingyin_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiayin_bingyin_01",
+      "citation": {
+        "exact_quote": "是歸禄格位至一二品"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "丙",
+        "hour_branch": "寅"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "歸禄格"
+        ],
+        "conclusion": "甲寅日丙寅时，日支与时支同为寅，甲禄在寅，原文称「归禄格」。原文以「年月无己酉辛丑字」为前提，该否定条件目前无法表达，故本条只录格名，不录「位至一二品」的品级判断。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "刻意的不完整录入：格名与品级拆开，品级依赖的否定条件未建模。宁可少录一条判断，也不把有前提的断语当成无条件成立。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_bingyin_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiayin_bingyin_02",
+      "citation": {
+        "exact_quote": "純木火帶土富貴雙全六卿之職"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "count_金": 0,
+        "count_水": 0
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "純木火帶土",
+          "富貴雙全"
+        ],
+        "conclusion": "甲寅日丙寅时，四柱不见金、不见水，只剩木火土三类，原文断「富贵双全，六卿之职」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「純木火帶土」译成两条计数条件（金 0、水 0）。不用 missing_elements：两侧容器按交集判断，写「缺金水」只要缺一类就成立，比原文宽。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_bingyin_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiayin_bingyin_03",
+      "citation": {
+        "exact_quote": "亥未卯月四五品貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "month_branch": [
+          "亥",
+          "未",
+          "卯"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "亥未卯月",
+          "四五品貴"
+        ],
+        "conclusion": "甲寅日丙寅时生于亥、未、卯三月之一，原文断「四五品贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "三支同属木局（亥卯未），原文按月支列举，条件照录为三选一。原文同句的「丙子」未言年或月，未录。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_bingyin_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiayin_bingyin_04",
+      "citation": {
+        "exact_quote": "酉丑月貴者"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "month_branch": [
+          "酉",
+          "丑"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "酉丑月"
+        ],
+        "conclusion": "甲寅日丙寅时生于酉月或丑月，原文断「亦有贵者」。原文补一句「看干透及年何如」，即是否成贵还要看透出的天干与年柱，本条只录月份这一层。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "原文自带保留语（「亦有……者」「看干透及年何如」），故置信取 LOW：条件只覆盖月支，剩余判断权在原文未量化的部分。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiachen_bingyin_01",
+      "citation": {
+        "exact_quote": "甲辰日丙寅時龍虎拱門又龍吟虎嘯主貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "丙",
+        "hour_branch": "寅"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "龍虎拱門",
+          "龍吟虎嘯"
+        ],
+        "conclusion": "甲辰日丙寅时，日支辰（龙）与时支寅（虎）相对，古法称「龙虎拱门」，又称「龙吟虎啸」，原文断「主贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "辰为龙、寅为虎，两个格名都由日时两支唯一确定，不需要外部条件。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiachen_bingyin_02",
+      "citation": {
+        "exact_quote": "寅年月官至六卿"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "year_month_branches": [
+          "寅"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "寅年月",
+          "官至六卿"
+        ],
+        "conclusion": "甲辰日丙寅时，年支或月支为寅，原文断「官至六卿」。「寅年月」按年月两支中出现寅解读。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiachen_bingyin_03",
+      "citation": {
+        "exact_quote": "戌月風憲"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "month_branch": "戌"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "戌月",
+          "風憲"
+        ],
+        "conclusion": "甲辰日丙寅时生于戌月，原文断「风宪」。风宪在旧时指御史一类的职任，属官职性质而非吉凶等级。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「風憲」是官职类目，原文未给品级；不把它读成「贵」的加强版。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiachen_bingyin_04",
+      "citation": {
+        "exact_quote": "酉月三品"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "month_branch": "酉"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "酉月",
+          "三品"
+        ],
+        "conclusion": "甲辰日丙寅时生于酉月，原文断「三品」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_05",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiachen_bingyin_05",
+      "citation": {
+        "exact_quote": "子亥丑月四五品"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "month_branch": [
+          "子",
+          "亥",
+          "丑"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "子亥丑月",
+          "四五品"
+        ],
+        "conclusion": "甲辰日丙寅时生于子、亥、丑三月之一，原文断「四五品」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "三支同属水局（申子辰之外，亥子丑为三会），原文按月支列举，条件照录为三选一。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_06",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiachen_bingyin_06",
+      "citation": {
+        "exact_quote": "卯巳年月平常"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "year_month_branches": [
+          "卯",
+          "巳"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "卯巳年月",
+          "平常"
+        ],
+        "conclusion": "甲辰日丙寅时，年支或月支为卯或巳，原文断「平常」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_bingyin_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiawu_bingyin_01",
+      "citation": {
+        "exact_quote": "甲午日丙寅時身居絶地主平"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "丙",
+        "hour_branch": "寅"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "身居絶地",
+          "主平"
+        ],
+        "conclusion": "甲午日丙寅时，原文称日主「身居绝地」，断「主平」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "按十二长生，甲在午为「死」、绝在申。原文以「绝地」泛指无气之地，此处照录原字，不改断语，也不据此修正长生表。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_bingyin_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiawu_bingyin_02",
+      "citation": {
+        "exact_quote": "通水月木得滋養吉"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "month_branch": [
+          "亥",
+          "子"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "水月",
+          "木得滋養"
+        ],
+        "conclusion": "甲午日丙寅时生于亥月或子月（水月），原文断「木得滋养，吉」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「水月」按水旺的两个月支取（亥子），不按季节：冬季含丑月，而丑为土旺，原文未含。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_bingyin_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiawu_bingyin_03",
+      "citation": {
+        "exact_quote": "火月壽夭"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "month_branch": [
+          "巳",
+          "午"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "火月",
+          "壽夭"
+        ],
+        "conclusion": "甲午日丙寅时生于巳月或午月（火月），原文断「寿夭」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「寿夭」是原文的寿数判断，置信取 LOW：本节同类断语（贫富贵贱）在本系统里只作结构描述呈现，不作为结论输出。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_bingyin_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiawu_bingyin_04",
+      "citation": {
+        "exact_quote": "天干比助無妨"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "transparent_ten_gods": [
+          "比肩"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "天干比助"
+        ],
+        "conclusion": "甲午日丙寅时，年月时三干中再见比肩（同甲），原文断「无妨」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「比助」按透出的比肩取；劫财（乙）不算——原文说的是「比」，比肩与劫财在十神里是两类。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_bingyin_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiashen_bingyin_01",
+      "citation": {
+        "exact_quote": "甲申日丙寅時時日併衝憂傷妻子"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "丙",
+        "hour_branch": "寅"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "時日併衝",
+          "憂傷妻子"
+        ],
+        "conclusion": "甲申日丙寅时，日支申与时支寅相冲，古法称「时日并冲」，原文断「忧伤妻子」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "寅申冲由日时两支唯一确定，不需要外部条件；原文的「忧伤妻子」是它的断语。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_bingyin_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiashen_bingyin_02",
+      "citation": {
+        "exact_quote": "辰子年月㑹水以煞化印吉"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "year_month_branches": [
+          "辰",
+          "子"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "辰子年月",
+          "㑹水",
+          "以煞化印"
+        ],
+        "conclusion": "甲申日丙寅时，年支或月支为辰或子，原文称「会水」，断「以煞化印，吉」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「会水」在原文中指子辰半合水；本系统的成局事实只认三合与三会，半合未建模，故条件只取年月支，不取成局事实。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_bingyin_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiashen_bingyin_03",
+      "citation": {
+        "exact_quote": "未月財庫亦吉"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "month_branch": "未"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "未月",
+          "財庫"
+        ],
+        "conclusion": "甲申日丙寅时生于未月，原文断「财库亦吉」。未为木库（木之墓），故称财库。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「財庫」按未为木墓取；原文未说财星为何，故只断「库」这一层。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_bingyin_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiaxu_bingyin_01",
+      "citation": {
+        "exact_quote": "年月有土則富"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "year_month_elements": [
+          "土"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "年月有土",
+          "富"
+        ],
+        "conclusion": "甲戌日丙寅时，年月两柱的天干或本气出现土，原文断「富」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「年月有土」按年月两柱的干与本气取（year_month_elements），不含藏干余气。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_bingyin_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiaxu_bingyin_02",
+      "citation": {
+        "exact_quote": "有金反復"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "year_month_elements": [
+          "金"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "有金",
+          "反復"
+        ],
+        "conclusion": "甲戌日丙寅时，年月两柱的天干或本气出现金，原文断「反复」（起伏不定）。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「反復」原文未说吉凶，只描述起伏；本条不把它读成凶。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_bingyin_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_bingyin.jiaxu_bingyin_03",
+      "citation": {
+        "exact_quote": "如有金須生亥子印月方貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "丙",
+        "hour_branch": "寅",
+        "year_month_elements": [
+          "金"
+        ],
+        "month_branch": [
+          "亥",
+          "子"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "亥子印月",
+          "方貴"
+        ],
+        "conclusion": "甲戌日丙寅时，年月见金而生于亥月或子月（水为甲之印），原文断「方贵」；原文随即补「余月则否」，即其他月份不成此格。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "条件是「有金」与「亥子月」的合取——原文的「須……方」就是合取语气，不能拆成两条独立规则。"
+    }
+  ]
+}

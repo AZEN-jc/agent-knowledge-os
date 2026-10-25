@@ -3,6 +3,8 @@
   "note": "URN 里 chapter 段的中文对照表。键是 <卷号>.<篇章代码>。加一个篇章就要在这里加一条 —— 没有对照表，反查回来的出处说明会是一串 ASCII。标签按**底本（role=base）**的用字写：对照本是另一传本，简繁与用字都可能不同，不拿它校验。Corpus.problems() 会核对这里的标题确实出现在对应卷的底本正文里，拼错或指到别的卷都会报出来。",
   "chapters": {
     "j8.liujia_ri": "六甲日甲子時斷",
-    "j8.liujia_yichou": "六甲日乙丑時斷"
+    "j8.liujia_yichou": "六甲日乙丑時斷",
+    "j8.liujia_bingyin": "六甲日丙寅時斷",
+    "j8.liujia_dingmao": "六甲日丁卯時斷"
   }
 }

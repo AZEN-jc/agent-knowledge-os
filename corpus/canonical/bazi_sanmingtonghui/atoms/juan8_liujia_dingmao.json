@@ -1,0 +1,556 @@
+{
+  "atom_version": 1,
+  "corpus_id": "bazi_sanmingtonghui_j8",
+  "urn_edition": "ws761697",
+  "section": "六甲日丁卯時斷",
+  "coverage": {
+    "entries_in_section": 6,
+    "entries_covered": 6,
+    "atoms": 18,
+    "deferred_clauses": 6,
+    "deferred_note": "六处从句未能录入：①「年月木火相停」要求年月同时见木与火，词表里 year_month_elements 是集合、两条条件无法表达「两者都要」；②「干支金水全」要求四柱干支全属金水，同上；③「水火相戰」需要「水火同时在场」的合取，同上；④「酉月火木運中貴」依赖大运；⑤「身弱無凶」的「身弱」是综合判断，词表只有「同类多寡」的代理指标，不足以等同；⑥「年月純煞」需要「年月两干均为七杀」，词表没有年月天干的合取键，其后的「甲木秋生主夭折」以它为前件，一并暂缓。以上均为 BLOCKED_SCHEMA 或 BLOCKED_AMBIGUOUS。",
+    "note": "六甲日丁卯时断共 6 个日柱条目，全部覆盖。条件类型分布：日时组合 5、月支单支 3、月支多选 5、整柱 2、季节 3。"
+  },
+  "note": "丁卯为甲木的伤官（丁为甲之伤官，卯为羊刃），本节原文多处以「伤官」「羊刃」立论，但断语按月份分判，因此条件仍落在月支与季节上。",
+  "atoms": [
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiazi_dingmao_01",
+      "citation": {
+        "exact_quote": "甲子日丁卯時尅剥慳吝作事進退不免刑傷妻子"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "丁",
+        "hour_branch": "卯"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "尅剥慳吝",
+          "刑傷妻子"
+        ],
+        "conclusion": "甲子日丁卯时，原文断「克剥悭吝，作事进退，不免刑伤妻子」。此条只由日时组合决定；原文另附「辰戌丑未月贵」「卯月凶」等月份条件，见同节其余条目。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "丁为甲之伤官、卯为甲之羊刃，日时两支子卯相刑 —— 原文的「克剥」「刑伤」都落在这层结构上。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiazi_dingmao_02",
+      "citation": {
+        "exact_quote": "生辰戌丑未月貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "丁",
+        "hour_branch": "卯",
+        "month_branch": [
+          "辰",
+          "戌",
+          "丑",
+          "未"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "辰戌丑未月"
+        ],
+        "conclusion": "甲子日丁卯时生于辰、戌、丑、未四月之一（四季土月），原文断「贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "原文逐支列举，条件照录为四选一，不用 month_is_siji —— 两者取值相同，但前者是原文的字面写法，后者是推断的分类。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiazi_dingmao_03",
+      "citation": {
+        "exact_quote": "卯月凶"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "丁",
+        "hour_branch": "卯",
+        "month_branch": "卯"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "卯月",
+          "凶"
+        ],
+        "conclusion": "甲子日丁卯时生于卯月，原文断「凶」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "卯月再叠一个卯（时支），羊刃重叠，是原文判凶的结构依据。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiazi_dingmao_04",
+      "citation": {
+        "exact_quote": "有官煞制亦吉"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "丁",
+        "hour_branch": "卯",
+        "transparent_ten_gods": [
+          "正官",
+          "七杀"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "官煞制"
+        ],
+        "conclusion": "甲子日丁卯时，年月时三干中透出正官或七杀（制伤官），原文断「亦吉」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "原文「有官煞制」是「有官或煞来制」的意思，故条件取两类十神的并集，不拆成两条规则。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_dingmao_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiayin_dingmao_01",
+      "citation": {
+        "exact_quote": "月令坐丑未貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "丁",
+        "hour_branch": "卯",
+        "month_branch": [
+          "丑",
+          "未"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "丑未月"
+        ],
+        "conclusion": "甲寅日丁卯时生于丑月或未月，原文断「贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「月令坐丑未」按生月支取；丑未为土，木得土培，是原文的取贵理由。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_dingmao_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiayin_dingmao_02",
+      "citation": {
+        "exact_quote": "乙亥月文章冠世官至三品"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "丁",
+        "hour_branch": "卯",
+        "month_pillar": "乙亥"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "乙亥月",
+          "文章冠世"
+        ],
+        "conclusion": "甲寅日丁卯时生于乙亥月，原文断「文章冠世，官至三品」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "原文给出的是整柱（乙亥），不是单支，故条件用 month_pillar 而非 month_branch。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_dingmao_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiachen_dingmao_01",
+      "citation": {
+        "exact_quote": "甲辰日丁卯時財帛滿目生計盈餘妻賢子孝"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "丁",
+        "hour_branch": "卯"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "財帛滿目",
+          "妻賢子孝"
+        ],
+        "conclusion": "甲辰日丁卯时，原文断「财帛满目，生计盈余，妻贤子孝」，并注明「高命论之」——即此断语只就上等命局而言。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "原文自带限定语「高命论之」，条件里无法表达「命局整体为上等」，故置信取 LOW，并在结论中保留该限定。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_dingmao_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiachen_dingmao_02",
+      "citation": {
+        "exact_quote": "春生太旺無制貧賤殘疾"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "丁",
+        "hour_branch": "卯",
+        "month_season": "春"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "春生",
+          "太旺無制"
+        ],
+        "conclusion": "甲辰日丁卯时生于春月（寅卯辰），原文断「太旺无制，贫贱残疾」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「无制」指没有官煞制约，原文未把它写成独立条件，故条件只取季节；「无制」这层在结论里照录。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_dingmao_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiachen_dingmao_03",
+      "citation": {
+        "exact_quote": "丑酉月貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "丁",
+        "hour_branch": "卯",
+        "month_branch": [
+          "丑",
+          "酉"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "丑酉月"
+        ],
+        "conclusion": "甲辰日丁卯时生于丑月或酉月，原文断「贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiawu_dingmao_01",
+      "citation": {
+        "exact_quote": "甲午日丁卯時身坐絶地凶刑"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "丁",
+        "hour_branch": "卯"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "身坐絶地",
+          "凶刑"
+        ],
+        "conclusion": "甲午日丁卯时，原文称日主「身坐绝地」，断「凶刑」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "与「甲午日丙寅时」同一条目下的「身居绝地」是同一说法：甲在午为死地，原文以「绝地」泛指无气之地，照录原字。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiawu_dingmao_02",
+      "citation": {
+        "exact_quote": "若生秋冬壽夭"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "丁",
+        "hour_branch": "卯",
+        "month_season": [
+          "秋",
+          "冬"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "秋冬",
+          "壽夭"
+        ],
+        "conclusion": "甲午日丁卯时生于秋月或冬月，原文断「寿夭」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「寿夭」是寿数判断，置信取 LOW；本节同类断语只作结构描述呈现。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiawu_dingmao_03",
+      "citation": {
+        "exact_quote": "春夏富貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "丁",
+        "hour_branch": "卯",
+        "month_season": [
+          "春",
+          "夏"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "春夏",
+          "富貴"
+        ],
+        "conclusion": "甲午日丁卯时生于春月或夏月，原文断「富贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiawu_dingmao_04",
+      "citation": {
+        "exact_quote": "甲午月大貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "丁",
+        "hour_branch": "卯",
+        "month_pillar": "甲午"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "甲午月"
+        ],
+        "conclusion": "甲午日丁卯时生于甲午月，原文断「大贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "整柱条件（甲午），不是单支。原文同句的「运宜东北方」依赖大运，未录。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_dingmao_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiashen_dingmao_01",
+      "citation": {
+        "exact_quote": "甲申日丁卯時主武職風憲權貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "丁",
+        "hour_branch": "卯"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "武職",
+          "風憲",
+          "權貴"
+        ],
+        "conclusion": "甲申日丁卯时，原文断「主武职、风宪、权贵」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「风宪」是官职类目，原文未给品级；与「权贵」并列，不合并成一条吉凶判断。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_dingmao_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiashen_dingmao_02",
+      "citation": {
+        "exact_quote": "寅午年月大貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "丁",
+        "hour_branch": "卯",
+        "year_month_branches": [
+          "寅",
+          "午"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "寅午年月",
+          "大貴"
+        ],
+        "conclusion": "甲申日丁卯时，年支或月支为寅或午，原文断「大贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「寅午年月」按年月两支中出现寅或午解读。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_dingmao_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiashen_dingmao_03",
+      "citation": {
+        "exact_quote": "寅卯月總凶"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "丁",
+        "hour_branch": "卯",
+        "month_branch": [
+          "寅",
+          "卯"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "寅卯月",
+          "總凶"
+        ],
+        "conclusion": "甲申日丁卯时生于寅月或卯月，原文断「总凶」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_dingmao_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiaxu_dingmao_01",
+      "citation": {
+        "exact_quote": "逢亥月有才學貴顯"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "丁",
+        "hour_branch": "卯",
+        "month_branch": "亥"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "亥月",
+          "才學貴顯"
+        ],
+        "conclusion": "甲戌日丁卯时生于亥月，原文断「有才学，贵显」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "亥为甲之长生，又是木之生地，原文取此月为才学之应。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_dingmao_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_dingmao.jiaxu_dingmao_02",
+      "citation": {
+        "exact_quote": "羊刃最壞造化須有制合方吉"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "丁",
+        "hour_branch": "卯"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "羊刃",
+          "制合"
+        ],
+        "conclusion": "甲戌日丁卯时，时支卯为甲之羊刃，原文断「羊刃最坏造化，须有制合方吉」——即羊刃本身为害，须有官煞制约或合去才转吉。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「羊刃」由日干与时支唯一确定（甲刃在卯），不需要外部条件；「须有制合」是原文给出的前提，词表能表达「有官煞」，但原文未把制合写成条件句，故本条只录羊刃为害这一层。"
+    }
+  ]
+}

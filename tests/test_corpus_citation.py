@@ -904,16 +904,31 @@ def test_a_quote_without_a_time_restriction_is_not_blocked() -> None:
 
 
 def test_the_previously_deferred_jiachen_entry_is_now_covered() -> None:
-    """甲辰日从「整条暂缓」变成 7 条真原子 —— 事实词表扩展的直接成果。"""
+    """甲辰日从「整条暂缓」变成 7 条真原子 —— 事实词表扩展的直接成果。
+
+    只统计甲子时那一节（id 段 ``jiachen_jiazi``）。Phase 6.4 起「甲辰日
+    丙寅时」另成 6 条，混进来会让这条历史断言失去意义 —— 它要钉的是
+    「当初被暂缓的那一节补上了」，不是「甲辰日一共几条」。后补章节的
+    回对由本函数末尾单独覆盖。
+    """
     jiachen = [
         rule for rule in default_registry().select(topic="destiny")
-        if "jiachen" in rule.id
+        if "_jiachen_jiazi" in rule.id
     ]
 
     assert len(jiachen) == 7
     assert {rule.polarity for rule in jiachen} == {"positive", "negative"}
     assert all(rule.citation is not None and rule.citation.is_canonical for rule in jiachen)
     for rule in jiachen:
+        assert revalidate_against_corpus(rule, CORPUS)
+
+    # 甲辰日在后续章节（丙寅时）新增的条目：同样必须逐字回对底本。
+    later = [
+        rule for rule in default_registry().select(topic="destiny")
+        if "_jiachen_" in rule.id and "_jiachen_jiazi" not in rule.id
+    ]
+    assert later, "甲辰日的后续章节条目不见了"
+    for rule in later:
         assert revalidate_against_corpus(rule, CORPUS)
 
 

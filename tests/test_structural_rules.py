@@ -545,6 +545,56 @@ RULE_WITNESS: dict[str, tuple[int, int, int, int]] = {
     "rule_bazi_sanmingtonghui_j8_shenshen_yichou_02": (1952, 10, 5, 2),
     "rule_bazi_sanmingtonghui_j8_xuxu_yichou_01": (1950, 2, 8, 2),
     "rule_bazi_sanmingtonghui_j8_xuxu_yichou_02": (1950, 2, 8, 2),
+    # ── 典籍层（卷八 · 六甲日丙寅时断，Phase 6.4）────────────────────────
+    # 本节按月支分论（丙寅为甲木食神长生位），因此见证盘要跨月找：
+    # 日柱与时柱固定，沿 60 日周期前后推，取第一个满足月支条件的日子。
+    # 同一日时下的无条件断语是条件断语的真子集，重叠逐条登记在
+    # WITNESS_ALSO_MATCHES。
+    "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_01": (1952, 4, 28, 4),
+    "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_02": (1950, 7, 8, 4),
+    "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_03": (1952, 10, 25, 4),
+    "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_04": (1956, 10, 4, 4),
+    "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_05": (1950, 1, 9, 4),
+    "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_06": (1951, 5, 4, 4),
+    "rule_bazi_sanmingtonghui_j8_jiashen_bingyin_01": (1950, 2, 18, 4),
+    "rule_bazi_sanmingtonghui_j8_jiashen_bingyin_02": (1950, 4, 19, 4),
+    "rule_bazi_sanmingtonghui_j8_jiashen_bingyin_03": (1953, 8, 1, 4),
+    "rule_bazi_sanmingtonghui_j8_jiawu_bingyin_01": (1950, 2, 28, 4),
+    "rule_bazi_sanmingtonghui_j8_jiawu_bingyin_02": (1950, 12, 25, 4),
+    "rule_bazi_sanmingtonghui_j8_jiawu_bingyin_03": (1950, 6, 28, 4),
+    "rule_bazi_sanmingtonghui_j8_jiawu_bingyin_04": (1950, 8, 27, 4),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_bingyin_01": (1952, 3, 29, 4),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_bingyin_02": (1950, 6, 8, 4),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_bingyin_03": (1950, 12, 5, 4),
+    "rule_bazi_sanmingtonghui_j8_jiayin_bingyin_01": (1950, 5, 19, 4),
+    "rule_bazi_sanmingtonghui_j8_jiayin_bingyin_02": (1954, 2, 27, 4),
+    "rule_bazi_sanmingtonghui_j8_jiayin_bingyin_03": (1950, 3, 20, 4),
+    "rule_bazi_sanmingtonghui_j8_jiayin_bingyin_04": (1950, 9, 16, 4),
+    "rule_bazi_sanmingtonghui_j8_jiazi_bingyin_01": (1950, 1, 29, 4),
+    "rule_bazi_sanmingtonghui_j8_jiazi_bingyin_02": (1954, 9, 5, 4),
+    "rule_bazi_sanmingtonghui_j8_jiazi_bingyin_03": (1956, 4, 27, 4),
+    # ── 典籍层（卷八 · 六甲日丁卯时断，Phase 6.5）────────────────────────
+    # 本节按月份与季节分判。乙亥月那条要整柱（乙亥）而非单支，
+    # 甲寅日逢乙亥月只在甲/己年出现，60 日周期要推到约 10 年才撞上，
+    # 因此它的见证盘（1959-11-28）比同组其余几条晚得多。
+    "rule_bazi_sanmingtonghui_j8_jiachen_dingmao_01": (1950, 5, 9, 6),
+    "rule_bazi_sanmingtonghui_j8_jiachen_dingmao_02": (1950, 3, 10, 6),
+    "rule_bazi_sanmingtonghui_j8_jiachen_dingmao_03": (1950, 1, 9, 6),
+    "rule_bazi_sanmingtonghui_j8_jiashen_dingmao_01": (1951, 4, 14, 6),
+    "rule_bazi_sanmingtonghui_j8_jiashen_dingmao_02": (1950, 4, 19, 6),
+    "rule_bazi_sanmingtonghui_j8_jiashen_dingmao_03": (1953, 4, 3, 6),
+    "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_01": (1950, 2, 28, 6),
+    "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_02": (1950, 8, 27, 6),
+    "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_03": (1950, 4, 29, 6),
+    "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_04": (1951, 6, 23, 6),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_dingmao_01": (1950, 12, 5, 6),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_dingmao_02": (1950, 2, 8, 6),
+    "rule_bazi_sanmingtonghui_j8_jiayin_dingmao_01": (1950, 1, 19, 6),
+    "rule_bazi_sanmingtonghui_j8_jiayin_dingmao_02": (1959, 11, 28, 6),
+    "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_01": (1952, 5, 18, 6),
+    "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_02": (1950, 1, 29, 6),
+    "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_03": (1952, 3, 19, 6),
+    "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_04": (1950, 5, 29, 6),
 }
 
 # ── 见证盘的同组重叠豁免 ──────────────────────────────────────────────
@@ -622,5 +672,98 @@ WITNESS_ALSO_MATCHES: dict[str, frozenset[str]] = {
     }),
     "rule_bazi_sanmingtonghui_j8_xuxu_yichou_02": frozenset({
         "rule_bazi_sanmingtonghui_j8_xuxu_yichou_01",
+    }),
+    # 卷八 · 六甲日丙寅时断：条件断语 ⊃ 同条目的无条件断语（真子集），
+    # 见证盘必然共命中，属原文两句都适用于这张盘。
+    # 唯一例外是 _jiaxu_bingyin_03（有金 + 亥子月）：它的条件是
+    # 「有金」与「亥子月」的合取，前半段单独成条（_02 有金反复），
+    # 所以共命中是合取条件的必然结果，不是条件写宽了。
+    "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_05": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_06": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiachen_bingyin_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiashen_bingyin_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiashen_bingyin_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiashen_bingyin_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiashen_bingyin_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiawu_bingyin_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiawu_bingyin_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiawu_bingyin_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiawu_bingyin_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiawu_bingyin_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiawu_bingyin_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_bingyin_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiaxu_bingyin_02",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiayin_bingyin_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiayin_bingyin_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiayin_bingyin_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiayin_bingyin_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiayin_bingyin_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiayin_bingyin_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_bingyin_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_bingyin_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_bingyin_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_bingyin_01",
+    }),
+    # 卷八 · 六甲日丁卯时断：同条目内「季节/月份」条件与无条件断语是
+    # 真子集关系（如 _jiawu_dingmao_02 秋冬 ⊂ 无条件那条），见证盘必然共命中。
+    # 甲寅日乙亥月那条例外：它是整柱条件，与同组其余月份条件互斥，零重叠。
+    "rule_bazi_sanmingtonghui_j8_jiachen_dingmao_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiachen_dingmao_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiachen_dingmao_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiachen_dingmao_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiashen_dingmao_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiashen_dingmao_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiashen_dingmao_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiashen_dingmao_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_01": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_03",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_01",
+        "rule_bazi_sanmingtonghui_j8_jiawu_dingmao_03",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_dingmao_01": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiaxu_dingmao_02",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_01",
     }),
 }

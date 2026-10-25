@@ -177,6 +177,10 @@ def audit_fact_map(chart) -> dict[str, object]:
     fact_map: dict[str, object] = {
         **pillar_codes,
         **pillar_full_codes,
+        # 五行计数五键（Phase 6.4）。口径与产品一致：四柱天干 + 四支本气，
+        # 共 8 项，不含藏干余气与纳音。断语「纯木火带土」读的正是这里的
+        # count_金 / count_水 是否为 0。
+        **{f"count_{element}": counts[element] for element in ELEMENT_NAMES},
         "year_month_elements": year_month_elements,
         "month_season": season_of[pillars[1].earthly_branch],
         "year_month_branches": (pillars[0].earthly_branch, pillars[1].earthly_branch),
