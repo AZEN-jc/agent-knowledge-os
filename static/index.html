@@ -147,7 +147,7 @@
     color: var(--seal); white-space: nowrap;
   }
   h2 {
-    font-size: 21px; font-weight: 600; letter-spacing: .06em; margin: 0;
+    font-size: 22px; font-weight: 600; letter-spacing: .08em; margin: 0;
   }
   .sec-note {
     margin-left: auto; font-size: 12px; color: var(--faint);
@@ -176,6 +176,7 @@
     border: 0; border-bottom: 1px solid var(--rule-strong);
     border-radius: 0; padding: 7px 2px;
     min-height: 40px;
+    transition: border-color .25s var(--ease), background-color .25s var(--ease);
   }
   input { width: 76px; font-family: var(--mono); font-size: 15px; }
   select {
@@ -187,7 +188,10 @@
     background-repeat: no-repeat;
     padding-right: 20px; appearance: none;
   }
-  input:focus, select:focus { outline: none; border-bottom-color: var(--seal); }
+  input:focus, select:focus {
+    outline: none; border-bottom-color: var(--seal);
+    background-color: rgba(155, 44, 36, .03);
+  }
   input:focus-visible, select:focus-visible, button:focus-visible,
   a:focus-visible, summary:focus-visible {
     outline: 2px solid var(--focus); outline-offset: 3px;
@@ -622,6 +626,21 @@
   @media (prefers-reduced-motion: reduce) {
     .gauge-fill, .census-bar i { transition: none; }
     html { scroll-behavior: auto; }
+  }
+
+  /* ── 打印 ─────────────────────────────────────────────────────────────
+     这套设计本质是一份文件，打印就该能用：去掉导航与按钮，黑白高对比，
+     条目不被分页切断，出处链接把 URL 印出来（纸上点不开链接）。 */
+  @media print {
+    body { background: #fff; color: #000; font-size: 11pt; }
+    .rail, .skip, .export-bar, #form button, .copy-urn, .hero-seal { display: none !important; }
+    .shell { display: block; max-width: none; padding: 0; }
+    .sec { margin-top: 24pt; }
+    .entry, .book, .tl-year { break-inside: avoid; }
+    .citation { background: transparent; border-left: 1pt solid #000; }
+    .citation a::after { content: " (" attr(href) ")"; font-size: 8pt; word-break: break-all; }
+    .tag { border-color: #666; color: #333; }
+    .gauge-fill, .census-bar i { background: #000 !important; }
   }
 
   /* ── 响应式 ─────────────────────────────────────────────────────────── */
