@@ -48,12 +48,47 @@ _ENTRY = re.compile(
 NOTE_OPEN = "（"
 """夹注起始符。由 ``fetch_corpus.normalize`` 生成，见 ``expand_sk_notes``。"""
 
+#: 版面修正清单：底本里**不是章节边界**的标题，以及转录误字。
+#:
+#: 为什么要有这个文件：卷八第 1044 行有一句诗「明出地上宜為大明君也」，
+#: 它和章节标题同级（都是 ``##``），但它属于「六丁日丁未時斷」的正文 ——
+#: 按标题级别切分会把该节从中间截断，而且**不会报错**，只是少切出 5 个
+#: 条目。同类问题还有转录误字「丁己日戊申時」（应为丁巳日），只认干支的
+#: 正则会整条漏掉。
+#:
+#: 这两类都只能靠人读出来，所以写进清单、由脚本消费，而不是散在代码里
+#: 做特判。清单只允许声明「怎么切」，不允许改底本一个字。
+LAYOUT_PATH = REPO / "corpus" / "canonical" / "bazi_sanmingtonghui" / "layout.json"
 
-def section_body(text: str, heading_prefix: str) -> str:
+
+def load_layout() -> dict[str, Any]:
+    """读版面修正清单；文件不存在时返回空清单（新底本先能跑）。"""
+    if not LAYOUT_PATH.is_file():
+        return {"absorbed_headings": [], "entry_aliases": {}, "sections": {}}
+    return json.loads(LAYOUT_PATH.read_text(encoding="utf-8"))
+
+
+def iter_sections(text: str) -> list[str]:
+    """列出所有「六X日…時斷」小节标题（不含 ``##``）。"""
+    headings: list[str] = []
+    for line in text.splitlines():
+        match = _HEADING.match(line)
+        if not match:
+            continue
+        title = match.group(2)
+        if re.match(rf"^六[{STEMS}]日", title) and ("時斷" in title or "时断" in title):
+            headings.append(title)
+    return headings
+
+
+def section_body(text: str, heading_prefix: str, absorbed: tuple[str, ...] = ()) -> str:
     """取出某个章节的正文。
 
     以**同级或更高级标题**为界，而不是找下一个 ``##``：底本里 ``####`` 的
     小标题（如《紫微斗數全書》「問天府所主若何？」）不能把章节切断。
+
+    ``absorbed`` 里的标题是**正文的一部分**（例如卷八里夹在条目之间的
+    诗句），遇到它们不结束本节 —— 否则会把一节从中间截断。
     """
     lines = text.splitlines()
     start: int | None = None
@@ -67,10 +102,15 @@ def section_body(text: str, heading_prefix: str) -> str:
         raise SystemExit(f"底本里找不到章节：{heading_prefix}")
     end = len(lines)
     for index in range(start, len(lines)):
-        match = _HEADING.match(lines[index])
-        if match and len(match.group(1)) <= level:
-            end = index
-            break
+        match = _HEADING.match(line := lines[index])
+        if not match:
+            continue
+        if len(match.group(1)) > level:
+            continue
+        if match.group(2).strip() in absorbed:
+            continue  # 诗句标题：属于本节正文，不是边界
+        end = index
+        break
     return "\n".join(lines[start:end])
 
 
@@ -88,16 +128,28 @@ def suggest_quote(raw: str) -> str:
     return raw[: min(stops)].strip() if stops else raw.strip()
 
 
-def split_entries(body: str) -> list[dict[str, Any]]:
+def split_entries(body: str, aliases: dict[str, str] | None = None) -> list[dict[str, Any]]:
     """按「X日X时」行首标记切分条目。
 
     要求匹配在**行首**：正文里「六甲日生甲子时」这类歌诀也含干支字样，
     不锚行首会把歌诀当成条目切出来。
+
+    ``aliases`` 处理底本的转录误字（如「丁己日」应为「丁巳日」）。做法是
+    在**等长替换**后的副本上匹配、在原文本上取 ``raw`` —— 这样偏移不变，
+    引文仍是底本原字（引文必须逐字回对，不能替底本改字）。
     """
-    matches = list(_ENTRY.finditer(body))
+    aliases = aliases or {}
+    for wrong, right in aliases.items():
+        if len(wrong) != len(right):
+            raise SystemExit(f"别名必须等长替换：{wrong!r} → {right!r}")
+    match_body = body
+    for wrong, right in aliases.items():
+        match_body = match_body.replace(wrong, right)
+
+    matches = list(_ENTRY.finditer(match_body))
     entries: list[dict[str, Any]] = []
     for order, match in enumerate(matches, start=1):
-        end = matches[order].start() if order < len(matches) else len(body)
+        end = matches[order].start() if order < len(matches) else len(match_body)
         raw = body[match.start():end].strip()
         entries.append({
             "order": order,
@@ -111,6 +163,43 @@ def split_entries(body: str) -> list[dict[str, Any]]:
     return entries
 
 
+def audit_sections(corpus_id: str) -> dict[str, Any]:
+    """逐节对账：每节应有 6 个条目，实际切出几个。
+
+    这是录入 60 节之前的**账本**。没有它，漏掉的条目不会报错 ——
+    只是那一节少几条原子，而没人知道少了几条。
+    """
+    corpus = load_corpus()
+    entry = next((item for item in corpus.entries if item.corpus_id == corpus_id), None)
+    if entry is None:
+        raise SystemExit(f"corpus 里没有 {corpus_id}")
+    text = corpus.text(entry)
+    layout = load_layout()
+    absorbed = tuple(layout.get("absorbed_headings", ()))
+    aliases = dict(layout.get("entry_aliases", {}))
+    declared = layout.get("sections", {})
+
+    rows: list[dict[str, Any]] = []
+    for heading in iter_sections(text):
+        body = section_body(text, heading, absorbed)
+        found = len(split_entries(body, aliases))
+        expected = int(declared.get(heading, {}).get("expected_entries", 6))
+        rows.append({
+            "section": heading,
+            "expected": expected,
+            "found": found,
+            "ok": found == expected,
+            "note": declared.get(heading, {}).get("note", ""),
+        })
+    unexplained = [row for row in rows if not row["ok"] and not row["note"]]
+    return {
+        "total_sections": len(rows),
+        "total_entries": sum(row["found"] for row in rows),
+        "unexplained": unexplained,
+        "rows": rows,
+    }
+
+
 def build_candidates(
     corpus_id: str, heading: str, chapter_code: str
 ) -> dict[str, Any]:
@@ -118,8 +207,11 @@ def build_candidates(
     entry = next((item for item in corpus.entries if item.corpus_id == corpus_id), None)
     if entry is None:
         raise SystemExit(f"corpus 里没有 {corpus_id}")
-    body = section_body(corpus.text(entry), heading)
-    entries = split_entries(body)
+    layout = load_layout()
+    body = section_body(
+        corpus.text(entry), heading, tuple(layout.get("absorbed_headings", ()))
+    )
+    entries = split_entries(body, dict(layout.get("entry_aliases", {})))
     candidates = []
     for item in entries:
         # entry.juan 已经是 URN 形式（"j8"），**不要再加 "j" 前缀** ——
@@ -193,7 +285,27 @@ def main() -> int:
     parser.add_argument("--section", default="六甲日甲子時斷")
     parser.add_argument("--chapter-code", default="liujia_ri")
     parser.add_argument("--out", default="/tmp/atoms_candidates.json")
+    parser.add_argument(
+        "--audit", action="store_true",
+        help="逐节对账（60 节应有 360 条），有未登记的缺条时退出码非 0",
+    )
     args = parser.parse_args()
+
+    if args.audit:
+        report = audit_sections(args.corpus_id)
+        print(f"章节 {report['total_sections']} 节 / 条目 {report['total_entries']} 条")
+        for row in report["rows"]:
+            mark = "OK " if row["ok"] else "!! "
+            print(f"  {mark}{row['section']}  应有 {row['expected']}  实际 {row['found']}"
+                  + (f"  （已登记：{row['note']}）" if row["note"] else ""))
+        if report["unexplained"]:
+            print(f"\n未登记的缺条 {len(report['unexplained'])} 节：")
+            for row in report["unexplained"]:
+                print(f"  {row['section']}：应有 {row['expected']}，实际 {row['found']}")
+            return 1
+        print("\n全部对齐。")
+        return 0
+
     payload = build_candidates(args.corpus_id, args.section, args.chapter_code)
     Path(args.out).write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

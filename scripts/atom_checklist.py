@@ -148,12 +148,45 @@ def status() -> int:
     return 0 if done else 1
 
 
-def suggest_witness(rule_id: str, years: int, want: int) -> int:
-    """扫日期找见证盘：命中该规则、且同组内重叠最少的排前面。"""
+#: 时支 → 一个落在该时辰内的钟点。找见证盘要按原子的时柱取时辰，
+#: 而不是一律按 0 点扫：11/12 的原子时柱不是子时，只扫 0 点会让它们
+#: 全部「90 年里没有命盘能命中」。子时取 0 点（早子时），与 provider 的
+#: 默认晚子时口径一致（23 点才涉及换日，这里不碰边界）。
+HOUR_OF_BRANCH = {
+    "子": 0, "丑": 2, "寅": 4, "卯": 6, "辰": 8, "巳": 10,
+    "午": 12, "未": 14, "申": 16, "酉": 18, "戌": 20, "亥": 22,
+}
+
+
+def _day_pillar_of(date: dt.date) -> tuple[str, str]:
+    """只算日柱，用来快速跳过不相干的日子。
+
+    完整排盘要算节气、十神、关系，一次几百微秒；90 年 × 365 天全算一遍
+    是分钟级。先用一次 ``sxtwl.fromSolar().getDayGZ()`` 过滤，只有日柱
+    对上的那 1/60 天才走完整流程。
+    """
+    import sxtwl
+
+    day = sxtwl.fromSolar(date.year, date.month, date.day)
+    gz = day.getDayGZ()
+    return "甲乙丙丁戊己庚辛壬癸"[gz.tg], "子丑寅卯辰巳午未申酉戌亥"[gz.dz]
+
+
+def suggest_witness(rule_id: str, years: int, want: int, hour: int | None = None) -> int:
+    """扫日期找见证盘：命中该规则、且同组内重叠最少的排前面。
+
+    ``hour`` 缺省时按规则条件里的 ``hour_branch`` 推一个钟点；显式传入
+    则用传入值（人工复核时用）。
+    """
     rule = next((r for r in classical_rules() if r.id == rule_id), None)
     if rule is None:
         print(f"没有这条典籍规则：{rule_id}", file=sys.stderr)
         return 2
+
+    condition = rule.condition
+    target_day = (condition.get("day_stem"), condition.get("day_branch"))
+    if hour is None:
+        hour = HOUR_OF_BRANCH.get(str(condition.get("hour_branch", "子")), 0)
 
     mine = chapter_of(rule_id)
     same_group = {
@@ -163,7 +196,8 @@ def suggest_witness(rule_id: str, years: int, want: int) -> int:
     print(f"规则 {rule_id}")
     print(f"条件 {rule.condition}")
     print(f"同组（{mine}）已有见证盘的 {len(taken)} 条：{sorted(taken)}")
-    print("扫描中…", flush=True)
+    print(f"按日柱 {''.join(str(part) for part in target_day if part)} / {hour} 点扫描…",
+          flush=True)
 
     # 注册表与 provider 都必须在循环外建。``default_registry()`` 每次调用都会
     # 重新读语料、重放守卫；放在循环里等于每张盘重读一遍底本，扫 90 年直接
@@ -177,12 +211,15 @@ def suggest_witness(rule_id: str, years: int, want: int) -> int:
     # 加 type: ignore。
     cursor = start
     while cursor < end and len(found) < want * 8:
-        chart = PROVIDER.calculate(BirthInput(cursor.year, cursor.month, cursor.day, 0))
+        if target_day[0] and _day_pillar_of(cursor) != (target_day[0], target_day[1]):
+            cursor += dt.timedelta(days=1)
+            continue
+        chart = PROVIDER.calculate(BirthInput(cursor.year, cursor.month, cursor.day, hour))
         got = {match.rule.id for match in registry.match(extract_facts(chart))}
         if rule_id in got:
             facts = group_facts(extract_facts(chart))
             extra = tuple(sorted(same_group & got - {rule_id}))
-            found.append((len(extra), (cursor.year, cursor.month, cursor.day, 0), extra,
+            found.append((len(extra), (cursor.year, cursor.month, cursor.day, hour), extra,
                           (facts.get("month_pillar"), facts.get("day_pillar"))))
         cursor += dt.timedelta(days=1)
 
@@ -208,10 +245,14 @@ def main() -> int:
     parser.add_argument("--suggest-witness", metavar="RULE_ID", help="为这条规则找见证盘")
     parser.add_argument("--years", type=int, default=90, help="扫描年数，默认 90")
     parser.add_argument("--want", type=int, default=5, help="给出几个候选，默认 5")
+    parser.add_argument(
+        "--hour", type=int, default=None,
+        help="按哪个钟点找见证盘；缺省时由规则的时支推算",
+    )
     args = parser.parse_args()
 
     if args.suggest_witness:
-        return suggest_witness(args.suggest_witness, args.years, args.want)
+        return suggest_witness(args.suggest_witness, args.years, args.want, args.hour)
     return status()
 
 
