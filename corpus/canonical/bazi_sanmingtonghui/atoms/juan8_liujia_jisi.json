@@ -1,0 +1,348 @@
+{
+  "atom_version": 1,
+  "corpus_id": "bazi_sanmingtonghui_j8",
+  "urn_edition": "ws761697",
+  "section": "六甲日己巳時斷",
+  "coverage": {
+    "entries_in_section": 6,
+    "entries_covered": 6,
+    "atoms": 11,
+    "deferred_clauses": 6,
+    "deferred_note": "六处从句未能录入：①甲寅日的「戊子年月承襲父䕃主富」未言年或月，条件落点不明；②甲辰日的「行火金運貴」、甲午日的「酉月行火木運武職有權」依赖大运走向；③甲辰日的「化氣凶論」、节首总论的「己巳金神有火制伏」「柱不見火殘害」「化氣主兇惡暴亡」依赖化气格的成立判定，词表只有三合/三会成局，无化气；④节首总论的「甲巳為平頭煞」「食旺身衰」「不通月氣難任其福」是全局性论述，不对应具体日柱。以上为 BLOCKED_SCHEMA 或 BLOCKED_AMBIGUOUS。",
+    "note": "六甲日己巳时断共 6 个日柱条目，全部覆盖。条件类型分布：日时组合 6、年月支 3、年月五行 1。本节原文以「食旺身衰」立论（己为甲之正财、巳中丙戊为食神偏财），故财食类断语最多，且多带「防疾」「破刑」的保留语。"
+  },
+  "note": "己巳时为三金神之一（乙丑、己巳、癸酉），原文两处提到「金神」，但金神的成立与制伏需要火的口径，本节只把「金神入火乡」作为格名照录，不替它补判定条件。",
+  "atoms": [
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_jisi_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_jisi.jiazi_jisi_01",
+      "citation": {
+        "exact_quote": "甲子日己巳時先貧後富祖業輕微妻勤子拗"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "己",
+        "hour_branch": "巳"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "先貧後富",
+          "祖業輕微"
+        ],
+        "conclusion": "甲子日己巳时，原文断「先贫后富，祖业轻微，妻勤子拗」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_jisi_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_jisi.jiazi_jisi_02",
+      "citation": {
+        "exact_quote": "生寅未巳丑年月雖貴防疾"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "己",
+        "hour_branch": "巳",
+        "year_month_branches": [
+          "寅",
+          "未",
+          "巳",
+          "丑"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "寅未巳丑年月",
+          "雖貴防疾"
+        ],
+        "conclusion": "甲子日己巳时，年支或月支为寅、未、巳、丑之一，原文断「虽贵防疾」——即取贵但须防疾病，是两个并列的判断，不是一个。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「雖貴防疾」不拆成「贵」与「防疾」两条规则：原文把它们绑在同一个条件上，拆开会让任一条单独出现时看起来比原文更确定。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_jisi_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_jisi.jiazi_jisi_03",
+      "citation": {
+        "exact_quote": "申子辰戌大貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "己",
+        "hour_branch": "巳",
+        "year_month_branches": [
+          "申",
+          "子",
+          "辰",
+          "戌"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "申子辰戌"
+        ],
+        "conclusion": "甲子日己巳时，年支或月支为申、子、辰、戌之一，原文断「大贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "原文此句紧接「生寅未巳丑年月虽贵防疾」，共用「生……年月」的句式，故条件按年月支取。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_jisi_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_jisi.jiayin_jisi_01",
+      "citation": {
+        "exact_quote": "甲寅日己巳時時日相刑憂傷妻子"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "己",
+        "hour_branch": "巳"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "時日相刑",
+          "憂傷妻子"
+        ],
+        "conclusion": "甲寅日己巳时，日支寅与时支巳相刑，原文断「忧伤妻子」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "寅巳为三刑之一（寅巳申），由日时两支唯一确定，不需要外部条件。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_jisi_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_jisi.jiayin_jisi_02",
+      "citation": {
+        "exact_quote": "生火年月有明斷之才掌兵權之職"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "己",
+        "hour_branch": "巳",
+        "year_month_elements": [
+          "火"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "火年月",
+          "明斷之才",
+          "兵權"
+        ],
+        "conclusion": "甲寅日己巳时，年月两柱的天干或本气出现火，原文断「有明断之才，掌兵权之职」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「火年月」按年月两柱的干与本气取（year_month_elements），与「年月有土」同一口径。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_jisi_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_jisi.jiachen_jisi_01",
+      "citation": {
+        "exact_quote": "甲辰日己巳時丰姿敦厚一生平安財帛有成"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "己",
+        "hour_branch": "巳"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "丰姿敦厚",
+          "財帛有成"
+        ],
+        "conclusion": "甲辰日己巳时，原文断「丰姿敦厚，一生平安，财帛有成」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_jisi_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_jisi.jiachen_jisi_02",
+      "citation": {
+        "exact_quote": "巳酉丑年月行火金運貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "己",
+        "hour_branch": "巳",
+        "year_month_branches": [
+          "巳",
+          "酉",
+          "丑"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "巳酉丑年月"
+        ],
+        "conclusion": "甲辰日己巳时，年支或月支为巳、酉、丑之一，原文断「贵」。原文同句还要求「行火金运」，那一半依赖大运，未录。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "原文是「巳酉丑年月 + 行火金运」的合取，只录前半段，故置信取 LOW —— 单有年月三支未必成贵，这一点必须让读者看见。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_jisi_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_jisi.jiawu_jisi_01",
+      "citation": {
+        "exact_quote": "甲午日己巳時金神入火鄉大貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "己",
+        "hour_branch": "巳"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "金神入火鄉"
+        ],
+        "conclusion": "甲午日己巳时，己巳时为三金神之一，日支午为火，原文称「金神入火乡」，断「大贵」。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "只验证了「己巳时即金神」与「日支午属火」两半，原文「火乡」的判定口径（火月、火局还是日支）未给，故置信取 LOW。原文另附「酉月行火木运武职有权」依赖大运，未录。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_jisi_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_jisi.jiashen_jisi_01",
+      "citation": {
+        "exact_quote": "甲申日己巳時敦厚聰明善於决斷身孤清貴不免破刑"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "己",
+        "hour_branch": "巳"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "敦厚聰明",
+          "身孤清貴",
+          "破刑"
+        ],
+        "conclusion": "甲申日己巳时，原文断「敦厚聪明，善于决断，身孤清贵，不免破刑」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「清贵」与「破刑」并存，原文未让二者互相抵消，本条也不做取舍。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_jisi_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_jisi.jiaxu_jisi_01",
+      "citation": {
+        "exact_quote": "甲戌日己巳時財神貴格名利兩全"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "己",
+        "hour_branch": "巳"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "財神貴格",
+          "名利兩全"
+        ],
+        "conclusion": "甲戌日己巳时，原文称「财神贵格」，断「名利两全」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「财神贵格」是格名（己为甲之正财、巳中戊为偏财），不是吉凶等级；原文把它与「名利两全」并置。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_jisi_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_jisi.jiaxu_jisi_02",
+      "citation": {
+        "exact_quote": "子戌年月五品以上貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "己",
+        "hour_branch": "巳",
+        "year_month_branches": [
+          "子",
+          "戌"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "子戌年月",
+          "五品以上"
+        ],
+        "conclusion": "甲戌日己巳时，年支或月支为子或戌，原文断「五品以上贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    }
+  ]
+}

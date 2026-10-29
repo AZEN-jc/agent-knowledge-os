@@ -595,6 +595,41 @@ RULE_WITNESS: dict[str, tuple[int, int, int, int]] = {
     "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_02": (1950, 1, 29, 6),
     "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_03": (1952, 3, 19, 6),
     "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_04": (1950, 5, 29, 6),
+    # ── 典籍层（卷八 · 六甲日戊辰时断，Phase 6.6）──────────────────
+    # 本节以「天财坐库」立论（戊辰时上偏财、辰为水库），条件多为月支与年月支。
+    # 甲子日一条只剩无条件断语：两条附加从句都要求大运方向，未录。
+    # 见证由脚本实算（日柱固定、沿 60 日周期跨月推进），同组共命中一并登记。
+    "rule_bazi_sanmingtonghui_j8_jiachen_wuchen_01": (1950, 3, 10, 8),
+    "rule_bazi_sanmingtonghui_j8_jiachen_wuchen_02": (1956, 10, 4, 8),
+    "rule_bazi_sanmingtonghui_j8_jiachen_wuchen_03": (1950, 1, 9, 8),
+    "rule_bazi_sanmingtonghui_j8_jiachen_wuchen_04": (1952, 4, 28, 8),
+    "rule_bazi_sanmingtonghui_j8_jiashen_wuchen_01": (1950, 4, 19, 8),
+    "rule_bazi_sanmingtonghui_j8_jiashen_wuchen_02": (1953, 2, 2, 8),
+    "rule_bazi_sanmingtonghui_j8_jiashen_wuchen_03": (1950, 2, 18, 8),
+    "rule_bazi_sanmingtonghui_j8_jiawu_wuchen_01": (1950, 2, 28, 8),
+    "rule_bazi_sanmingtonghui_j8_jiawu_wuchen_02": (1950, 6, 28, 8),
+    "rule_bazi_sanmingtonghui_j8_jiawu_wuchen_03": (1956, 9, 24, 8),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_wuchen_01": (1951, 4, 4, 8),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_wuchen_02": (1950, 2, 8, 8),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_wuchen_03": (1951, 6, 3, 8),
+    "rule_bazi_sanmingtonghui_j8_jiayin_wuchen_01": (1950, 3, 20, 8),
+    "rule_bazi_sanmingtonghui_j8_jiayin_wuchen_02": (1950, 1, 19, 8),
+    "rule_bazi_sanmingtonghui_j8_jiazi_wuchen_01": (1950, 1, 29, 8),
+    # ── 典籍层（卷八 · 六甲日己巳时断，Phase 6.7）──────────────────
+    # 本节以「食旺身衰」立论（己为甲之正财），断语多带「防疾」「破刑」的保留语。
+    # 「虽贵防疾」「清贵不免破刑」都保留为一条，不拆成吉凶两句。
+    # 见证由脚本实算（日柱固定、沿 60 日周期跨月推进），同组共命中一并登记。
+    "rule_bazi_sanmingtonghui_j8_jiachen_jisi_01": (1950, 3, 10, 10),
+    "rule_bazi_sanmingtonghui_j8_jiachen_jisi_02": (1950, 1, 9, 10),
+    "rule_bazi_sanmingtonghui_j8_jiashen_jisi_01": (1950, 2, 18, 10),
+    "rule_bazi_sanmingtonghui_j8_jiawu_jisi_01": (1950, 2, 28, 10),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_jisi_01": (1950, 2, 8, 10),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_jisi_02": (1956, 11, 3, 10),
+    "rule_bazi_sanmingtonghui_j8_jiayin_jisi_01": (1950, 3, 20, 10),
+    "rule_bazi_sanmingtonghui_j8_jiayin_jisi_02": (1950, 1, 19, 10),
+    "rule_bazi_sanmingtonghui_j8_jiazi_jisi_01": (1951, 3, 25, 10),
+    "rule_bazi_sanmingtonghui_j8_jiazi_jisi_02": (1950, 1, 29, 10),
+    "rule_bazi_sanmingtonghui_j8_jiazi_jisi_03": (1952, 3, 19, 10),
 }
 
 # ── 见证盘的同组重叠豁免 ──────────────────────────────────────────────
@@ -765,5 +800,62 @@ WITNESS_ALSO_MATCHES: dict[str, frozenset[str]] = {
     }),
     "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_04": frozenset({
         "rule_bazi_sanmingtonghui_j8_jiazi_dingmao_01",
+    }),
+    # ── 典籍层（卷八 · 六甲日戊辰时断，Phase 6.6）──────────────────
+    # 本节以「天财坐库」立论（戊辰时上偏财、辰为水库），条件多为月支与年月支。
+    # 甲子日一条只剩无条件断语：两条附加从句都要求大运方向，未录。
+    # 见证由脚本实算（日柱固定、沿 60 日周期跨月推进），同组共命中一并登记。
+    "rule_bazi_sanmingtonghui_j8_jiachen_wuchen_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiachen_wuchen_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiachen_wuchen_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiachen_wuchen_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiachen_wuchen_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiachen_wuchen_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiashen_wuchen_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiashen_wuchen_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiashen_wuchen_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiashen_wuchen_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiawu_wuchen_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiawu_wuchen_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiawu_wuchen_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiawu_wuchen_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_wuchen_01": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiaxu_wuchen_03",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_wuchen_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiaxu_wuchen_01",
+        "rule_bazi_sanmingtonghui_j8_jiaxu_wuchen_03",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_wuchen_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiaxu_wuchen_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiayin_wuchen_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiayin_wuchen_01",
+    }),
+    # ── 典籍层（卷八 · 六甲日己巳时断，Phase 6.7）──────────────────
+    # 本节以「食旺身衰」立论（己为甲之正财），断语多带「防疾」「破刑」的保留语。
+    # 「虽贵防疾」「清贵不免破刑」都保留为一条，不拆成吉凶两句。
+    # 见证由脚本实算（日柱固定、沿 60 日周期跨月推进），同组共命中一并登记。
+    "rule_bazi_sanmingtonghui_j8_jiachen_jisi_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiachen_jisi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_jisi_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiaxu_jisi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiayin_jisi_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiayin_jisi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_jisi_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_jisi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_jisi_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_jisi_01",
     }),
 }

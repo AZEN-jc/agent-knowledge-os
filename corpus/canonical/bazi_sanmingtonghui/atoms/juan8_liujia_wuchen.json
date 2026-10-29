@@ -1,0 +1,483 @@
+{
+  "atom_version": 1,
+  "corpus_id": "bazi_sanmingtonghui_j8",
+  "urn_edition": "ws761697",
+  "section": "六甲日戊辰時斷",
+  "coverage": {
+    "entries_in_section": 6,
+    "entries_covered": 6,
+    "atoms": 16,
+    "deferred_clauses": 5,
+    "deferred_note": "五处从句未能录入：①甲子日的「未月行北方運貴」「酉月北方運大貴」都要求大运方向，词表只有 dayun_* 的逐年事实、没有「行某方运」的整体判断；②甲寅日的「純辰」「純寅」要求四支全同，但甲寅日戊辰时的日支固定为寅、时支固定为辰，四支全同不可能成立，原文所指口径不明（疑指年月或纳音）；③甲寅日的「亥卯未三合」需要三个支，而日时已占寅辰，年月只有两位，成局不可能，同上口径不明；④甲辰日「化氣凶論」、甲戌日「年月扶合」依赖化气格与扶合的判定，词表均无。以上为 BLOCKED_SCHEMA 或 BLOCKED_AMBIGUOUS。",
+    "note": "六甲日戊辰时断共 6 个日柱条目，全部覆盖。条件类型分布：日时组合 6、月支单支 4、年月支 4、四支定位 1、五行 0。本节原文以「天财坐库」立论（戊辰时上偏财、辰为水库），故财类断语最多。"
+  },
+  "note": "节首总论「忌比肩羊刃夺财」未单独立条：它是对戊辰时的一般告诫，不对应具体日柱，且「夺财」的判定需要财星强弱的口径，词表未建。",
+  "atoms": [
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_wuchen_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiazi_wuchen_01",
+      "citation": {
+        "exact_quote": "甲子日戊辰時主移根換葉改姓易宗妻賢子孝作高命論"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "戊",
+        "hour_branch": "辰"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "移根換葉",
+          "妻賢子孝"
+        ],
+        "conclusion": "甲子日戊辰时，原文断「移根换叶，改姓易宗，妻贤子孝」，并注明「作高命论」——即此断语只就上等命局而言。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "原文自带限定语「作高命论」，条件里无法表达「命局整体为上等」，故置信取 LOW，并在结论中保留该限定。原文另附「未月行北方运贵」「酉月北方运大贵」两条都要求大运方向，未录。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_wuchen_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiayin_wuchen_01",
+      "citation": {
+        "exact_quote": "甲寅日戊辰時龍吟虎嘯格貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "戊",
+        "hour_branch": "辰"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "龍吟虎嘯"
+        ],
+        "conclusion": "甲寅日戊辰时，日支寅（虎）与时支辰（龙）相接，古法称「龙吟虎啸格」，原文断「贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "与「甲辰日丙寅时」的「龙虎拱门」是同一对地支的另一种说法，但两处日时相反（寅辰 / 辰寅），断语也不同，故各自成条。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_wuchen_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiayin_wuchen_02",
+      "citation": {
+        "exact_quote": "酉丑申年月亦吉"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "戊",
+        "hour_branch": "辰",
+        "year_month_branches": [
+          "酉",
+          "丑",
+          "申"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "酉丑申年月"
+        ],
+        "conclusion": "甲寅日戊辰时，年支或月支为酉、丑、申之一，原文断「亦吉」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "三支同属金（酉丑半合金、申为金），原文并列，条件照录为三选一。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_wuchen_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiachen_wuchen_01",
+      "citation": {
+        "exact_quote": "甲辰日戊辰時刑衝發財妻重子晚雙親有尅"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "戊",
+        "hour_branch": "辰"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "刑衝",
+          "妻重子晚"
+        ],
+        "conclusion": "甲辰日戊辰时，原文断「刑冲发财，妻重子晚，双亲有克」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "日支与时支同为辰，构成自刑；原文的「刑冲」落在这一层。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_wuchen_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiachen_wuchen_02",
+      "citation": {
+        "exact_quote": "酉月三四品貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "戊",
+        "hour_branch": "辰",
+        "month_branch": "酉"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "酉月",
+          "三四品"
+        ],
+        "conclusion": "甲辰日戊辰时生于酉月，原文断「三四品贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_wuchen_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiachen_wuchen_03",
+      "citation": {
+        "exact_quote": "丑月亦貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "戊",
+        "hour_branch": "辰",
+        "month_branch": "丑"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "丑月"
+        ],
+        "conclusion": "甲辰日戊辰时生于丑月，原文断「亦贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "丑为金库，辰丑同为土，原文以土厚取贵。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_wuchen_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiachen_wuchen_04",
+      "citation": {
+        "exact_quote": "地支純辰大貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "戊",
+        "hour_branch": "辰",
+        "year_branch": "辰",
+        "month_branch": "辰"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "地支純辰"
+        ],
+        "conclusion": "甲辰日戊辰时，年支与月支也都是辰（四支全辰），原文断「大贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「地支純辰」按四支逐一落到辰来表达：日支与时支已由日时组合固定，故只需再钉年支与月支。不用 four_branches 判「集合里含辰」——那只要一支是辰就成立，比原文宽得多。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_wuchen_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiawu_wuchen_01",
+      "citation": {
+        "exact_quote": "甲午日戊辰時財多成敗早歳灰心"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "戊",
+        "hour_branch": "辰"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "財多成敗",
+          "早歳灰心"
+        ],
+        "conclusion": "甲午日戊辰时，原文断「财多成败，早岁灰心」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_wuchen_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiawu_wuchen_02",
+      "citation": {
+        "exact_quote": "亥子丑卯午未年月大貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "戊",
+        "hour_branch": "辰",
+        "year_month_branches": [
+          "亥",
+          "子",
+          "丑",
+          "卯",
+          "午",
+          "未"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "亥子丑卯午未年月"
+        ],
+        "conclusion": "甲午日戊辰时，年支或月支为亥、子、丑、卯、午、未之一，原文断「大贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "六支并列，原文未说明分类理由（水三支、木二支、火一支），条件照录为六选一，不替它归纳。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_wuchen_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiawu_wuchen_03",
+      "citation": {
+        "exact_quote": "酉月亦貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "戊",
+        "hour_branch": "辰",
+        "month_branch": "酉"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "酉月"
+        ],
+        "conclusion": "甲午日戊辰时生于酉月，原文断「亦贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_wuchen_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiashen_wuchen_01",
+      "citation": {
+        "exact_quote": "甲申日戊辰時主孤僧道清髙"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "戊",
+        "hour_branch": "辰"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "主孤",
+          "僧道清髙"
+        ],
+        "conclusion": "甲申日戊辰时，原文断「主孤，僧道清高」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「僧道清高」是原文对孤的一种具体化（出家之象），不是吉凶等级。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_wuchen_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiashen_wuchen_02",
+      "citation": {
+        "exact_quote": "丑月富貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "戊",
+        "hour_branch": "辰",
+        "month_branch": "丑"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "丑月",
+          "富貴"
+        ],
+        "conclusion": "甲申日戊辰时生于丑月，原文断「富贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_wuchen_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiashen_wuchen_03",
+      "citation": {
+        "exact_quote": "寅月尤貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "戊",
+        "hour_branch": "辰",
+        "month_branch": "寅"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "寅月",
+          "尤貴"
+        ],
+        "conclusion": "甲申日戊辰时生于寅月，原文断「尤贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "寅为甲禄，日支申与月支寅相冲（禄被冲），原文仍以寅月为尤贵，照录不调和。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_wuchen_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiaxu_wuchen_01",
+      "citation": {
+        "exact_quote": "甲戌日戊辰時大富"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "戊",
+        "hour_branch": "辰"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "大富"
+        ],
+        "conclusion": "甲戌日戊辰时，原文断「大富」。此条只由日时组合决定；原文随后补「年月扶合亦贵」，那一层依赖扶合的判定，未录。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_wuchen_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiaxu_wuchen_02",
+      "citation": {
+        "exact_quote": "寅亥年月三四品貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "戊",
+        "hour_branch": "辰",
+        "year_month_branches": [
+          "寅",
+          "亥"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "寅亥年月",
+          "三四品"
+        ],
+        "conclusion": "甲戌日戊辰时，年支或月支为寅或亥，原文断「三四品贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_wuchen_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_wuchen.jiaxu_wuchen_03",
+      "citation": {
+        "exact_quote": "但時日併衝尅早年身孤中年發福"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "戊",
+        "hour_branch": "辰"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "時日併衝",
+          "早年身孤",
+          "中年發福"
+        ],
+        "conclusion": "甲戌日戊辰时，日支戌与时支辰相冲，原文断「时日并冲克，早年身孤，中年发福」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "与同条目的「大富」共用一个日时条件，是原文对同一张盘的两个侧面：富贵与孤克并存，不互相抵消。"
+    }
+  ]
+}
