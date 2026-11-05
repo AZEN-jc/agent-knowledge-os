@@ -36,7 +36,7 @@ def chapter_map(registry: Any) -> dict[str, str]:
     }
 
 
-def find(needle: str, steps: int, out: Path) -> int:
+def find(needle: str, steps: int, out: Path, chapter_filter: str | None = None) -> int:
     registry = default_registry()
     calc = BaziCalculator(SxtwlBaziProvider())
     chapter = chapter_map(registry)
@@ -44,6 +44,7 @@ def find(needle: str, steps: int, out: Path) -> int:
         rule
         for rule in registry.select(source_tier=SourceTier.CLASSICAL)
         if needle in rule.id
+        and (chapter_filter is None or chapter[rule.id] == chapter_filter)
     ]
     if not targets:
         print(f"没有 rule id 含 {needle!r} 的典籍规则")
@@ -172,6 +173,7 @@ def main() -> int:
     finder.add_argument("needle", help="rule id 的子串")
     finder.add_argument("--steps", type=int, default=60)
     finder.add_argument("--out", type=Path, default=Path("/tmp/atom_witness.json"))
+    finder.add_argument("--chapter", default=None, help="URN 章节键，跨章节 needle 会误命中时必填")
 
     applier = sub.add_parser("apply", help="把结果写进测试表")
     applier.add_argument("path", type=Path)
@@ -179,7 +181,7 @@ def main() -> int:
 
     args = parser.parse_args()
     if args.command == "find":
-        return find(args.needle, args.steps, args.out)
+        return find(args.needle, args.steps, args.out, args.chapter)
     return apply(args.path, args.note)
 
 

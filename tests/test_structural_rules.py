@@ -705,6 +705,52 @@ RULE_WITNESS: dict[str, tuple[int, int, int, int]] = {
     "rule_bazi_sanmingtonghui_j8_jiayin_guiyou_05": (1950, 1, 19, 18),
     "rule_bazi_sanmingtonghui_j8_jiazi_guiyou_01": (1950, 3, 30, 18),
     "rule_bazi_sanmingtonghui_j8_jiazi_guiyou_02": (1950, 9, 26, 18),
+    # ── 典籍层（卷八 · 六甲日甲戌时断，Phase 6.12）
+    # 见证由 scripts/atom_witness.py 实算，同组共命中一并登记。
+    # Constraint: 同条目的无条件断语是条件断语的真子集，重叠是必然结果。
+    "rule_bazi_sanmingtonghui_j8_jiachen_jiaxu_01": (1950, 1, 9, 20),
+    "rule_bazi_sanmingtonghui_j8_jiachen_jiaxu_02": (1950, 3, 10, 20),
+    "rule_bazi_sanmingtonghui_j8_jiashen_jiaxu_01": (1950, 6, 18, 20),
+    "rule_bazi_sanmingtonghui_j8_jiashen_jiaxu_02": (1950, 2, 18, 20),
+    "rule_bazi_sanmingtonghui_j8_jiawu_jiaxu_01": (1950, 2, 28, 20),
+    "rule_bazi_sanmingtonghui_j8_jiawu_jiaxu_02": (1950, 6, 28, 20),
+    "rule_bazi_sanmingtonghui_j8_jiawu_jiaxu_03": (1950, 12, 25, 20),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_jiaxu_01": (1950, 2, 8, 20),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_jiaxu_02": (1950, 10, 6, 20),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_jiaxu_03": (1950, 4, 9, 20),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_jiaxu_04": (1951, 4, 4, 20),
+    "rule_bazi_sanmingtonghui_j8_jiayin_jiaxu_01": (1950, 1, 19, 20),
+    "rule_bazi_sanmingtonghui_j8_jiayin_jiaxu_02": (1952, 9, 5, 20),
+    "rule_bazi_sanmingtonghui_j8_jiayin_jiaxu_03": (1953, 7, 2, 20),
+    "rule_bazi_sanmingtonghui_j8_jiazi_jiaxu_01": (1950, 3, 30, 20),
+    "rule_bazi_sanmingtonghui_j8_jiazi_jiaxu_02": (1950, 5, 29, 20),
+    "rule_bazi_sanmingtonghui_j8_jiazi_jiaxu_03": (1950, 9, 26, 20),
+    "rule_bazi_sanmingtonghui_j8_jiazi_jiaxu_04": (1950, 11, 25, 20),
+    "rule_bazi_sanmingtonghui_j8_jiazi_jiaxu_05": (1950, 1, 29, 20),
+    # ── 典籍层（卷八 · 六甲日乙亥时断，Phase 6.13）
+    # 见证由 scripts/atom_witness.py 实算，同组共命中一并登记。
+    # Constraint: 同条目的无条件断语是条件断语的真子集，重叠是必然结果。
+    "rule_bazi_sanmingtonghui_j8_jiachen_yihai_01": (1956, 10, 4, 22),
+    "rule_bazi_sanmingtonghui_j8_jiachen_yihai_02": (1950, 1, 9, 22),
+    "rule_bazi_sanmingtonghui_j8_jiashen_yihai_01": (1952, 12, 4, 22),
+    "rule_bazi_sanmingtonghui_j8_jiashen_yihai_02": (1950, 8, 17, 22),
+    "rule_bazi_sanmingtonghui_j8_jiashen_yihai_03": (1950, 12, 15, 22),
+    "rule_bazi_sanmingtonghui_j8_jiashen_yihai_04": (1950, 4, 19, 22),
+    "rule_bazi_sanmingtonghui_j8_jiashen_yihai_05": (1950, 2, 18, 22),
+    "rule_bazi_sanmingtonghui_j8_jiawu_yihai_01": (1955, 4, 3, 22),
+    "rule_bazi_sanmingtonghui_j8_jiawu_yihai_02": (1950, 2, 28, 22),
+    "rule_bazi_sanmingtonghui_j8_jiawu_yihai_03": (1950, 6, 28, 22),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_yihai_01": (1950, 2, 8, 22),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_yihai_02": (1950, 6, 8, 22),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_yihai_03": (1950, 10, 6, 22),
+    "rule_bazi_sanmingtonghui_j8_jiayin_yihai_01": (1950, 7, 18, 22),
+    "rule_bazi_sanmingtonghui_j8_jiayin_yihai_02": (1950, 9, 16, 22),
+    "rule_bazi_sanmingtonghui_j8_jiayin_yihai_03": (1953, 1, 3, 22),
+    "rule_bazi_sanmingtonghui_j8_jiayin_yihai_04": (1953, 3, 4, 22),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yihai_01": (1950, 3, 30, 22),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yihai_02": (1954, 9, 5, 22),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yihai_03": (1950, 9, 26, 22),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yihai_04": (1950, 1, 29, 22),
 }
 
 # ── 见证盘的同组重叠豁免 ──────────────────────────────────────────────
@@ -983,5 +1029,47 @@ WITNESS_ALSO_MATCHES: dict[str, frozenset[str]] = {
     }),
     "rule_bazi_sanmingtonghui_j8_jiayin_guiyou_05": frozenset({
         "rule_bazi_sanmingtonghui_j8_jiayin_guiyou_04",
+    }),
+    # ── 典籍层（卷八 · 六甲日甲戌时断，Phase 6.12）
+    # 见证由 scripts/atom_witness.py 实算，同组共命中一并登记。
+    # Constraint: 同条目的无条件断语是条件断语的真子集，重叠是必然结果。
+    "rule_bazi_sanmingtonghui_j8_jiachen_jiaxu_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiachen_jiaxu_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiashen_jiaxu_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiashen_jiaxu_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_jiaxu_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiaxu_jiaxu_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_jiaxu_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiaxu_jiaxu_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiaxu_jiaxu_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiaxu_jiaxu_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiayin_jiaxu_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiayin_jiaxu_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiayin_jiaxu_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiayin_jiaxu_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_jiaxu_05": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_jiaxu_04",
+    }),
+    # ── 典籍层（卷八 · 六甲日乙亥时断，Phase 6.13）
+    # 见证由 scripts/atom_witness.py 实算，同组共命中一并登记。
+    # Constraint: 同条目的无条件断语是条件断语的真子集，重叠是必然结果。
+    "rule_bazi_sanmingtonghui_j8_jiawu_yihai_01": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiawu_yihai_02",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yihai_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_yihai_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yihai_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_yihai_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_jiazi_yihai_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_jiazi_yihai_01",
     }),
 }
