@@ -1,0 +1,537 @@
+{
+  "atom_version": 1,
+  "corpus_id": "bazi_sanmingtonghui_j8",
+  "urn_edition": "ws761697",
+  "section": "六甲日庚午時斷",
+  "coverage": {
+    "entries_in_section": 6,
+    "entries_covered": 6,
+    "atoms": 17,
+    "deferred_clauses": 5,
+    "deferred_note": "五处从句未能录入：①甲子日「行西北方運」、甲辰日「行金運」、甲戌日「行火土運」依赖大运走向；②甲申日「寅戌㑹傷制煞」需要「半合火局 + 伤官制煞」的合取判定，词表只有三合三会成局；③节首总论「不通月氣無救助者帶疾壽促」「若通木氣主方靣」是全局论述，不对应具体日柱。以上为 BLOCKED_SCHEMA 或 BLOCKED_GLOBAL。",
+    "note": "六甲日庚午时断共 6 个日柱条目，全部覆盖。庚为甲之七杀、午为甲之死地，本节原文按月令分判制煞与否，故季节与月支条件最多。甲子日的两组月份限制按各自的事实层拆成两条。"
+  },
+  "note": "节首「甲日時逢庚午柱中喜見寅申」与末尾歌诀不单独立条：它们是对庚午时的一般告诫，不对应具体日柱。",
+  "atoms": [
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_gengwu_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiazi_gengwu_01",
+      "citation": {
+        "exact_quote": "甲子日庚午時時日相衝憂傷妻子平常"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "庚",
+        "hour_branch": "午"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "時日相衝",
+          "平常"
+        ],
+        "conclusion": "甲子日庚午时，日支子与时支午相冲，原文断「忧伤妻子，平常」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_gengwu_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiazi_gengwu_02",
+      "citation": {
+        "exact_quote": "若子午年月"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "庚",
+        "hour_branch": "午",
+        "year_month_branches": [
+          "子",
+          "午"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "子午年月",
+          "金紫風憲"
+        ],
+        "conclusion": "甲子日庚午时，年支或月支为子或午，原文断「金紫风宪」。原文同句还要求「行西北方运」，那一半依赖大运，未录。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "原文把「子午年月」与「寅戌月生」并列成两组限制，本条只取年月这一组，另一组另立一条。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_gengwu_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiazi_gengwu_03",
+      "citation": {
+        "exact_quote": "寅戌月生"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "庚",
+        "hour_branch": "午",
+        "year_month_branches": [
+          "子",
+          "午",
+          "寅",
+          "戌"
+        ],
+        "month_branch": [
+          "寅",
+          "戌"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "寅戌月",
+          "金紫風憲"
+        ],
+        "conclusion": "甲子日庚午时生于寅月或戌月，原文断「金紫风宪」。原文同句还要求「行西北方运」，那一半依赖大运，未录。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "与年月那组并列，按「月生」落到 month_branch，不混进 year_month_branches。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_gengwu_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiayin_gengwu_01",
+      "citation": {
+        "exact_quote": "甲寅日庚午時春月有壽"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "庚",
+        "hour_branch": "午",
+        "month_season": "春"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "春月",
+          "有壽"
+        ],
+        "conclusion": "甲寅日庚午时生于春月（寅卯辰），原文断「有寿」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_gengwu_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiayin_gengwu_02",
+      "citation": {
+        "exact_quote": "夏月傷官傷盡財源進退"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "庚",
+        "hour_branch": "午",
+        "month_season": "夏"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "夏月",
+          "傷官傷盡"
+        ],
+        "conclusion": "甲寅日庚午时生于夏月（巳午未），原文称「伤官伤尽」，断「财源进退」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「伤官伤尽」是格名（午中丁火为甲之伤官），原文未把它写成独立的判定条件。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_gengwu_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiayin_gengwu_03",
+      "citation": {
+        "exact_quote": "申有權酉反覆"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "庚",
+        "hour_branch": "午",
+        "month_branch": "申"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "申月",
+          "有權"
+        ],
+        "conclusion": "甲寅日庚午时生于申月，原文断「有权」。原文同句以「酉」对举，酉月另立一条。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「申有權酉反覆」承接上文「夏月」，指申月与酉月。按单支拆成两条，因为断语相反。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_gengwu_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiayin_gengwu_04",
+      "citation": {
+        "exact_quote": "申有權酉反覆"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "庚",
+        "hour_branch": "午",
+        "month_branch": "酉"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "酉月",
+          "反覆"
+        ],
+        "conclusion": "甲寅日庚午时生于酉月，原文断「反覆」（起伏不定）。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "与申月那条共用引文，条件与断语各自收窄，不合并。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_gengwu_05",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiayin_gengwu_05",
+      "citation": {
+        "exact_quote": "冬月傷妻子"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "庚",
+        "hour_branch": "午",
+        "month_season": "冬"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "冬月",
+          "傷妻子"
+        ],
+        "conclusion": "甲寅日庚午时生于冬月（亥子丑），原文断「伤妻子」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_gengwu_06",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiayin_gengwu_06",
+      "citation": {
+        "exact_quote": "子未年月煞助印生四品"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "庚",
+        "hour_branch": "午",
+        "year_month_branches": [
+          "子",
+          "未"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "子未年月",
+          "煞助印生"
+        ],
+        "conclusion": "甲寅日庚午时，年支或月支为子或未，原文称「煞助印生」，断「四品」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_gengwu_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiachen_gengwu_01",
+      "citation": {
+        "exact_quote": "甲辰日庚午時田園樂賞"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "庚",
+        "hour_branch": "午"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "田園樂賞"
+        ],
+        "conclusion": "甲辰日庚午时，原文断「田园乐赏」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_gengwu_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiachen_gengwu_02",
+      "citation": {
+        "exact_quote": "寅月行金運風憲"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "庚",
+        "hour_branch": "午",
+        "month_branch": "寅"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "寅月",
+          "風憲"
+        ],
+        "conclusion": "甲辰日庚午时生于寅月，原文断「风宪」。原文同句还要求「行金运」，那一半依赖大运，未录。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "原文另有「（一云）主血發」的异说，与本条断语相反，未录：两说并存时不能只挑一句当结论。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_gengwu_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiawu_gengwu_01",
+      "citation": {
+        "exact_quote": "甲午日庚午時破祖業發財禄因財不得善終"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "庚",
+        "hour_branch": "午"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "破祖業",
+          "不得善終"
+        ],
+        "conclusion": "甲午日庚午时，原文断「破祖业，发财禄，因财不得善终」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「发财禄」与「不得善终」并存，原文未让二者互相抵消，本条也不做取舍。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_gengwu_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiawu_gengwu_02",
+      "citation": {
+        "exact_quote": "寅午戌年月貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "庚",
+        "hour_branch": "午",
+        "year_month_branches": [
+          "寅",
+          "午",
+          "戌"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "寅午戌年月",
+          "貴"
+        ],
+        "conclusion": "甲午日庚午时，年支或月支为寅、午、戌之一，原文断「贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "三支同属三合火局，原文按月列举，条件照录为三选一，不替它补成局判定。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_gengwu_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiashen_gengwu_01",
+      "citation": {
+        "exact_quote": "甲申日庚午時子辰年月㑹印亥卯年月身旺俱貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "庚",
+        "hour_branch": "午",
+        "year_month_branches": [
+          "子",
+          "辰"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "子辰年月",
+          "㑹印",
+          "貴"
+        ],
+        "conclusion": "甲申日庚午时，年支或月支为子或辰，原文称「会印」，断「贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「㑹印」指子辰半合水（水为甲之印），半合未建模，条件只取年月支。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_gengwu_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiashen_gengwu_02",
+      "citation": {
+        "exact_quote": "甲申日庚午時子辰年月㑹印亥卯年月身旺俱貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "庚",
+        "hour_branch": "午",
+        "year_month_branches": [
+          "亥",
+          "卯"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "亥卯年月",
+          "身旺",
+          "貴"
+        ],
+        "conclusion": "甲申日庚午时，年支或月支为亥或卯，原文称「身旺」，断「贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "与上条共用引文，原文用「俱贵」把两个条件并列，故拆成两条各自带理由。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_gengwu_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiaxu_gengwu_01",
+      "citation": {
+        "exact_quote": "甲戌日庚午時生辰戌月敦厚不貴則富"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "庚",
+        "hour_branch": "午",
+        "month_branch": [
+          "辰",
+          "戌"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "辰戌月",
+          "敦厚",
+          "不貴則富"
+        ],
+        "conclusion": "甲戌日庚午时生于辰月或戌月，原文断「敦厚，不贵则富」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「不贵则富」是原文的二选一，本条不替它选一个。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_gengwu_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_gengwu.jiaxu_gengwu_02",
+      "citation": {
+        "exact_quote": "寅月清貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "庚",
+        "hour_branch": "午",
+        "month_branch": "寅"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "寅月",
+          "清貴"
+        ],
+        "conclusion": "甲戌日庚午时生于寅月，原文断「清贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    }
+  ]
+}
