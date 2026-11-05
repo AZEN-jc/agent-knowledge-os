@@ -1,0 +1,251 @@
+{
+  "atom_version": 1,
+  "corpus_id": "bazi_sanmingtonghui_j8",
+  "urn_edition": "ws761697",
+  "section": "六甲日酉時斷",
+  "coverage": {
+    "entries_in_section": 6,
+    "entries_covered": 6,
+    "atoms": 15,
+    "deferred_clauses": 7,
+    "deferred_note": "七处从句未能录入：①「行南運」「行東北方」「運行南地」依赖大运走向；②「混之以煞或煞多柱中全無火氣凶」「有水化金毒只作官印論不作金神亦吉但主退早」需要煞多、火气有无、金神成立的综合判定；③节首总论「柱中有火無刑破」「若柱有寅戌通火氣者」是全局论述，不对应具体日柱；④「（一云）先破祖後大富」是与正文并存的异说。以上为 BLOCKED_SCHEMA、BLOCKED_GLOBAL 或 BLOCKED_AMBIGUOUS。",
+    "note": "标题作「六甲日酉時斷」，原文首句明言「甲日癸酉時」，故时柱按癸酉录。六甲日酉时断共 6 个日柱条目，全部覆盖。癸为甲之正印、酉中辛为正官，原文以「胎生元命」立论，按季节与月支分判。"
+  },
+  "note": "节首歌诀与末尾「甲日時逢癸酉」总论不单独立条。",
+  "atoms": [
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_guiyou_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiazi_guiyou_01",
+      "citation": { "exact_quote": "甲子日癸酉時春生木旺" },
+      "condition": {
+        "day_stem": "甲", "day_branch": "子", "hour_stem": "癸", "hour_branch": "酉",
+        "month_season": "春"
+      },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["春生", "木旺"],
+        "conclusion": "甲子日癸酉时生于春月（寅卯辰），原文断「木旺」。"
+      },
+      "confidence": "MEDIUM", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_guiyou_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiazi_guiyou_02",
+      "citation": { "exact_quote": "酉月官純貴" },
+      "condition": {
+        "day_stem": "甲", "day_branch": "子", "hour_stem": "癸", "hour_branch": "酉",
+        "month_branch": "酉"
+      },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["酉月", "官純"],
+        "conclusion": "甲子日癸酉时生于酉月，原文称「官纯」，断「贵」。"
+      },
+      "confidence": "MEDIUM", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": "酉中辛为甲之正官，无七杀混杂，故称官纯。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_guiyou_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiayin_guiyou_01",
+      "citation": { "exact_quote": "甲寅日癸酉時春生壽" },
+      "condition": {
+        "day_stem": "甲", "day_branch": "寅", "hour_stem": "癸", "hour_branch": "酉",
+        "month_season": "春"
+      },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["春", "壽"],
+        "conclusion": "甲寅日癸酉时生于春月（寅卯辰），原文断「寿」。"
+      },
+      "confidence": "MEDIUM", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_guiyou_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiayin_guiyou_02",
+      "citation": { "exact_quote": "甲寅日癸酉時春生壽夏反覆" },
+      "condition": {
+        "day_stem": "甲", "day_branch": "寅", "hour_stem": "癸", "hour_branch": "酉",
+        "month_season": "夏"
+      },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["夏", "反覆"],
+        "conclusion": "甲寅日癸酉时生于夏月（巳午未），原文断「反覆」。"
+      },
+      "confidence": "MEDIUM", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_guiyou_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiayin_guiyou_03",
+      "citation": { "exact_quote": "秋性不定多凶" },
+      "condition": {
+        "day_stem": "甲", "day_branch": "寅", "hour_stem": "癸", "hour_branch": "酉",
+        "month_season": "秋"
+      },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["秋", "性不定", "多凶"],
+        "conclusion": "甲寅日癸酉时生于秋月（申酉戌），原文断「性不定，多凶」。"
+      },
+      "confidence": "MEDIUM", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_guiyou_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiayin_guiyou_04",
+      "citation": { "exact_quote": "冬平常" },
+      "condition": {
+        "day_stem": "甲", "day_branch": "寅", "hour_stem": "癸", "hour_branch": "酉",
+        "month_season": "冬"
+      },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["冬", "平常"],
+        "conclusion": "甲寅日癸酉时生于冬月（亥子丑），原文断「平常」。"
+      },
+      "confidence": "MEDIUM", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_guiyou_05",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiayin_guiyou_05",
+      "citation": { "exact_quote": "丑未月貴" },
+      "condition": {
+        "day_stem": "甲", "day_branch": "寅", "hour_stem": "癸", "hour_branch": "酉",
+        "month_branch": ["丑", "未"]
+      },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["丑未月", "貴"],
+        "conclusion": "甲寅日癸酉时生于丑月或未月，原文断「贵」。"
+      },
+      "confidence": "MEDIUM", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": "与四季那四条并列，原文单列丑未月，故另立一条。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_guiyou_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiachen_guiyou_01",
+      "citation": { "exact_quote": "甲辰日癸酉時子戌年月有財有官貴" },
+      "condition": {
+        "day_stem": "甲", "day_branch": "辰", "hour_stem": "癸", "hour_branch": "酉",
+        "year_month_branches": ["子", "戌"]
+      },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["子戌年月", "有財有官"],
+        "conclusion": "甲辰日癸酉时，年支或月支为子或戌，原文断「有财有官，贵」。"
+      },
+      "confidence": "MEDIUM", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_guiyou_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiawu_guiyou_01",
+      "citation": { "exact_quote": "甲午日癸酉時主孤" },
+      "condition": { "day_stem": "甲", "day_branch": "午", "hour_stem": "癸", "hour_branch": "酉" },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["主孤"],
+        "conclusion": "甲午日癸酉时，原文断「主孤」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_guiyou_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiawu_guiyou_02",
+      "citation": { "exact_quote": "生寅午戌月行東北方郎官" },
+      "condition": {
+        "day_stem": "甲", "day_branch": "午", "hour_stem": "癸", "hour_branch": "酉",
+        "month_branch": ["寅", "午", "戌"]
+      },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["寅午戌月", "郎官"],
+        "conclusion": "甲午日癸酉时，生于寅、午、戌三月之一，原文断「郎官」。原文同句还要求「行东北方」运，那一半依赖大运，未录。"
+      },
+      "confidence": "LOW", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": "只录了月支这一半，置信取 LOW。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_guiyou_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiashen_guiyou_01",
+      "citation": { "exact_quote": "甲申日癸酉時平常" },
+      "condition": { "day_stem": "甲", "day_branch": "申", "hour_stem": "癸", "hour_branch": "酉" },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["平常"],
+        "conclusion": "甲申日癸酉时，原文断「平常」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_guiyou_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiashen_guiyou_02",
+      "citation": { "exact_quote": "通火氣月行南運富貴" },
+      "condition": {
+        "day_stem": "甲", "day_branch": "申", "hour_stem": "癸", "hour_branch": "酉",
+        "month_season": "夏"
+      },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["通火氣月", "富貴"],
+        "conclusion": "甲申日癸酉时生于夏月（火气通），原文断「富贵」。原文同句还要求「行南运」，那一半依赖大运，未录。"
+      },
+      "confidence": "LOW", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": "「通火气月」按夏月取，是近似而非原文口径，置信取 LOW。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_guiyou_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiashen_guiyou_03",
+      "citation": { "exact_quote": "申酉年月多夭" },
+      "condition": {
+        "day_stem": "甲", "day_branch": "申", "hour_stem": "癸", "hour_branch": "酉",
+        "year_month_branches": ["申", "酉"]
+      },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["申酉年月", "多夭"],
+        "conclusion": "甲申日癸酉时，年支或月支为申或酉，原文断「多夭」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_guiyou_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiaxu_guiyou_01",
+      "citation": { "exact_quote": "甲戌日癸酉時子戌年月文章顯貴" },
+      "condition": {
+        "day_stem": "甲", "day_branch": "戌", "hour_stem": "癸", "hour_branch": "酉",
+        "year_month_branches": ["子", "戌"]
+      },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["子戌年月", "文章顯貴"],
+        "conclusion": "甲戌日癸酉时，年支或月支为子或戌，原文断「文章显贵」。"
+      },
+      "confidence": "MEDIUM", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_guiyou_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_guiyou.jiaxu_guiyou_02",
+      "citation": { "exact_quote": "子午月不貴卽富" },
+      "condition": {
+        "day_stem": "甲", "day_branch": "戌", "hour_stem": "癸", "hour_branch": "酉",
+        "month_branch": ["子", "午"]
+      },
+      "assertion": {
+        "theme_domain": "destiny", "polarity": "neutral", "keywords": ["子午月", "不貴卽富"],
+        "conclusion": "甲戌日癸酉时生于子月或午月，原文断「不贵即富」。"
+      },
+      "confidence": "MEDIUM", "school": "zi_ping_orthodox", "category": "day_hour", "review_status": "ACTIVE",
+      "note": "「不贵即富」是原文的二选一，本条不替它选一个。"
+    }
+  ]
+}

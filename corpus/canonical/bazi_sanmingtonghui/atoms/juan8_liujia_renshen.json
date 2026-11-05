@@ -1,0 +1,485 @@
+{
+  "atom_version": 1,
+  "corpus_id": "bazi_sanmingtonghui_j8",
+  "urn_edition": "ws761697",
+  "section": "六甲日申時斷",
+  "coverage": {
+    "entries_in_section": 6,
+    "entries_covered": 6,
+    "atoms": 15,
+    "deferred_clauses": 6,
+    "deferred_note": "六处从句未能录入：①「水土運凶」「行東南運」「行東北方」依赖大运走向；②「透丙戌尤美」的「戌」指地支还是柱名不明，且透干判定需要食神口径；③「最怕煞旺身弱大凶」需要身强与煞旺的综合判定；④节首总论「柱無丙戊秋冬旺」是全局论述，不对应具体日柱；⑤「（一云）髙」「（一云）離鄉發福」是与正文并存的异说。以上为 BLOCKED_SCHEMA、BLOCKED_GLOBAL 或 BLOCKED_AMBIGUOUS。",
+    "note": "标题作「六甲日申時斷」，原文首句明言「甲日壬申時」，故时柱按壬申录。六甲日申时断共 6 个日柱条目，全部覆盖。壬为甲之偏印、申中庚为七杀，原文按月份分判制煞与否。"
+  },
+  "note": "节首歌诀与末尾「甲日時逢壬申」总论不单独立条，它们不对应具体日柱。",
+  "atoms": [
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiazi_renshen_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiazi_renshen_01",
+      "citation": {
+        "exact_quote": "甲子日壬申時申子辰亥月水泛木漂移根換葉玉堂金馬之貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "子",
+        "hour_stem": "壬",
+        "hour_branch": "申",
+        "month_branch": [
+          "申",
+          "子",
+          "辰",
+          "亥"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "申子辰亥月",
+          "水泛木浮",
+          "玉堂金馬"
+        ],
+        "conclusion": "甲子日壬申时，生于申、子、辰、亥四月之一，原文称「水泛木浮，移根换叶」，断「玉堂金马之贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "原文同句末尾的「水土運凶」依赖大运，未录。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_renshen_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiayin_renshen_01",
+      "citation": {
+        "exact_quote": "甲寅日壬申時旺中有失"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "壬",
+        "hour_branch": "申"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "旺中有失"
+        ],
+        "conclusion": "甲寅日壬申时，原文断「旺中有失」。此条只由日时组合决定。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_renshen_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiayin_renshen_02",
+      "citation": {
+        "exact_quote": "辰戌丑未月勾陳得位"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "壬",
+        "hour_branch": "申",
+        "month_branch": [
+          "辰",
+          "戌",
+          "丑",
+          "未"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "辰戌丑未月",
+          "勾陳得位"
+        ],
+        "conclusion": "甲寅日壬申时，生于辰、戌、丑、未四月之一，原文称「勾陈得位」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "勾陈指土，四季月土旺，故称得位。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiayin_renshen_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiayin_renshen_03",
+      "citation": {
+        "exact_quote": "寅午戌月偏官有制"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "寅",
+        "hour_stem": "壬",
+        "hour_branch": "申",
+        "month_branch": [
+          "寅",
+          "午",
+          "戌"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "寅午戌月",
+          "偏官有制"
+        ],
+        "conclusion": "甲寅日壬申时，生于寅、午、戌三月之一，原文称「偏官有制」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "三支属三合火局，火制申中庚金。原文按月列举，条件照录为三选一。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiachen_renshen_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiachen_renshen_01",
+      "citation": {
+        "exact_quote": "甲辰日壬申時寅辰年月文章顯貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "辰",
+        "hour_stem": "壬",
+        "hour_branch": "申",
+        "year_month_branches": [
+          "寅",
+          "辰"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "寅辰年月",
+          "文章顯貴"
+        ],
+        "conclusion": "甲辰日壬申时，年支或月支为寅或辰，原文断「文章显贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "同句「透丙戌尤美」未录，见 coverage.deferred_note。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_renshen_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiawu_renshen_01",
+      "citation": {
+        "exact_quote": "甲午日壬申時申子辰月改姓更宗敦厚之命"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "壬",
+        "hour_branch": "申",
+        "month_branch": [
+          "申",
+          "子",
+          "辰"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "申子辰月",
+          "改姓更宗",
+          "敦厚"
+        ],
+        "conclusion": "甲午日壬申时，生于申、子、辰三月之一，原文断「改姓更宗，敦厚之命」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiawu_renshen_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiawu_renshen_02",
+      "citation": {
+        "exact_quote": "午月貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "午",
+        "hour_stem": "壬",
+        "hour_branch": "申",
+        "month_branch": "午"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "午月",
+          "貴"
+        ],
+        "conclusion": "甲午日壬申时生于午月，原文断「贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "原文另有「（一云）髙」的异说，未录。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_renshen_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiashen_renshen_01",
+      "citation": {
+        "exact_quote": "甲申日壬申時寅月身煞兩停"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "壬",
+        "hour_branch": "申",
+        "month_branch": "寅"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "寅月",
+          "身煞兩停"
+        ],
+        "conclusion": "甲申日壬申时生于寅月，原文称「身煞两停」，断「贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "原文用「俱贵」统摄寅月、卯月、子辰年月、己午火月四组，本条只取寅月。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_renshen_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiashen_renshen_02",
+      "citation": {
+        "exact_quote": "卯月以刃合煞俱貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "壬",
+        "hour_branch": "申",
+        "month_branch": "卯"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "卯月",
+          "以刃合煞"
+        ],
+        "conclusion": "甲申日壬申时生于卯月，原文称「以刃合煞」，断「贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "卯为甲之羊刃，原文以刃合申中七杀。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_renshen_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiashen_renshen_03",
+      "citation": {
+        "exact_quote": "子辰年月以煞化印"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "壬",
+        "hour_branch": "申",
+        "year_month_branches": [
+          "子",
+          "辰"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "子辰年月",
+          "以煞化印"
+        ],
+        "conclusion": "甲申日壬申时，年支或月支为子或辰，原文称「以煞化印」，断「吉」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "子辰半合水为印，半合未建模，条件只取年月支。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiashen_renshen_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiashen_renshen_04",
+      "citation": {
+        "exact_quote": "己午火月七煞有制俱吉"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "申",
+        "hour_stem": "壬",
+        "hour_branch": "申",
+        "month_branch": "午"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "午月",
+          "七煞有制"
+        ],
+        "conclusion": "甲申日壬申时生于午月，原文称「七煞有制」，断「吉」。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "引文作「己午火月」，「己」可能是衬字或指己午日，条件只取午月支，置信取 LOW。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_renshen_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiaxu_renshen_01",
+      "citation": {
+        "exact_quote": "甲戌日壬申時辰戌丑未月衣錦有成"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "壬",
+        "hour_branch": "申",
+        "month_branch": [
+          "辰",
+          "戌",
+          "丑",
+          "未"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "辰戌丑未月",
+          "衣錦有成"
+        ],
+        "conclusion": "甲戌日壬申时，生于辰、戌、丑、未四月之一，原文断「衣锦有成」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_renshen_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiaxu_renshen_02",
+      "citation": {
+        "exact_quote": "亥月學堂"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "壬",
+        "hour_branch": "申",
+        "month_branch": "亥"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "亥月",
+          "學堂"
+        ],
+        "conclusion": "甲戌日壬申时生于亥月，原文称「学堂」，与「寅月建禄」并列，原文统断「俱贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "亥为甲之长生，古称学堂。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_renshen_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiaxu_renshen_03",
+      "citation": {
+        "exact_quote": "寅月建禄俱貴"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "壬",
+        "hour_branch": "申",
+        "month_branch": "寅"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "寅月",
+          "建禄"
+        ],
+        "conclusion": "甲戌日壬申时生于寅月，原文称「建禄」，断「贵」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "甲禄在寅。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_jiaxu_renshen_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_renshen.jiaxu_renshen_04",
+      "citation": {
+        "exact_quote": "午酉月壽促不然貧賤"
+      },
+      "condition": {
+        "day_stem": "甲",
+        "day_branch": "戌",
+        "hour_stem": "壬",
+        "hour_branch": "申",
+        "month_branch": [
+          "午",
+          "酉"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "午酉月",
+          "壽促",
+          "貧賤"
+        ],
+        "conclusion": "甲戌日壬申时生于午月或酉月，原文断「寿促，不然贫贱」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    }
+  ]
+}
