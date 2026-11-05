@@ -1,27 +1,22 @@
 # MingLi Agent（命理智能体）
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Branch-hardening%2Fmingli--v1-blue?style=for-the-badge&logo=git" alt="Branch" />
-  <img src="https://img.shields.io/badge/Tests-1022_Passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests" />
-  <img src="https://img.shields.io/badge/Mypy-0_Errors_(108_files)-success?style=for-the-badge&logo=python&logoColor=white" alt="Mypy" />
-  <img src="https://img.shields.io/badge/Ruff-Clean-success?style=for-the-badge&logo=ruff&logoColor=white" alt="Ruff" />
+  <img src="https://img.shields.io/badge/Discipline-Formal_Collation_%26_ASTs-334155?style=flat-square" alt="Discipline" />
+  <img src="https://img.shields.io/badge/Ephemeris-sxtwl_(High_Precision)-1e293b?style=flat-square" alt="Ephemeris" />
+  <img src="https://img.shields.io/badge/Verification-SHA256_Collation_%7C_1022_Tests-475569?style=flat-square" alt="Verification" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/Ephemeris-sxtwl_(寿星天文历)-3776AB?style=flat-square" alt="sxtwl" /></a>
-  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/Rules-81_Active_Atoms-orange?style=flat-square" alt="Rules" /></a>
-  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/API-12_Endpoints-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" /></a>
-  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/UI-Single_Page_Web_App-646CFF?style=flat-square" alt="Web UI" /></a>
-  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/Citation-Canonical_URN_%2B_SHA256-blueviolet?style=flat-square" alt="URN" /></a>
+  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/Branch-hardening%2Fmingli--v1-334155?style=flat-square" alt="Branch" /></a>
+  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/Rules-81_Active_Atoms-1e293b?style=flat-square" alt="Rules" /></a>
+  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/Mypy-0_Errors_(108_files)-475569?style=flat-square" alt="Mypy" /></a>
+  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/API-12_Endpoints-334155?style=flat-square" alt="API" /></a>
+  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/UI-Zero_Build_SPA-1e293b?style=flat-square" alt="Web UI" /></a>
 </p>
 
-**可验证的命理推理系统 · Verifiable Chinese Astrology Reasoning System**
+Asking a standard neural net to interpret ancient texts or astrology results in polite, probabilistic cold reading. Historical rules are either computable state machines or useless stochastic noise. MingLi Agent executes chart casting via deterministic astronomical ephemeris (`sxtwl`), tracks rule atoms through explicit condition graphs, and pins classical citations to base block-print editions via SHA-256 hashes. If a single glyph deviates, collation fails.
 
-不是「会算命的聊天机器人」。排盘由确定性引擎算，结论必须能追到命盘要素与规则出处，
-每一句典籍断语都要能在固化底本里逐字找到。
-
-> 🌐 **English Guide & Overview**:
-> **MingLi Agent** is a verifiable, non-hallucinatory Chinese Astrology reasoning engine. Instead of generating probabilistic fortune-telling text, chart casting is calculated deterministically via high-precision astronomical ephemeris (`sxtwl`). Every derived judgment is mapped to an explicit evidence chain and pinned to immutable classical texts via Canonical Citation URNs (`urn:divination:...`) backed by SHA256 hashes. If a single character in the source text differs, collation fails. Includes 1022 passing tests, 0 Mypy errors across 108 files, 81 active rules, a zero-build single-page collation UI, and 12 RESTful API endpoints.
+让传统大模型解释古典命理，本质上是一场披着高科技外衣的概率型冷读术（Cold Reading）。古老规则要么被拆解为可形式化验证的确定性状态机，要么就是不可信的随机噪声。MingLi Agent 绝非“会算命的聊天机器人”：排盘严格由高精度寿星天文历（`sxtwl`）确定性实算，全链路条件追踪阻断断环，每句典籍断语均由底本 SHA-256 哈希固化引证；差错一个字，校勘门禁直接熔断。
 
 ---
 
