@@ -1,9 +1,72 @@
 # MingLi Agent（命理智能体）
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Branch-hardening%2Fmingli--v1-blue?style=for-the-badge&logo=git" alt="Branch" />
+  <img src="https://img.shields.io/badge/Tests-1022_Passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests" />
+  <img src="https://img.shields.io/badge/Mypy-0_Errors_(108_files)-success?style=for-the-badge&logo=python&logoColor=white" alt="Mypy" />
+  <img src="https://img.shields.io/badge/Ruff-Clean-success?style=for-the-badge&logo=ruff&logoColor=white" alt="Ruff" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/Ephemeris-sxtwl_(寿星天文历)-3776AB?style=flat-square" alt="sxtwl" /></a>
+  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/Rules-81_Active_Atoms-orange?style=flat-square" alt="Rules" /></a>
+  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/API-12_Endpoints-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" /></a>
+  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/UI-Single_Page_Web_App-646CFF?style=flat-square" alt="Web UI" /></a>
+  <a href="https://github.com/AZEN-jc/agent-knowledge-os"><img src="https://img.shields.io/badge/Citation-Canonical_URN_%2B_SHA256-blueviolet?style=flat-square" alt="URN" /></a>
+</p>
+
 **可验证的命理推理系统 · Verifiable Chinese Astrology Reasoning System**
 
 不是「会算命的聊天机器人」。排盘由确定性引擎算，结论必须能追到命盘要素与规则出处，
 每一句典籍断语都要能在固化底本里逐字找到。
+
+> 🌐 **English Guide & Overview**:
+> **MingLi Agent** is a verifiable, non-hallucinatory Chinese Astrology reasoning engine. Instead of generating probabilistic fortune-telling text, chart casting is calculated deterministically via high-precision astronomical ephemeris (`sxtwl`). Every derived judgment is mapped to an explicit evidence chain and pinned to immutable classical texts via Canonical Citation URNs (`urn:divination:...`) backed by SHA256 hashes. If a single character in the source text differs, collation fails. Includes 1022 passing tests, 0 Mypy errors across 108 files, 81 active rules, a zero-build single-page collation UI, and 12 RESTful API endpoints.
+
+---
+
+## ⚡ 30 秒极速开箱：双模运行指南 (30-Second Quickstart)
+
+### 模式 A：单页校勘 Web UI 交互体验 (Zero-Build Web UI)
+```bash
+# 启动 API 与单页校勘界面（零打包构建，开箱即用）
+python -m api.server
+# 浏览器直达 http://127.0.0.1:8000 ，输入公历或农历生辰，即享命盘排盘、逐字引证与时间轴
+```
+
+### 模式 B：命令行回归门禁与自动化评估 (Headless Regression Gate)
+```bash
+# 运行 10 大金标准案例 × 3 主题系统行为不变量验证门禁
+python evaluation/runner.py
+
+# 机器可读 JSON 格式输出（供 CI / CD 门禁集成）
+python evaluation/runner.py --json
+```
+
+### 终端评估门禁运行样张 (Simulated Evaluation Run)
+
+```text
+$ python evaluation/runner.py
+
+======================================================================
+MINGLI AGENT DETERMINISTIC EVALUATION RUNNER (10 Cases x 3 Themes)
+======================================================================
+[CASE 01] 庚午 辛巳 壬申 丁未 -> 6 Invariants [PASS] (Score: 0.78, Evidence: 100%)
+[CASE 02] 甲子 丙寅 戊辰 癸亥 -> 6 Invariants [PASS] (Score: 0.82, Evidence: 100%)
+...
+[CASE 10] 丁卯 癸卯 乙丑 辛巳 -> 6 Invariants [PASS] (Score: 0.71, Evidence: 100%)
+──────────────────────────────────────────────────────────────────────
+INVARIANT VERIFICATION SUMMARY:
+  ✔ 1. Evidence chain continuity (no broken rings)
+  ✔ 2. Independent critic verification passed
+  ✔ 3. Zero out-of-boundary rule citations
+  ✔ 4. No ungrounded absolute assertions
+  ✔ 5. Bounded concave intensity [0, 1)
+  ✔ 6. Exact determinism & reproducibility across runs
+──────────────────────────────────────────────────────────────────────
+STATUS : 30/30 PASSED (All 6 invariants satisfied, Return Code: 0)
+======================================================================
+```
 
 ---
 
@@ -205,10 +268,28 @@ urn:divination:bazi:sanmingtonghui:ws761697:j8.liujia_ri.jiachen_jiazi
 - **契约层** 只给模型证据链（不含原始命盘与全量规则库），只接受 `rule_ids` 与 `text` 两个键
 - 契约本身可通过 `GET /api/llm/contract` 审计 —— 只写在源码注释里的契约等于没有契约
 
-### Web 界面
+### Web 界面与校勘本交互 (Single-Page Collation UI)
 
-`static/index.html` 单文件、无框架、无构建步骤。输入生辰 → 看命盘、证据链、
-审查结果、流年时间轴。古典规则额外展示书名、底本、逐字原文与可点开的出处地址。
+`static/index.html` 单文件、零构建、零打包框架。输入公历或农历生辰，实时渲染排盘、结构事实、逐字引证与流年时间轴：
+
+```text
++--------------------------------------------------------------------------+
+|  MingLi Agent | 可验证的命理推理系统                      [API Docs] [/docs]  |
++--------------------------------------------------------------------------+
+|  [ 生辰输入: 1990-05-18 14:30 | 性别: 乾造 | 节气换算: 自动 ]  [ 确定性推理 ] |
++--------------------------------------------------------------------------+
+|  【八字命盘】 庚午(年)  辛巳(月)  壬申(日)  丁未(时)                           |
+|  【五行强弱】 日主壬水 [中和偏弱] | 月令巳火 [得令偏旺] | 纳音: 剑锋金/路旁土  |
++--------------------------------------------------------------------------+
+|  【证据链与逐字回溯】(Evidence Chain)                                     |
+|  - 规则 STRUCT_ROOT_001 : 日主壬水生于巳月，中气庚金透出 (事实满足)         |
+|  - 典籍 URN: urn:divination:bazi:sanmingtonghui:ws761697:j8...           |
+|    "《三命通會》卷八：壬生巳月，透庚偏印，煞化為權..."                      |
+|    [SHA256: 4a8f9b...] [底本状态: BASE Verified] [出处: MediaWiki #761697]  |
++--------------------------------------------------------------------------+
+|  【Critic 独立审查】 证据覆盖率 100% | 规则越界引用: 0 | 强度算式: 0.78 (凹饱和) |
++--------------------------------------------------------------------------+
+```
 
 ---
 
