@@ -20,6 +20,9 @@
    **从「被系统杀掉」降到 5.9 秒**（实测），并补两条守卫测试钉住这件事。
 3. **修真实服务测试**：`tests/test_web_ui.py` 改用内核分配的空闲端口，
    `api/server.py` 新增 `MINGLI_PORT` 环境变量（缺省仍是 8000）。
+4. **补章节级账本**：`scripts/chapter_ledger.py` 把 60 节的录入状态集中成一张表，
+   生成 `docs/reports/juan8-chapter-ledger.md`，并加 6 条守卫测试。
+   当前读数：**60 节 / 360 条 / 已录 13 节 / 229 原子 / 暂缓 73 处 / 待录 47 节**。
 
 另外把上一轮遗留的两处改动一并入账：见证测试的注册表 `lru_cache` 复用，
 以及 `phase6-liujia-complete.md` 六甲日收口报告。
@@ -51,6 +54,9 @@ SIGTERM(137) 退出，一开始以为是沙箱重活，读代码才发现是循�
 | `tests/test_atom_pipeline.py` | 改 | 两条复用守卫（含构建次数探针） |
 | `tests/test_web_ui.py` | 改 | 动态端口 + 子进程存活检查 |
 | `api/server.py` | 改 | `MINGLI_PORT` 环境变量 |
+| `scripts/chapter_ledger.py` | 新增 | 60 节账本生成与不变量检查 |
+| `tests/test_chapter_ledger.py` | 新增 | 6 条账本守卫（含两条变异探针） |
+| `docs/reports/juan8-chapter-ledger.md` | 新增 | 生成的一页式账本表格 |
 | `docs/reports/phase6-liujia-complete.md` | 新增 | 上一轮六甲日收口报告（补交） |
 | `docs/reports/phase6-liuyi-bingzi.md` | 新增 | 本报告 |
 
@@ -103,6 +109,9 @@ LOW 的 9 条全部有具体原因：原文另有否定条件、限定语，或�
 | `test_structural_rules.py`（见证核对） | 29 passed，12.46 秒 |
 | `test_web_ui.py`（真起 uvicorn） | 10 passed |
 | `test_report_export.py`（单独复跑） | 10 passed |
+| `test_chapter_ledger.py` + `test_corpus_manifest.py` + `test_atom_integrity.py` | 34 passed |
+| `scripts/chapter_ledger.py --check` | 账本自洽，退出 0 |
+| `pstack verify all` | 三项门禁全绿 |
 | `ruff check` | All checks passed |
 | `mypy`（项目配置，89 文件） | Success: no issues found |
 | 端到端 `/api/analyze` | HTTP 200，新断语在链上 |
@@ -133,8 +142,9 @@ LOW 的 9 条全部有具体原因：原文另有否定条件、限定语，或�
    各自调用 `default_registry()`，每个函数重建一次。已修的是见证测试与清单脚本，
    **其余文件没动** —— 因为它们里有「新建注册表与基线同指纹」这类故意重建的断言，
    全局缓存会把这类守卫悄悄变成永真。要推广得逐个文件判断，不是全局替换。
-2. 章节级账本还没有。60 节的录入状态、暂缓处数、原子数仍散在 13 份 JSON
-   与 `chapters.json` 里，靠人记容易漏。
+2. ~~章节级账本还没有~~ —— 本轮已补：`chapter_ledger.py` + 6 条守卫 +
+   一页式表格，60 节状态集中可读。注意它是**派生产物**，生成在
+   `docs/reports/` 而不是语料目录，避免多出的文件干扰 corpus manifest。
 3. 8000 端口仍被老板另一个项目占用。测试已不依赖它，但手工 `python -m api.server`
    在这个环境下要用 `MINGLI_PORT` 换端口。
 
@@ -153,8 +163,9 @@ LOW 的 9 条全部有具体原因：原文另有否定条件、限定语，或�
 
 1. 继续第 14 节「六乙日丑時斷」。标题只写地支，按原文首句「六乙日生時丁丑」
    补全时柱为**丁丑**，与卷八第 9~11 节同样处理。
-2. 补一份章节级账本：一张表列全 60 节的章节键、标题、条目数、原子数、
-   暂缓处数、录入状态，由脚本从底本与原子文件生成，避免手抄漂移。
+2. ~~补章节级账本~~ —— 已完成。后续每录一节跑
+   `python scripts/chapter_ledger.py --check --write`，让账本与原子文件同步，
+   不要手抄状态。
 3. 注册表复用推广只做「明确只读」的那几个文件，并给每个改动配一条
    「新建与缓存口径一致」的断言，防止把守卫变成永真。
 
