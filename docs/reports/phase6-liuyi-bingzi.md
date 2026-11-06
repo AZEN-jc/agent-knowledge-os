@@ -115,8 +115,12 @@ LOW 的 9 条全部有具体原因：原文另有否定条件、限定语，或�
 | `ruff check` | All checks passed |
 | `mypy`（项目配置，89 文件） | Success: no issues found |
 | 端到端 `/api/analyze` | HTTP 200，新断语在链上 |
-| 本地全量测试（提交后） | 后台进行中（约 29 分钟），结果待补记 |
-| GitHub Actions | 本次推送触发 run **42252170755**，查询时 in_progress；上一轮 42064247051 已确认 success |
+| 本地全量测试（提交后） | **1579 passed / 2 skipped / 0 failed，25m48s，exit 0** |
+| GitHub Actions | 最新 run **42253170762**（headSha `3e8de84`）查询时 in_progress；前两次被后续 push 自动 cancel，不是失败。上一轮 42064247051 已确认 success |
+
+全量测试是在账本守卫文件落盘**之前**启动的，所以那 1579 条不含
+`test_chapter_ledger.py` 的 6 条；后者单独跑 6 passed，并与 manifest/integrity
+合跑 34 passed。CI 的最终 run 会把它们一起收进去。
 
 **变异探针**：撤掉 `shared_registry` 复用、只复核 4 条重叠，构建次数从 1 变 6；
 撤到底直接被 SIGTERM。守卫不是摆设。

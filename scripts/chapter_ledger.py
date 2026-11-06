@@ -159,6 +159,9 @@ def main() -> int:
 
     ledger = build_ledger()
     issues = problems(ledger)
+    if args.write and not issues:
+        LEDGER_FILE.write_text(markdown(ledger), encoding="utf-8")
+        print(f"已写入 {LEDGER_FILE.relative_to(REPO)}")
     if args.check:
         for issue in issues:
             print(issue)
@@ -168,9 +171,6 @@ def main() -> int:
         print(json.dumps(ledger, ensure_ascii=False, indent=2))
     else:
         print(markdown(ledger), end="")
-    if args.write and not issues:
-        LEDGER_FILE.write_text(markdown(ledger), encoding="utf-8")
-        print(f"已写入 {LEDGER_FILE.relative_to(REPO)}")
     return 0 if not issues else 1
 
 
