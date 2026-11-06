@@ -9,6 +9,8 @@
    运行时重新验证一遍。新增规则时若不补见证，测试直接失败。
 """
 
+from functools import lru_cache
+
 from engines.bazi import BirthInput, SxtwlBaziProvider
 from knowledge.classical_backlog import CLASSICAL_BACKLOG, BacklogStatus, next_action
 from knowledge.default_rules import default_registry, default_schools
@@ -49,22 +51,31 @@ STRUCTURAL_ABSENCE: frozenset[str] = frozenset({
 })
 
 
+@lru_cache(maxsize=1)
+def _matching_registry():
+    """见证核对共用的注册表。
+
+    Why: 构建一次约 4.9 秒，匹配一次约 1.6 毫秒 [实测 Measured]。
+    """
+    return default_registry()
+
+
 def matched_rule_ids(year: int, month: int, day: int, hour: int) -> set[str]:
     chart = PROVIDER.calculate(BirthInput(year, month, day, hour))
-    return {match.rule.id for match in default_registry().match(extract_facts(chart))}
+    return {match.rule.id for match in _matching_registry().match(extract_facts(chart))}
 
 
 # ── 规模与来源 ─────────────────────────────────────────────────────────
 
 
 def test_rule_library_meets_the_phase_two_minimum():
-    assert len(default_registry().select()) >= PHASE_TWO_MINIMUM_RULES
+    assert len(_matching_registry().select()) >= PHASE_TWO_MINIMUM_RULES
 
 
 def test_every_rule_declares_source_school_category_and_topic():
     schools = default_schools()
 
-    for rule in default_registry().select():
+    for rule in _matching_registry().select():
         assert rule.source.strip(), f"{rule.id} 缺少来源"
         assert rule.category.strip(), f"{rule.id} 缺少类别"
         assert rule.topic.strip(), f"{rule.id} 缺少主题"
@@ -72,7 +83,7 @@ def test_every_rule_declares_source_school_category_and_topic():
 
 
 def test_every_rule_condition_key_exists_in_the_fact_schema():
-    unknown = default_registry().condition_keys() - set(FACT_SCHEMA)
+    unknown = _matching_registry().condition_keys() - set(FACT_SCHEMA)
 
     assert unknown == set(), f"规则引用了不存在的事实键：{sorted(unknown)}"
 
@@ -86,7 +97,7 @@ def test_the_structural_layer_is_still_purely_structural():
     一旦允许结构规则挂 citation，两层就会互相渗 —— 一条查表算出来的规则
     看起来像是有文献背书的，而它的 citation 没人核对过。
     """
-    structural = default_registry().select(source_tier=SourceTier.STRUCTURAL)
+    structural = _matching_registry().select(source_tier=SourceTier.STRUCTURAL)
 
     assert structural
     assert {rule.review_status for rule in structural} == {ReviewStatus.ACTIVE}
@@ -102,7 +113,7 @@ def test_the_classical_layer_keeps_its_evidence_discipline():
     而引证守卫只在**规则构造时**跑一次。如果有人后来绕过 ``rule_atoms``
     手工 ``registry.add`` 一条，守卫不会重跑 —— 除非这里再查一遍。
     """
-    classical = default_registry().select(source_tier=SourceTier.CLASSICAL)
+    classical = _matching_registry().select(source_tier=SourceTier.CLASSICAL)
 
     assert classical, "典籍层为空说明原子没被加载进来，而不是「还没录」"
     for rule in classical:
@@ -114,7 +125,7 @@ def test_the_classical_layer_keeps_its_evidence_discipline():
 
 
 def test_rule_ids_are_unique_and_prefixed():
-    rules = default_registry().select()
+    rules = _matching_registry().select()
     ids = [rule.id for rule in rules]
 
     assert len(ids) == len(set(ids))
@@ -126,7 +137,7 @@ def test_rule_id_prefix_matches_the_tier():
     结构层的 ``STRUCT_`` 指向 ``engines/bazi`` 的表，典籍层的 ``rule_`` 指向
     ``corpus/canonical`` 下的底本。前缀错了，人就会去错地方找依据。
     """
-    for rule in default_registry().select():
+    for rule in _matching_registry().select():
         if rule.source_tier is SourceTier.STRUCTURAL:
             assert rule.id.startswith("STRUCT_"), f"{rule.id} 是结构层规则，前缀应为 STRUCT_"
         else:
@@ -140,7 +151,7 @@ def test_classical_rule_ids_are_greppable_back_to_their_corpus():
     而 URN 在报错日志里常常被截断。ID 自带的这一小段冗余，是故障时唯一
     还留在屏幕上、能让人摸回底本的线索。
     """
-    for rule in default_registry().select(source_tier=SourceTier.CLASSICAL):
+    for rule in _matching_registry().select(source_tier=SourceTier.CLASSICAL):
         assert rule.citation is not None
         urn = rule.citation.parsed_urn
         assert urn is not None, f"{rule.id} 的 URN 解析不出来"
@@ -149,14 +160,14 @@ def test_classical_rule_ids_are_greppable_back_to_their_corpus():
 
 
 def test_rule_versions_are_declared():
-    assert all(rule.version.strip() for rule in default_registry().select())
+    assert all(rule.version.strip() for rule in _matching_registry().select())
 
 
 # ── 覆盖面：该有的规则都要有 ───────────────────────────────────────────
 
 
 def test_ten_god_rules_cover_all_ten_gods_for_root_and_void():
-    rules = default_registry()
+    rules = _matching_registry()
     rooted = {rule.condition["ten_god_with_root"] for rule in rules.select(category="ten_god")
               if "ten_god_with_root" in rule.condition}
     void = {rule.condition["ten_god_without_root"] for rule in rules.select(category="ten_god")
@@ -167,7 +178,7 @@ def test_ten_god_rules_cover_all_ten_gods_for_root_and_void():
 
 
 def test_pattern_rules_cover_the_eight_patterns_in_both_methods():
-    rules = default_registry()
+    rules = _matching_registry()
     by_main = {rule.condition["month_branch_ten_god"] for rule in rules.select(category="pattern")
                if "month_branch_ten_god" in rule.condition}
     by_transparent = {
@@ -184,7 +195,7 @@ def test_pattern_rules_cover_the_eight_patterns_in_both_methods():
 def test_relation_rules_cover_every_relation_type():
     covered = {
         rule.condition["has_relation"]
-        for rule in default_registry().select(category="relation")
+        for rule in _matching_registry().select(category="relation")
         if "has_relation" in rule.condition
     }
 
@@ -192,7 +203,7 @@ def test_relation_rules_cover_every_relation_type():
 
 
 def test_element_rules_cover_every_element_for_missing_and_dominant():
-    rules = default_registry().select(category="element")
+    rules = _matching_registry().select(category="element")
     missing = {rule.condition["missing_elements"] for rule in rules if "missing_elements" in rule.condition}
     dominant = {rule.condition["dominant_elements"] for rule in rules if "dominant_elements" in rule.condition}
 
@@ -204,7 +215,7 @@ def test_element_rules_cover_every_element_for_missing_and_dominant():
 
 
 def test_every_rule_has_a_witness_chart():
-    missing = sorted({rule.id for rule in default_registry().select()} - set(RULE_WITNESS))
+    missing = sorted({rule.id for rule in _matching_registry().select()} - set(RULE_WITNESS))
 
     assert missing == [], (
         "以下规则没有任何见证命盘，属于死规则："
@@ -223,7 +234,7 @@ def classical_chapter_of() -> dict[str, str]:
     """每条典籍规则的 <卷>.<篇>，用来界定「同组」。"""
     return {
         rule.id: f"{rule.citation.parsed_urn.juan}.{rule.citation.parsed_urn.chapter}"
-        for rule in default_registry().select(source_tier=SourceTier.CLASSICAL)
+        for rule in _matching_registry().select(source_tier=SourceTier.CLASSICAL)
     }
 
 
@@ -297,7 +308,7 @@ DISAGREEING_BIRTH = (1990, 1, 9, 14)
 
 
 def evidence_for(birth: tuple[int, int, int, int]):
-    return build_evidence(PROVIDER.calculate(BirthInput(*birth)), default_registry())
+    return build_evidence(PROVIDER.calculate(BirthInput(*birth)), _matching_registry())
 
 
 def test_two_pattern_methods_agreeing_is_not_reported_as_conflict():
@@ -343,7 +354,7 @@ def test_conflicts_reduce_evidence_strength():
 
 def test_evidence_reports_no_unreviewed_rules_for_the_current_library():
     evidence = build_evidence(
-        PROVIDER.calculate(BirthInput(1990, 2, 1, 12)), default_registry()
+        PROVIDER.calculate(BirthInput(1990, 2, 1, 12)), _matching_registry()
     )
 
     assert evidence.unreviewed_rule_ids == ()
@@ -351,7 +362,7 @@ def test_evidence_reports_no_unreviewed_rules_for_the_current_library():
 
 def test_evidence_serialises_provenance_for_every_matched_rule():
     evidence = build_evidence(
-        PROVIDER.calculate(BirthInput(1990, 2, 1, 12)), default_registry()
+        PROVIDER.calculate(BirthInput(1990, 2, 1, 12)), _matching_registry()
     )
     payload = evidence.to_dict()
 
@@ -751,6 +762,36 @@ RULE_WITNESS: dict[str, tuple[int, int, int, int]] = {
     "rule_bazi_sanmingtonghui_j8_jiazi_yihai_02": (1954, 9, 5, 22),
     "rule_bazi_sanmingtonghui_j8_jiazi_yihai_03": (1950, 9, 26, 22),
     "rule_bazi_sanmingtonghui_j8_jiazi_yihai_04": (1950, 1, 29, 22),
+    # ── 典籍层（卷八 · 六乙日丙子时断）
+    # 见证由 scripts/atom_witness.py 实算，同组共命中一并登记。
+    # Constraint: 同条目的无条件断语是条件断语的真子集，重叠是必然结果。
+    "rule_bazi_sanmingtonghui_j8_yichou_bingzi_01": (1950, 1, 30, 0),
+    "rule_bazi_sanmingtonghui_j8_yichou_bingzi_02": (1951, 9, 22, 0),
+    "rule_bazi_sanmingtonghui_j8_yichou_bingzi_03": (1950, 3, 31, 0),
+    "rule_bazi_sanmingtonghui_j8_yichou_bingzi_04": (1953, 7, 13, 0),
+    "rule_bazi_sanmingtonghui_j8_yihai_bingzi_01": (1950, 2, 9, 0),
+    "rule_bazi_sanmingtonghui_j8_yihai_bingzi_02": (1951, 2, 4, 0),
+    "rule_bazi_sanmingtonghui_j8_yihai_bingzi_03": (1961, 4, 12, 0),
+    "rule_bazi_sanmingtonghui_j8_yihai_bingzi_04": (1950, 10, 7, 0),
+    "rule_bazi_sanmingtonghui_j8_yimao_bingzi_01": (1950, 3, 21, 0),
+    "rule_bazi_sanmingtonghui_j8_yimao_bingzi_02": (1950, 1, 20, 0),
+    "rule_bazi_sanmingtonghui_j8_yimao_bingzi_03": (1963, 5, 12, 0),
+    "rule_bazi_sanmingtonghui_j8_yimao_bingzi_04": (1957, 8, 11, 0),
+    "rule_bazi_sanmingtonghui_j8_yimao_bingzi_05": (1962, 9, 14, 0),
+    "rule_bazi_sanmingtonghui_j8_yisi_bingzi_01": (1950, 1, 10, 0),
+    "rule_bazi_sanmingtonghui_j8_yisi_bingzi_02": (1950, 3, 11, 0),
+    "rule_bazi_sanmingtonghui_j8_yisi_bingzi_03": (1951, 1, 5, 0),
+    "rule_bazi_sanmingtonghui_j8_yisi_bingzi_04": (1953, 2, 23, 0),
+    "rule_bazi_sanmingtonghui_j8_yisi_bingzi_05": (1960, 9, 14, 0),
+    "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_01": (1950, 3, 1, 0),
+    "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_02": (1950, 12, 26, 0),
+    "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_03": (1958, 7, 17, 0),
+    "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_04": (1951, 8, 23, 0),
+    "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_05": (1956, 1, 29, 0),
+    "rule_bazi_sanmingtonghui_j8_yiyou_bingzi_01": (1950, 4, 20, 0),
+    "rule_bazi_sanmingtonghui_j8_yiyou_bingzi_02": (1950, 2, 19, 0),
+    "rule_bazi_sanmingtonghui_j8_yiyou_bingzi_03": (1953, 6, 3, 0),
+    "rule_bazi_sanmingtonghui_j8_yiyou_bingzi_04": (1952, 10, 6, 0),
 }
 
 # ── 见证盘的同组重叠豁免 ──────────────────────────────────────────────
@@ -1072,4 +1113,91 @@ WITNESS_ALSO_MATCHES: dict[str, frozenset[str]] = {
     "rule_bazi_sanmingtonghui_j8_jiazi_yihai_04": frozenset({
         "rule_bazi_sanmingtonghui_j8_jiazi_yihai_01",
     }),
+    # ── 典籍层（卷八 · 六乙日丙子时断）
+    # 见证由 scripts/atom_witness.py 实算，同组共命中一并登记。
+    # Constraint: 同条目的无条件断语是条件断语的真子集，重叠是必然结果。
+    "rule_bazi_sanmingtonghui_j8_yichou_bingzi_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yichou_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yichou_bingzi_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yichou_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yichou_bingzi_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yichou_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yihai_bingzi_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yihai_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yihai_bingzi_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yihai_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yihai_bingzi_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yihai_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yimao_bingzi_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yimao_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yimao_bingzi_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yimao_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yimao_bingzi_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yimao_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yimao_bingzi_05": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yimao_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yisi_bingzi_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yisi_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yisi_bingzi_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yisi_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yisi_bingzi_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yisi_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yisi_bingzi_05": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yisi_bingzi_01",
+        "rule_bazi_sanmingtonghui_j8_yisi_bingzi_02",
+        "rule_bazi_sanmingtonghui_j8_yisi_bingzi_03",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_05": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yiyou_bingzi_02": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yiyou_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yiyou_bingzi_03": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yiyou_bingzi_01",
+    }),
+    "rule_bazi_sanmingtonghui_j8_yiyou_bingzi_04": frozenset({
+        "rule_bazi_sanmingtonghui_j8_yiyou_bingzi_01",
+    }),
 }
+
+
+# ── 见证核对的注册表复用 ───────────────────────────────────────────────
+
+
+def test_matching_registry_is_cached():
+    """见证核对不能每张盘重建注册表。
+
+    Why: default_registry 单次约 4.9 秒，registry.match 约 1.6 毫秒 [实测 Measured]。
+    202 张盘乘以三个测试函数会把重复构建累积成约 50 分钟。
+    """
+    assert _matching_registry() is _matching_registry()
+
+
+def test_matching_registry_agrees_with_a_fresh_build():
+    """缓存的注册表不能与新建的口径不同。"""
+    assert {rule.id for rule in _matching_registry().select()} == {
+        rule.id for rule in default_registry().select()
+    }

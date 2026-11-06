@@ -164,3 +164,34 @@ def test_day_pillar_probe_returns_a_valid_pair():
     assert branch in "子丑寅卯辰巳午未申酉戌亥"
     # 同一日必得同一日柱（纯函数，不依赖调用时刻）。
     assert _day_pillar_of(dt.date(1990, 2, 28)) == (stem, branch)
+
+
+# ── 清单脚本的注册表复用 ───────────────────────────────────────────────
+
+
+def test_checklist_registry_is_shared_across_calls():
+    """status() 不能对每条重叠登记都重建注册表。
+
+    Why: 单次构建约 4.9 秒 [实测 Measured]，107 条登记会把清单脚本拖到
+    约 9 分钟，在资源受限环境里直接被杀掉。
+    """
+    import atom_checklist
+
+    assert atom_checklist.shared_registry() is atom_checklist.shared_registry()
+
+
+def test_checklist_status_builds_the_registry_once(monkeypatch):
+    """撤掉复用后这条会红：它是重复构建的直接探针。"""
+    import atom_checklist as mod
+
+    mod.shared_registry.cache_clear()
+    builds: list[int] = []
+    original = mod.default_registry
+
+    def counted():
+        builds.append(1)
+        return original()
+
+    monkeypatch.setattr(mod, "default_registry", counted)
+    assert mod.status() == 0
+    assert len(builds) == 1, f"清单脚本重建了 {len(builds)} 次注册表"

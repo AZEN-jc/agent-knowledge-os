@@ -1128,10 +1128,17 @@ def _to_user_message(exc: Exception) -> str:
 
 
 def main() -> None:
-    """本地启动。``python -m api.server`` 即可，默认 8000 端口。"""
+    """本地启动。``python -m api.server`` 即可，默认 8000 端口。
+
+    ``MINGLI_PORT`` 可覆盖端口：8000 常被别的本地服务占用，写死会让
+    「真起服务」的测试连到别人的页面上，报出与本项目无关的失败。
+    """
+    import os
+
     import uvicorn
 
-    uvicorn.run("api.server:app", host="127.0.0.1", port=8000, reload=False)
+    port = int(os.environ.get("MINGLI_PORT", "8000"))
+    uvicorn.run("api.server:app", host="127.0.0.1", port=port, reload=False)
 
 
 if __name__ == "__main__":

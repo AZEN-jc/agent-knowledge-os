@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -46,6 +47,16 @@ from knowledge.provenance import SourceTier
 
 PROVIDER = SxtwlBaziProvider()
 
+
+@lru_cache(maxsize=1)
+def shared_registry():
+    """清单脚本共用一份注册表。
+
+    Why: 单次构建约 4.9 秒 [实测 Measured]，而重叠复核原来对每条登记都重建
+    一次，107 条登记累计约 9 分钟，在资源受限环境里会被直接杀掉。
+    """
+    return default_registry()
+
 # 事实键观察用的抽样盘。刻意跨多个年月与日干日支，让冷僻键也有机会露面 ——
 # 观察不到不等于没产出（``repeated_branches`` 在多数盘上就是空的），所以
 # 状态栏对观察不到的键报「未观察到」而不是「缺失」。
@@ -57,7 +68,7 @@ PROBE_BIRTHS: tuple[tuple[int, int, int, int], ...] = (
 
 
 def classical_rules() -> list:
-    return list(default_registry().select(source_tier=SourceTier.CLASSICAL))
+    return list(shared_registry().select(source_tier=SourceTier.CLASSICAL))
 
 
 def chapter_of(rule_id: str) -> str | None:
@@ -87,7 +98,7 @@ def audited_fact_keys() -> set[str]:
 def status() -> int:
     """打印四处状态。有未完成项时返回 1。"""
     rules = classical_rules()
-    registry_keys = default_registry().condition_keys()
+    registry_keys = shared_registry().condition_keys()
     emitted = observed_fact_keys()
     audited = audited_fact_keys()
 
@@ -133,7 +144,7 @@ def status() -> int:
             # 这里不再重复报，否则同一次疏漏被数成两件事。
             continue
         year, month, day, hour = birth
-        matched = default_registry().match(
+        matched = shared_registry().match(
             extract_facts(PROVIDER.calculate(BirthInput(year, month, day, hour)))
         )
         got = {m.rule.id for m in matched}
@@ -202,7 +213,7 @@ def suggest_witness(rule_id: str, years: int, want: int, hour: int | None = None
     # 注册表与 provider 都必须在循环外建。``default_registry()`` 每次调用都会
     # 重新读语料、重放守卫；放在循环里等于每张盘重读一遍底本，扫 90 年直接
     # 拖到超时。命盘也只算一次 —— 匹配与事实抽取共用同一张。
-    registry = default_registry()
+    registry = shared_registry()
     start = dt.date(1940, 1, 1)
     end = start + dt.timedelta(days=365 * years)
     found: list[tuple[int, tuple[int, int, int, int], tuple, tuple]] = []

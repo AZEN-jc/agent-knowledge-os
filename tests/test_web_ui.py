@@ -11,7 +11,9 @@
 栈的某些分支。只有真起服务才能证明「按文档里的命令启动」这件事成立。
 """
 
+import os
 import re
+import socket
 import subprocess
 import sys
 import time
@@ -91,20 +93,34 @@ def test_static_files_are_mounted_without_shadowing_the_api():
     assert response.status_code == 200, "静态挂载把 API 路由挡住了"
 
 
+def _free_port() -> int:
+    """向内核要一个空闲端口，而不是假定 8000 空着。
+
+    Why: 8000 被别的本地服务占用时，固定端口的测试会连到别人的页面上，
+    报「页面里没有 MingLi Agent」—— 与本项目无关，却看起来像前端坏了。
+    """
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
 def test_a_real_server_serves_the_page_and_the_endpoints():
     """真起 uvicorn，走一遍浏览器会走的请求。"""
     repo = Path(__file__).resolve().parent.parent
+    port = _free_port()
     process = subprocess.Popen(
         [sys.executable, "-m", "api.server"],
         cwd=repo,
+        env={**os.environ, "MINGLI_PORT": str(port)},
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
     )
     try:
-        base = "http://127.0.0.1:8000"
+        base = f"http://127.0.0.1:{port}"
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline:
+            assert process.poll() is None, "服务进程提前退出"
             try:
                 if urllib.request.urlopen(f"{base}/", timeout=2).status == 200:
                     break

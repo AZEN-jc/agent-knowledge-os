@@ -1,0 +1,822 @@
+{
+  "atom_version": 1,
+  "corpus_id": "bazi_sanmingtonghui_j8",
+  "urn_edition": "ws761697",
+  "section": "六乙日丙子時斷",
+  "coverage": {
+    "entries_in_section": 6,
+    "entries_covered": 6,
+    "atoms": 27,
+    "deferred_clauses": 12,
+    "deferred_note": "十二处从句未能录入：①节首两处总论（诗「六乙日生時丙子…」与「乙日丙子時六乙䑕貴…」）不对应具体日柱，且后者要求「柱中不見庚辛無丑絆午衝」等否定条件；②乙丑日「無午穿衝賢徳溫厚」为否定条件；③乙卯日「（一云）凶中逢吉」是与正文并存的异说；④乙巳日「若己午年月壽促」的「己」为天干，与「午」不构成地支对，疑为「巳」的转录误字，按诚实留白不替底本改字；⑤乙巳日「不然身孤勞碌」是否定分支；⑥乙巳日「純土財旺生官行西運」要求四柱纯土且依赖大运；⑦乙酉日「月通水氣不見辛午亦貴」需要「水气通」的判定与否定条件；⑧乙亥日「生庚辰年月富貴」未言年或月，条件落点不明；⑨乙亥日「純亥成敗」的「純」要求年月两支全属亥；⑩乙亥日「己午西運極貧」落点不明且依赖大运；⑪节末注「以上六日喜忌大同但坐酉巳不成䑕貴别格論之」是全局性论述；⑫节末诗与词两首是歌诀，不对应具体日柱。以上为 BLOCKED_SCHEMA、BLOCKED_GLOBAL 或 BLOCKED_AMBIGUOUS。",
+    "note": "六乙日丙子时断共 6 个日柱条目，全部覆盖。本节是卷八第 13 节，也是六乙日的头一节；丙为乙之伤官、子为乙之贵地，原文大量以「忌某月」列出整柱月限，故 month_pillar 条件最多。标题写明时柱「丙子」，无需按首句补全。"
+  },
+  "note": "节首总论称「六乙鼠贵」，并申明「柱中不見庚辛無丑絆午衝方成格貴」——这是整节的成立前提，属于否定条件，本系统无法判定，因此所有 ACTIVE 原子都只覆盖各自引文里可判定的那一层，不声称鼠贵格成立。",
+  "atoms": [
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yichou_bingzi_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yichou_bingzi_01",
+      "citation": {
+        "exact_quote": "乙丑日丙子時身弱平常"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "丑",
+        "hour_stem": "丙",
+        "hour_branch": "子"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "身弱",
+          "平常"
+        ],
+        "conclusion": "乙丑日丙子时，原文断「身弱，平常」。原文同句另要求「无午穿冲」才断「贤德温厚」，那一层是否定条件，未纳入判定。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「無午穿衝賢徳溫厚」要求四柱不见午、无冲穿，词表无否定条件，故只录日时这一层并降级。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yichou_bingzi_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yichou_bingzi_02",
+      "citation": {
+        "exact_quote": "申酉年月風憲"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "丑",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "year_month_branches": [
+          "申",
+          "酉"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "申酉年月",
+          "風憲"
+        ],
+        "conclusion": "乙丑日丙子时，年支或月支为申、酉之一，原文断「风宪」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yichou_bingzi_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yichou_bingzi_03",
+      "citation": {
+        "exact_quote": "寅子貴顯"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "丑",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "year_month_branches": [
+          "寅",
+          "子"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "positive",
+        "keywords": [
+          "寅子",
+          "貴顯"
+        ],
+        "conclusion": "乙丑日丙子时，年支或月支为寅、子之一，原文断「贵显」。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yichou_bingzi_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yichou_bingzi_04",
+      "citation": {
+        "exact_quote": "忌丙寅己未甲戌己丑等月主凶刑惡死"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "丑",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_pillar": [
+          "丙寅",
+          "己未",
+          "甲戌",
+          "己丑"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "忌月",
+          "凶刑惡死"
+        ],
+        "conclusion": "乙丑日丙子时生于丙寅、己未、甲戌、己丑四月之一，原文断「主凶刑恶死」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「忌…等月」四个月柱共用一个断语，用整柱键的集合写法，不拆成四条。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yimao_bingzi_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yimao_bingzi_01",
+      "citation": {
+        "exact_quote": "乙卯日丙子時高"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "卯",
+        "hour_stem": "丙",
+        "hour_branch": "子"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "positive",
+        "keywords": [
+          "高"
+        ],
+        "conclusion": "乙卯日丙子时，原文断「高」。原文随后另按年月支与「不见官星」分判，本条只录日时这一层。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "「高」之后紧跟条件分判，单录日时会比原文宽，故降级。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yimao_bingzi_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yimao_bingzi_02",
+      "citation": {
+        "exact_quote": "辰戌丑未亥年月不見官星貴"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "卯",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "year_month_branches": [
+          "辰",
+          "戌",
+          "丑",
+          "未",
+          "亥"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "positive",
+        "keywords": [
+          "年月",
+          "不見官星",
+          "貴"
+        ],
+        "conclusion": "乙卯日丙子时，年支或月支为辰、戌、丑、未、亥之一，原文断「贵」。原文同句还要求「不见官星」，那一层是否定条件，未纳入判定。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yimao_bingzi_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yimao_bingzi_03",
+      "citation": {
+        "exact_quote": "忌丁巳月破祖凶"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "卯",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_pillar": "丁巳"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "丁巳月",
+          "破祖"
+        ],
+        "conclusion": "乙卯日丙子时生于丁巳月，原文断「破祖，凶」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yimao_bingzi_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yimao_bingzi_04",
+      "citation": {
+        "exact_quote": "戊申月身不完死"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "卯",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_pillar": "戊申"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "戊申月",
+          "身不完死"
+        ],
+        "conclusion": "乙卯日丙子时生于戊申月，原文断「身不完死」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yimao_bingzi_05",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yimao_bingzi_05",
+      "citation": {
+        "exact_quote": "己酉月惡死"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "卯",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_pillar": "己酉"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "己酉月",
+          "惡死"
+        ],
+        "conclusion": "乙卯日丙子时生于己酉月，原文断「恶死」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yisi_bingzi_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yisi_bingzi_01",
+      "citation": {
+        "exact_quote": "乙巳日丙子時吉"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "巳",
+        "hour_stem": "丙",
+        "hour_branch": "子"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "positive",
+        "keywords": [
+          "吉"
+        ],
+        "conclusion": "乙巳日丙子时，原文断「吉」。原文随后按年月、月令列出多处例外与修正，本条只录日时这一层。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "日时层之下另有多条分判，单录会宽于原文，故降级。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yisi_bingzi_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yisi_bingzi_02",
+      "citation": {
+        "exact_quote": "申月正官酉月偏官卯月建禄俱吉"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "巳",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_branch": [
+          "申",
+          "酉",
+          "卯"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "positive",
+        "keywords": [
+          "申月",
+          "酉月",
+          "卯月",
+          "俱吉"
+        ],
+        "conclusion": "乙巳日丙子时生于申、酉、卯三月之一，原文依次称「正官」「偏官」「建禄」，断「俱吉」。三个月支共用一个断语，不拆成三条。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yisi_bingzi_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yisi_bingzi_03",
+      "citation": {
+        "exact_quote": "子辰行水火運俱二三品貴"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "巳",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "year_month_branches": [
+          "子",
+          "辰"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "positive",
+        "keywords": [
+          "子辰年月",
+          "二三品貴"
+        ],
+        "conclusion": "乙巳日丙子时，年支或月支为子、辰之一，原文断「俱二三品贵」。原文同句还要求「行水火运」，那一半依赖大运，未录。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yisi_bingzi_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yisi_bingzi_04",
+      "citation": {
+        "exact_quote": "忌甲寅月刑夭"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "巳",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_pillar": "甲寅"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "甲寅月",
+          "刑夭"
+        ],
+        "conclusion": "乙巳日丙子时生于甲寅月，原文断「刑夭」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yisi_bingzi_05",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yisi_bingzi_05",
+      "citation": {
+        "exact_quote": "乙酉月下賤"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "巳",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_pillar": "乙酉"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "乙酉月",
+          "下賤"
+        ],
+        "conclusion": "乙巳日丙子时生于乙酉月，原文断「下贱」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yiwei_bingzi_01",
+      "citation": {
+        "exact_quote": "乙未日丙子時平"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "未",
+        "hour_stem": "丙",
+        "hour_branch": "子"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "平"
+        ],
+        "conclusion": "乙未日丙子时，原文断「平」。原文随后按年月支另列大贵与忌月，本条只录日时这一层。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": "日时层之下另有分判，单录会宽于原文，故降级。"
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yiwei_bingzi_02",
+      "citation": {
+        "exact_quote": "若子亥年月大貴歳運同"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "未",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "year_month_branches": [
+          "子",
+          "亥"
+        ]
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "positive",
+        "keywords": [
+          "子亥年月",
+          "大貴"
+        ],
+        "conclusion": "乙未日丙子时，年支或月支为子、亥之一，原文断「大贵」。原文同句还说「岁运同」，那一层依赖岁运，未录。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yiwei_bingzi_03",
+      "citation": {
+        "exact_quote": "忌己未月刑傷"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "未",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_pillar": "己未"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "己未月",
+          "刑傷"
+        ],
+        "conclusion": "乙未日丙子时生于己未月，原文断「刑伤」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yiwei_bingzi_04",
+      "citation": {
+        "exact_quote": "丙申月身不完死"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "未",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_pillar": "丙申"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "丙申月",
+          "身不完死"
+        ],
+        "conclusion": "乙未日丙子时生于丙申月，原文断「身不完死」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yiwei_bingzi_05",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yiwei_bingzi_05",
+      "citation": {
+        "exact_quote": "己丑月破祖惡死"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "未",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_pillar": "己丑"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "己丑月",
+          "破祖惡死"
+        ],
+        "conclusion": "乙未日丙子时生于己丑月，原文断「破祖，恶死」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yiyou_bingzi_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yiyou_bingzi_01",
+      "citation": {
+        "exact_quote": "乙酉日丙子時貴身孤反覆起倒"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "酉",
+        "hour_stem": "丙",
+        "hour_branch": "子"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "neutral",
+        "keywords": [
+          "貴",
+          "身孤",
+          "反覆起倒"
+        ],
+        "conclusion": "乙酉日丙子时，原文断「贵，身孤，反覆起倒」——三者并列，不是一个判断。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yiyou_bingzi_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yiyou_bingzi_02",
+      "citation": {
+        "exact_quote": "忌戊寅月大凶"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "酉",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_pillar": "戊寅"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "戊寅月",
+          "大凶"
+        ],
+        "conclusion": "乙酉日丙子时生于戊寅月，原文断「大凶」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yiyou_bingzi_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yiyou_bingzi_03",
+      "citation": {
+        "exact_quote": "丁巳月破祖貧"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "酉",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_pillar": "丁巳"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "丁巳月",
+          "破祖貧"
+        ],
+        "conclusion": "乙酉日丙子时生于丁巳月，原文断「破祖，贫」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yiyou_bingzi_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yiyou_bingzi_04",
+      "citation": {
+        "exact_quote": "己酉月金刃死"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "酉",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_pillar": "己酉"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "己酉月",
+          "金刃死"
+        ],
+        "conclusion": "乙酉日丙子时生于己酉月，原文断「金刃死」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yihai_bingzi_01",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yihai_bingzi_01",
+      "citation": {
+        "exact_quote": "乙亥日丙子時化青赤主福"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "亥",
+        "hour_stem": "丙",
+        "hour_branch": "子"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "positive",
+        "keywords": [
+          "化青赤",
+          "主福"
+        ],
+        "conclusion": "乙亥日丙子时，原文称「化青赤」并断「主福」。「化青赤」是原文格名，其成立条件不在本系统词表内，本条只录日时这一层，不替它补判定。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yihai_bingzi_02",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yihai_bingzi_02",
+      "citation": {
+        "exact_quote": "丑月行南運郎官"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "亥",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_branch": "丑"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "positive",
+        "keywords": [
+          "丑月",
+          "郎官"
+        ],
+        "conclusion": "乙亥日丙子时生于丑月，原文断「郎官」。原文同句还要求「行南运」，那一半依赖大运，未录。"
+      },
+      "confidence": "LOW",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yihai_bingzi_03",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yihai_bingzi_03",
+      "citation": {
+        "exact_quote": "忌壬辰月刑"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "亥",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_pillar": "壬辰"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "壬辰月",
+          "刑"
+        ],
+        "conclusion": "乙亥日丙子时生于壬辰月，原文断「刑」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    },
+    {
+      "atom_version": 1,
+      "rule_id": "rule_bazi_sanmingtonghui_j8_yihai_bingzi_04",
+      "urn": "urn:divination:bazi:sanmingtonghui:ws761697:j8.liuyi_bingzi.yihai_bingzi_04",
+      "citation": {
+        "exact_quote": "乙酉月破祖髙貴中惡死"
+      },
+      "condition": {
+        "day_stem": "乙",
+        "day_branch": "亥",
+        "hour_stem": "丙",
+        "hour_branch": "子",
+        "month_pillar": "乙酉"
+      },
+      "assertion": {
+        "theme_domain": "destiny",
+        "polarity": "negative",
+        "keywords": [
+          "乙酉月",
+          "髙貴中惡死"
+        ],
+        "conclusion": "乙亥日丙子时生于乙酉月，原文断「破祖，高贵中恶死」。原文的判断照录，本系统不据此预测。"
+      },
+      "confidence": "MEDIUM",
+      "school": "zi_ping_orthodox",
+      "category": "day_hour",
+      "review_status": "ACTIVE",
+      "note": ""
+    }
+  ]
+}
