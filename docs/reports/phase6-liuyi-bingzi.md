@@ -106,7 +106,8 @@ LOW 的 9 条全部有具体原因：原文另有否定条件、限定语，或�
 | `ruff check` | All checks passed |
 | `mypy`（项目配置，89 文件） | Success: no issues found |
 | 端到端 `/api/analyze` | HTTP 200，新断语在链上 |
-| 全量测试（最终状态） | 后台进行中，结果见提交后补记 |
+| 本地全量测试（提交后） | 后台进行中（约 29 分钟），结果待补记 |
+| GitHub Actions | 本次推送触发 run **42252170755**，查询时 in_progress；上一轮 42064247051 已确认 success |
 
 **变异探针**：撤掉 `shared_registry` 复用、只复核 4 条重叠，构建次数从 1 变 6；
 撤到底直接被 SIGTERM。守卫不是摆设。
